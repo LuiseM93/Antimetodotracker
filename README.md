@@ -1,1 +1,0 @@
-Aplicacion Del Antimétodo

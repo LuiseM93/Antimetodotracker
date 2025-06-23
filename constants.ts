@@ -345,13 +345,13 @@ export const ANTIMETHOD_ACTIVITIES_DETAILS: ActivityDetailType[] = [
     name: "Inmersión intensiva con subtítulos (revisar palabras)",
     description: "Consiste en consumir contenido con subtítulos en el idioma meta, prestando mucha atención para deducir el significado por el contexto y, en ocasiones, utilizando herramientas de apoyo para revisar palabras específicas. Principalmente visual y auditivo.",
     category: ActivityCategory.ACTIVE_IMMERSION,
-    skill: Skill.LISTENING, // Or READING, depending on emphasis. Defaulting to Listening for video content.
+    skill: Skill.READING, 
   },
   {
     name: "Inmersión con subtítulos freeflow",
     description: "Implica consumir contenido con subtítulos en el idioma meta, pero sin detenerse a buscar cada palabra desconocida, permitiendo que el aprendizaje ocurra de forma más fluida y natural por el contexto.",
     category: ActivityCategory.ACTIVE_IMMERSION,
-    skill: Skill.LISTENING, // Primarily for video/audio content
+    skill: Skill.READING, 
   },
   {
     name: "Inmersión Pasiva (podcasts, música de fondo)",

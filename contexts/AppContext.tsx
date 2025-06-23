@@ -1,0 +1,516 @@
+
+import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
+import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView } from '../types';
+import { storageService } from '../services/storageService';
+import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING } from '../constants';
+
+const USER_PROFILE_KEY = 'ANTIMETODO_USER_PROFILE';
+const ACTIVITY_LOGS_KEY = 'ANTIMETODO_ACTIVITY_LOGS';
+const USER_GOALS_KEY = 'ANTIMETODO_USER_GOALS_V2'; // Incremented version for new UserGoal structure
+const DAILY_TARGETS_KEY = 'ANTIMETODO_DAILY_TARGETS_V3';
+const APP_RESOURCES_KEY = 'ANTIMETODO_APP_RESOURCES';
+const SAVED_DAILY_ROUTINES_KEY = 'ANTIMETODO_SAVED_DAILY_ROUTINES';
+// const WEEKLY_PLAN_KEY = 'ANTIMETODO_WEEKLY_PLAN'; // Placeholder for future weekly plan
+
+const DEFAULT_LOG_DURATION_MINUTES = 30;
+const DEFAULT_LOG_TIMER_MODE: TimerMode = 'manual';
+const DEFAULT_APP_THEME: AppTheme = 'light';
+
+
+interface AppContextType {
+  userProfile: UserProfile | null;
+  activityLogs: ActivityLogEntry[];
+  userGoals: UserGoal[];
+  dailyTargets: DailyActivityGoal[];
+  resources: Resource[];
+  savedDailyRoutines: SavedDailyRoutine[];
+  // weeklyPlan: any; // Placeholder for weekly plan structure
+  isLoading: boolean;
+  isInitialLoadComplete: boolean;
+  appTheme: AppTheme;
+  // currentStreak: number; // Removed streak
+  
+  initializeUserProfile: (profile: UserProfile) => void;
+  updateUserProfile: (updates: Partial<UserProfile>) => void;
+  updateAppTheme: (theme: AppTheme) => void;
+
+  addActivityLog: (logData: Omit<ActivityLogEntry, 'id'>) => void;
+  updateActivityLog: (log: ActivityLogEntry) => void;
+  deleteActivityLog: (logId: string) => void;
+  
+  addUserGoal: (goalData: Omit<UserGoal, 'id' | 'achieved'>) => void;
+  updateUserGoal: (updatedGoal: UserGoal) => void; // New function
+  toggleUserGoal: (goalId: string) => void;
+  deleteUserGoal: (goalId: string) => void;
+  
+  addDailyTarget: (targetData: Omit<DailyActivityGoal, 'id'>) => void;
+  updateDailyTarget: (updatedTarget: DailyActivityGoal) => void;
+  deleteDailyTarget: (targetId: string) => void;
+  saveCurrentDailyTargetsAsRoutine: (name: string) => void;
+  loadDailyRoutine: (routineId: string) => void;
+  deleteDailyRoutine: (routineId: string) => void;
+  updateSavedDailyRoutine: (routine: SavedDailyRoutine) => void;
+
+
+  addResource: (resource: Omit<Resource, 'id'>) => void;
+  updateResource: (resource: Resource) => void;
+  deleteResource: (resourceId: string) => void;
+  getCurrentStageDetails: () => typeof STAGE_DETAILS[AntimethodStage] | null;
+
+  exportAppData: () => AppDataExport;
+  importAppData: (data: AppDataExport) => void;
+  resetAllData: () => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
+  const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
+  const [dailyTargets, setDailyTargets] = useState<DailyActivityGoal[]>(DEFAULT_DAILY_GOALS); 
+  const [resources, setResources] = useState<Resource[]>(INITIAL_RESOURCES);
+  const [savedDailyRoutines, setSavedDailyRoutines] = useState<SavedDailyRoutine[]>([]);
+  // const [weeklyPlan, setWeeklyPlan] = useState<any>({}); // Placeholder
+  const [appTheme, setAppTheme] = useState<AppTheme>(DEFAULT_APP_THEME);
+  // const [currentStreak, setCurrentStreak] = useState<number>(0); // Removed streak
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+  useEffect(() => {
+    const loadData = () => {
+      setIsLoading(true);
+      let storedProfile = storageService.getItem<UserProfile>(USER_PROFILE_KEY);
+      const storedLogs = storageService.getItem<ActivityLogEntry[]>(ACTIVITY_LOGS_KEY, []);
+      const storedGoals = storageService.getItem<UserGoal[]>(USER_GOALS_KEY, []); // Use new key if structure changed
+      const storedTargets = storageService.getItem<DailyActivityGoal[]>(DAILY_TARGETS_KEY, DEFAULT_DAILY_GOALS); 
+      const storedResources = storageService.getItem<Resource[]>(APP_RESOURCES_KEY, INITIAL_RESOURCES);
+      const storedSavedRoutines = storageService.getItem<SavedDailyRoutine[]>(SAVED_DAILY_ROUTINES_KEY, []);
+      // const storedWeeklyPlan = storageService.getItem<any>(WEEKLY_PLAN_KEY, {}); // Placeholder
+
+      if (storedProfile) {
+        storedProfile.defaultLogDurationMinutes = storedProfile.defaultLogDurationMinutes ?? DEFAULT_LOG_DURATION_MINUTES;
+        storedProfile.defaultLogTimerMode = storedProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE;
+        storedProfile.theme = storedProfile.theme ?? DEFAULT_APP_THEME;
+        storedProfile.learningLanguages = storedProfile.learningLanguages || []; // Ensure exists
+        
+        // Ensure primary language is valid
+        if (!storedProfile.primaryLanguage || (storedProfile.learningLanguages.length > 0 && !storedProfile.learningLanguages.includes(storedProfile.primaryLanguage))) {
+            storedProfile.primaryLanguage = storedProfile.learningLanguages.length > 0 ? storedProfile.learningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+        } else if (storedProfile.learningLanguages.length === 0 && storedProfile.primaryLanguage) {
+            // If no learning languages but primary exists, it might be stale. Default it.
+             storedProfile.primaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language; // Fallback to a global default
+        }
+
+
+        // Ensure goals have new fields
+        const updatedGoals = (storedGoals || []).map(g => ({
+            ...g,
+            currentValue: g.currentValue ?? 0,
+            targetValue: g.targetValue ?? 0,
+            unit: g.unit ?? ''
+        }));
+
+        setUserProfile(storedProfile);
+        setUserGoals(updatedGoals);
+        storageService.setItem(USER_GOALS_KEY, updatedGoals); // Save back if migration happened
+
+        setAppTheme(storedProfile.theme);
+      } else {
+        setAppTheme(DEFAULT_APP_THEME); // Strictly default to light if no profile
+      }
+      
+      setActivityLogs(storedLogs || []);
+      setDailyTargets(storedTargets || DEFAULT_DAILY_GOALS);
+      setResources(storedResources || INITIAL_RESOURCES);
+      setSavedDailyRoutines(storedSavedRoutines || []);
+      // setWeeklyPlan(storedWeeklyPlan); // Placeholder
+      
+      setIsLoading(false);
+      setIsInitialLoadComplete(true);
+    };
+    loadData();
+  }, []);
+  
+  // Removed streak calculation logic that was here
+
+  const updateAppTheme = useCallback((theme: AppTheme) => {
+    setAppTheme(theme);
+    if (userProfile) {
+      const updatedProfile = { ...userProfile, theme };
+      setUserProfile(updatedProfile);
+      storageService.setItem(USER_PROFILE_KEY, updatedProfile);
+    }
+  }, [userProfile]);
+
+  const initializeUserProfile = useCallback((profile: UserProfile) => {
+    const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
+    const initialLearningLanguages = profile.learningLanguages || [];
+    let initialPrimaryLanguage = profile.primaryLanguage;
+
+    if (!initialPrimaryLanguage || (initialLearningLanguages.length > 0 && !initialLearningLanguages.includes(initialPrimaryLanguage))) {
+        initialPrimaryLanguage = initialLearningLanguages.length > 0 ? initialLearningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+    } else if (initialLearningLanguages.length === 0) {
+        initialPrimaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language; // Global default if no learning langs
+    }
+
+
+    const profileWithDefaults: UserProfile = {
+        ...profile,
+        learningLanguages: initialLearningLanguages,
+        defaultLogDurationMinutes: profile.defaultLogDurationMinutes ?? DEFAULT_LOG_DURATION_MINUTES,
+        defaultLogTimerMode: profile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+        primaryLanguage: initialPrimaryLanguage,
+        theme: initialTheme,
+        goals: (profile.goals || []).map(g => ({ // Ensure new goal fields on init
+            ...g,
+            currentValue: g.currentValue ?? 0,
+            targetValue: g.targetValue ?? 0,
+            unit: g.unit ?? ''
+        }))
+    };
+    setUserProfile(profileWithDefaults);
+    setAppTheme(initialTheme);
+    storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
+    setUserGoals(profileWithDefaults.goals);
+    storageService.setItem(USER_GOALS_KEY, profileWithDefaults.goals);
+  }, []);
+
+  const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
+    setUserProfile(prev => {
+      if (!prev) return null;
+  
+      let profileInProgress = { ...prev, ...updates };
+      
+      // Ensure learningLanguages is always an array, even if updates try to set it to undefined or null
+      profileInProgress.learningLanguages = profileInProgress.learningLanguages || [];
+  
+      const effectiveLearningLanguages = profileInProgress.learningLanguages;
+      let finalPrimaryLanguage = profileInProgress.primaryLanguage;
+  
+      if (effectiveLearningLanguages.length > 0) {
+        if (!finalPrimaryLanguage || !effectiveLearningLanguages.includes(finalPrimaryLanguage)) {
+          finalPrimaryLanguage = effectiveLearningLanguages[0];
+        }
+      } else {
+        finalPrimaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      }
+      profileInProgress.primaryLanguage = finalPrimaryLanguage;
+  
+      const newProfile: UserProfile = {
+        ...profileInProgress,
+        defaultLogDurationMinutes: profileInProgress.defaultLogDurationMinutes ?? DEFAULT_LOG_DURATION_MINUTES,
+        defaultLogTimerMode: profileInProgress.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+        theme: profileInProgress.theme ?? DEFAULT_APP_THEME,
+      };
+      
+      if (updates.goals) { 
+        newProfile.goals = updates.goals.map(g => ({
+            ...g,
+            currentValue: g.currentValue ?? 0,
+            targetValue: g.targetValue ?? 0,
+            unit: g.unit ?? ''
+        }));
+         setUserGoals(newProfile.goals); 
+         storageService.setItem(USER_GOALS_KEY, newProfile.goals);
+      }
+      
+      if (newProfile.theme && newProfile.theme !== prev.theme) {
+        setAppTheme(newProfile.theme);
+      }
+  
+      storageService.setItem(USER_PROFILE_KEY, newProfile);
+      return newProfile;
+    });
+  }, [setAppTheme, setUserGoals]);
+
+
+  const addActivityLog = useCallback((logData: Omit<ActivityLogEntry, 'id'>) => {
+    setActivityLogs(prev => {
+      const newLog: ActivityLogEntry = {
+        ...logData,
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        startTime: logData.startTime || undefined,
+      };
+      const updatedLogs = [newLog, ...prev]; 
+      storageService.setItem(ACTIVITY_LOGS_KEY, updatedLogs);
+      return updatedLogs;
+    });
+  }, []);
+  
+  const updateActivityLog = useCallback((updatedLog: ActivityLogEntry) => {
+    setActivityLogs(prevLogs => {
+      const newLogs = prevLogs.map(log => log.id === updatedLog.id ? updatedLog : log);
+      storageService.setItem(ACTIVITY_LOGS_KEY, newLogs);
+      return newLogs;
+    });
+  }, []);
+
+  const deleteActivityLog = useCallback((logId: string) => {
+    setActivityLogs(prevLogs => {
+      const newLogs = prevLogs.filter(log => log.id !== logId);
+      storageService.setItem(ACTIVITY_LOGS_KEY, newLogs);
+      return newLogs;
+    });
+  }, []);
+
+  const addUserGoal = useCallback((goalData: Omit<UserGoal, 'id' | 'achieved'>) => {
+    setUserGoals(prev => {
+      const newGoal: UserGoal = {
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        achieved: false,
+        ...goalData,
+        currentValue: goalData.currentValue ?? 0,
+        targetValue: goalData.targetValue ?? 0,
+        unit: goalData.unit ?? '',
+      };
+      const updatedGoals = [...prev, newGoal];
+      storageService.setItem(USER_GOALS_KEY, updatedGoals);
+      return updatedGoals;
+    });
+  }, []);
+
+  const updateUserGoal = useCallback((updatedGoal: UserGoal) => {
+    setUserGoals(prev => {
+        const updatedGoals = prev.map(g => g.id === updatedGoal.id ? {
+            ...g, 
+            ...updatedGoal, 
+            currentValue: updatedGoal.currentValue ?? g.currentValue ?? 0,
+            targetValue: updatedGoal.targetValue ?? g.targetValue ?? 0,
+            unit: updatedGoal.unit ?? g.unit ?? '',
+        } : g);
+        storageService.setItem(USER_GOALS_KEY, updatedGoals);
+        return updatedGoals;
+    });
+  }, []);
+
+
+  const toggleUserGoal = useCallback((goalId: string) => {
+    setUserGoals(prev => {
+      const updatedGoals = prev.map(g => g.id === goalId ? { ...g, achieved: !g.achieved } : g);
+      storageService.setItem(USER_GOALS_KEY, updatedGoals);
+      return updatedGoals;
+    });
+  }, []);
+  
+  const deleteUserGoal = useCallback((goalId: string) => {
+    setUserGoals(prev => {
+      const updatedGoals = prev.filter(g => g.id !== goalId);
+      storageService.setItem(USER_GOALS_KEY, updatedGoals);
+      return updatedGoals;
+    });
+  }, []);
+
+  const addDailyTarget = useCallback((targetData: Omit<DailyActivityGoal, 'id'>) => {
+    setDailyTargets(prev => {
+      const newTarget: DailyActivityGoal = {
+        ...targetData,
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+      };
+      const updatedTargets = [...prev, newTarget];
+      storageService.setItem(DAILY_TARGETS_KEY, updatedTargets);
+      return updatedTargets;
+    });
+  }, []);
+
+  const updateDailyTarget = useCallback((targetToUpdate: DailyActivityGoal) => {
+    setDailyTargets(prev => {
+      const updatedTargets = prev.map(t => t.id === targetToUpdate.id ? targetToUpdate : t);
+      storageService.setItem(DAILY_TARGETS_KEY, updatedTargets);
+      return updatedTargets;
+    });
+  }, []);
+
+  const deleteDailyTarget = useCallback((targetId: string) => {
+    setDailyTargets(prev => {
+      const updatedTargets = prev.filter(t => t.id !== targetId);
+      storageService.setItem(DAILY_TARGETS_KEY, updatedTargets);
+      return updatedTargets;
+    });
+  }, []);
+
+  const saveCurrentDailyTargetsAsRoutine = useCallback((name: string) => {
+    setSavedDailyRoutines(prev => {
+      const newRoutine: SavedDailyRoutine = {
+        id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        name,
+        targets: [...dailyTargets] 
+      };
+      const updatedRoutines = [...prev, newRoutine];
+      storageService.setItem(SAVED_DAILY_ROUTINES_KEY, updatedRoutines);
+      return updatedRoutines;
+    });
+  }, [dailyTargets]);
+
+  const loadDailyRoutine = useCallback((routineId: string) => {
+    const routineToLoad = savedDailyRoutines.find(r => r.id === routineId);
+    if (routineToLoad) {
+      setDailyTargets([...routineToLoad.targets]); 
+      storageService.setItem(DAILY_TARGETS_KEY, [...routineToLoad.targets]);
+    }
+  }, [savedDailyRoutines]);
+
+  const deleteDailyRoutine = useCallback((routineId: string) => {
+    setSavedDailyRoutines(prev => {
+      const updatedRoutines = prev.filter(r => r.id !== routineId);
+      storageService.setItem(SAVED_DAILY_ROUTINES_KEY, updatedRoutines);
+      return updatedRoutines;
+    });
+  }, []);
+  
+  const updateSavedDailyRoutine = useCallback((routineToUpdate: SavedDailyRoutine) => {
+    setSavedDailyRoutines(prev => {
+      const updatedRoutines = prev.map(r => r.id === routineToUpdate.id ? routineToUpdate : r);
+      storageService.setItem(SAVED_DAILY_ROUTINES_KEY, updatedRoutines);
+      return updatedRoutines;
+    });
+  }, []);
+
+
+  const addResource = useCallback((resourceData: Omit<Resource, 'id'>) => {
+    setResources(prev => {
+        const newResource: Resource = {
+            ...resourceData,
+            id: new Date().toISOString() + Math.random().toString(36).substr(2, 9),
+        };
+        const updatedResources = [...prev, newResource];
+        storageService.setItem(APP_RESOURCES_KEY, updatedResources);
+        return updatedResources;
+    });
+  }, []);
+
+  const updateResource = useCallback((updatedResource: Resource) => {
+    setResources(prev => {
+        const newResources = prev.map(r => r.id === updatedResource.id ? updatedResource : r);
+        storageService.setItem(APP_RESOURCES_KEY, newResources);
+        return newResources;
+    });
+  }, []);
+
+  const deleteResource = useCallback((resourceId: string) => {
+    setResources(prev => {
+        const newResources = prev.filter(r => r.id !== resourceId);
+        storageService.setItem(APP_RESOURCES_KEY, newResources);
+        return newResources;
+    });
+  }, []);
+  
+  const getCurrentStageDetails = useCallback(() => {
+    if (userProfile) {
+      return STAGE_DETAILS[userProfile.currentStage];
+    }
+    return null;
+  }, [userProfile]);
+
+  const exportAppData = useCallback((): AppDataExport => {
+    return {
+      userProfile,
+      activityLogs,
+      userGoals,
+      dailyTargets,
+      resources,
+      savedDailyRoutines,
+    };
+  }, [userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines]);
+
+  const importAppData = useCallback((data: AppDataExport) => {
+    if (data.userProfile) {
+      const importedTheme = data.userProfile.theme ?? DEFAULT_APP_THEME;
+      const importedLearningLanguages = data.userProfile.learningLanguages || [];
+      let importedPrimaryLang = data.userProfile.primaryLanguage;
+      
+      if (!importedPrimaryLang || (importedLearningLanguages.length > 0 && !importedLearningLanguages.includes(importedPrimaryLang))) {
+        importedPrimaryLang = importedLearningLanguages.length > 0 ? importedLearningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      } else if (importedLearningLanguages.length === 0) {
+        importedPrimaryLang = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      }
+
+      const profileWithDefaults: UserProfile = {
+        ...data.userProfile,
+        learningLanguages: importedLearningLanguages,
+        defaultLogDurationMinutes: data.userProfile.defaultLogDurationMinutes ?? DEFAULT_LOG_DURATION_MINUTES,
+        defaultLogTimerMode: data.userProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+        primaryLanguage: importedPrimaryLang,
+        theme: importedTheme,
+        goals: (data.userProfile.goals || []).map(g => ({ 
+            ...g,
+            currentValue: g.currentValue ?? 0,
+            targetValue: g.targetValue ?? 0,
+            unit: g.unit ?? ''
+        }))
+      };
+      setUserProfile(profileWithDefaults);
+      setAppTheme(importedTheme);
+      storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
+    } else {
+      setUserProfile(null);
+      storageService.removeItem(USER_PROFILE_KEY);
+      setAppTheme(DEFAULT_APP_THEME); 
+    }
+    setActivityLogs(data.activityLogs || []);
+    storageService.setItem(ACTIVITY_LOGS_KEY, data.activityLogs || []);
+    
+    const importedUserGoals = (data.userGoals || []).map(g => ({
+        ...g,
+        currentValue: g.currentValue ?? 0,
+        targetValue: g.targetValue ?? 0,
+        unit: g.unit ?? ''
+    }));
+    setUserGoals(importedUserGoals);
+    storageService.setItem(USER_GOALS_KEY, importedUserGoals);
+
+    setDailyTargets(data.dailyTargets || DEFAULT_DAILY_GOALS);
+    storageService.setItem(DAILY_TARGETS_KEY, data.dailyTargets || DEFAULT_DAILY_GOALS);
+    setResources(data.resources || INITIAL_RESOURCES);
+    storageService.setItem(APP_RESOURCES_KEY, data.resources || INITIAL_RESOURCES);
+    setSavedDailyRoutines(data.savedDailyRoutines || []);
+    storageService.setItem(SAVED_DAILY_ROUTINES_KEY, data.savedDailyRoutines || []);
+
+    alert("Datos importados con éxito. La aplicación se actualizará.");
+  }, [setUserProfile, setAppTheme, setUserGoals, setActivityLogs, setDailyTargets, setResources, setSavedDailyRoutines]);
+
+  const resetAllData = useCallback(() => {
+    storageService.removeItem(USER_PROFILE_KEY);
+    storageService.removeItem(ACTIVITY_LOGS_KEY);
+    storageService.removeItem(USER_GOALS_KEY);
+    storageService.removeItem(DAILY_TARGETS_KEY);
+    storageService.removeItem(SAVED_DAILY_ROUTINES_KEY);
+
+    setUserProfile(null);
+    setActivityLogs([]);
+    setUserGoals([]);
+    setDailyTargets(DEFAULT_DAILY_GOALS);
+    setSavedDailyRoutines([]);
+    
+    setAppTheme(DEFAULT_APP_THEME); 
+    
+    setIsInitialLoadComplete(false); 
+    setTimeout(() => setIsInitialLoadComplete(true), 0); 
+    alert("Todos los datos han sido restablecidos. Serás redirigido a la pantalla de bienvenida.");
+  }, [setAppTheme, setUserProfile, setUserGoals, setActivityLogs, setDailyTargets, setSavedDailyRoutines, setIsInitialLoadComplete]);
+
+
+  return (
+    <AppContext.Provider value={{
+      userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines, 
+      isLoading, isInitialLoadComplete, appTheme, 
+      initializeUserProfile, updateUserProfile, updateAppTheme,
+      addActivityLog, updateActivityLog, deleteActivityLog,
+      addUserGoal, updateUserGoal, toggleUserGoal, deleteUserGoal,
+      addDailyTarget, updateDailyTarget, deleteDailyTarget, saveCurrentDailyTargetsAsRoutine, loadDailyRoutine, deleteDailyRoutine, updateSavedDailyRoutine,
+      addResource, updateResource, deleteResource, getCurrentStageDetails,
+      exportAppData, importAppData, resetAllData,
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useAppContext = (): AppContextType => {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useAppContext must be used within an AppContextProvider');
+  }
+  return context;
+};

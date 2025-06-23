@@ -354,12 +354,6 @@ export const ANTIMETHOD_ACTIVITIES_DETAILS: ActivityDetailType[] = [
     skill: Skill.READING, 
   },
   {
-    name: "Inmersión Pasiva (podcasts, música de fondo)",
-    description: "Consiste en exponerse al idioma de fondo, prestando atención parcial, como escuchar podcasts o música mientras se realizan otras actividades, para aumentar la exposición general.",
-    category: ActivityCategory.PASSIVE_IMMERSION,
-    skill: Skill.LISTENING,
-  },
-  {
     name: "Free Flow Listening (sin subtítulos)",
     description: "Se enfoca en escuchar y comprender el idioma sin el apoyo de subtítulos, desarrollando la habilidad de entender el habla natural. Puede ser TV, YouTube, podcasts, etc.",
     category: ActivityCategory.ACTIVE_IMMERSION,
@@ -369,6 +363,24 @@ export const ANTIMETHOD_ACTIVITIES_DETAILS: ActivityDetailType[] = [
     name: "Intensive Listening (opcional)",
     description: "Implica escuchar repetidamente un diálogo corto (hasta tres veces), luego leer su transcripción y finalmente volver a escucharlo para una comprensión profunda.",
     category: ActivityCategory.ACTIVE_IMMERSION,
+    skill: Skill.LISTENING,
+  },
+  {
+    name: "Videojuegos (con subtítulos en idioma meta)",
+    description: "Jugar videojuegos con diálogos y textos en el idioma meta, utilizando subtítulos en el mismo idioma para reforzar la lectura y la asociación audio-texto.",
+    category: ActivityCategory.ACTIVE_IMMERSION,
+    skill: Skill.READING,
+  },
+  {
+    name: "Videojuegos (audio en idioma meta, sin subtítulos)",
+    description: "Jugar videojuegos con el audio en el idioma meta, centrándose en la comprensión auditiva sin la ayuda de subtítulos.",
+    category: ActivityCategory.ACTIVE_IMMERSION,
+    skill: Skill.LISTENING,
+  },
+  {
+    name: "Inmersión Pasiva (podcasts, música de fondo)",
+    description: "Consiste en exponerse al idioma de fondo, prestando atención parcial, como escuchar podcasts o música mientras se realizan otras actividades, para aumentar la exposición general.",
+    category: ActivityCategory.PASSIVE_IMMERSION,
     skill: Skill.LISTENING,
   },
   {

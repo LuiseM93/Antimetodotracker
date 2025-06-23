@@ -173,25 +173,11 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
-  <div id="root">
-    <p style="padding: 20px; text-align: center; color: var(--color-text-main);">Si ves este mensaje, el HTML básico se ha cargado. Verificando scripts...</p>
-  </div>
-  <script type="text/javascript">
-    // Inline script to confirm basic JS execution
-    console.log("Inline diagnostic script executed. Root div should be present.");
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('DOM fully loaded and parsed. Main application script will attempt to load next.');
-      const rootDiv = document.getElementById('root');
-      if (rootDiv) {
-        const p = rootDiv.querySelector('p');
-        if (p) {
-           p.textContent = 'HTML y scripts básicos listos. Intentando cargar la aplicación principal... Revisa la consola para ver errores de carga del script del módulo.';
-        }
-      }
-    });
-  </script>
+  <div id="root"></div>
   <script type="module" src="https://esm.sh/gh/LuiseM93/Antimetodotracker@main/index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <base href="/Antimetodotracker/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>El Antimétodo - Adquiere Idiomas</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/logo.png" />
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#4a148c" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://luisem93.github.io/Antimetodotracker/">
+  <meta property="og:title" content="El Antimétodo - Adquiere Idiomas">
+  <meta property="og:description" content="Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.">
+  <meta property="og:image" content="https://luisem93.github.io/Antimetodotracker/assets/social-preview.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://luisem93.github.io/Antimetodotracker/">
+  <meta property="twitter:title" content="El Antimétodo - Adquiere Idiomas">
+  <meta property="twitter:description" content="Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.">
+  <meta property="twitter:image" content="https://luisem93.github.io/Antimetodotracker/assets/social-preview.jpg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Light Theme (Default) */
+    :root {
+      --color-primary: #4a148c;
+      --color-secondary: #7b1fa2;
+      --color-accent: #9c27b0;
+      --color-light-purple: #d1c4e9;
+      
+      --color-app-bg: #f8f7fa;
+      --color-card-bg: #ffffff;
+      --color-text-main: #333333;
+      --color-text-light: #666666;
+      --color-text-inverse: #ffffff; /* Text on dark primary/secondary bg */
+      
+      --color-input-border: #cbd5e1; /* approx. gray-300 */
+      --color-input-bg: #ffffff;
+      --color-input-text: #111827; /* approx. gray-900 */
+      --color-placeholder-text: #9ca3af; /* approx. gray-400 */
+      
+      --color-error: #ef4444;
+      --color-success: #22c55e;
+      --color-warning: #f97316;
+      --color-nav-bg: var(--color-primary);
+      --color-nav-text: #f3e5f5; /* Lighter purple text for nav */
+      --color-nav-hover-bg: var(--color-secondary);
+      --color-nav-active-bg: var(--color-accent);
+      --color-nav-active-text: #ffffff;
+      --color-border-light: var(--color-light-purple); /* General light border */
+      --color-chart-primary-line-bar: var(--color-accent);
+      --color-chart-grid-line: #e0e0e0;
+      --color-chart-text: #555555;
+      --color-chart-tooltip-bg: #ffffff;
+      --color-chart-tooltip-border: #cccccc;
+    }
+
+    /* Dark Theme */
+    html.dark {
+      --color-primary: #8e44ad; /* Slightly lighter purple for dark mode primary */
+      --color-secondary: #9b59b6; /* Lighter still for secondary */
+      --color-accent: #bb86fc; /* Common Material Design dark accent */
+      --color-light-purple: #3e2753; /* Darker purple for "light" variant in dark mode */
+      
+      --color-app-bg: #121212;
+      --color-card-bg: #1e1e1e; /* Material dark surface */
+      --color-text-main: #e0e0e0;
+      --color-text-light: #b0b0b0;
+      --color-text-inverse: #121212; /* Text on light accent bg */
+
+      --color-input-border: #4b5563; /* Gray-600 */
+      --color-input-bg: #2d3748;    /* Gray-800 or similar dark */
+      --color-input-text: #e0e0e0;
+      --color-placeholder-text: #718096; /* Gray-500 */
+      
+      --color-error: #cf6679; /* Material dark error */
+      --color-success: #66bb6a; 
+      --color-warning: #f59e0b; 
+      --color-nav-bg: #1e1e1e; /* Darker nav bg */
+      --color-nav-text: #c7c7c7;
+      --color-nav-hover-bg: #2c2c3a;
+      --color-nav-active-bg: var(--color-accent);
+      --color-nav-active-text: #121212;
+      --color-border-light: #3e3e3e; /* Darker border */
+      --color-chart-primary-line-bar: var(--color-accent);
+      --color-chart-grid-line: #4B5563;
+      --color-chart-text: var(--color-text-light);
+      --color-chart-tooltip-bg: #374151;
+      --color-chart-tooltip-border: #4B5563;
+    }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--color-app-bg); 
+      color: var(--color-text-main);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    h1, h2, h3, h4, h5, h6, .font-poppins {
+      font-family: 'Poppins', sans-serif;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--color-light-purple);
+      opacity: 0.2;
+      border-radius: 10px;
+    }
+    html.dark ::-webkit-scrollbar-track {
+      background: #2d3748; /* Darker track for dark mode */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-accent);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-secondary);
+    }
+    html.dark ::-webkit-scrollbar-thumb {
+      background: var(--color-primary);
+    }
+    html.dark ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-secondary);
+    }
+
+
+    /* Ensure selects and inputs adapt */
+    select, input[type="text"], input[type="date"], input[type="time"], input[type="number"], textarea {
+        background-color: var(--color-input-bg) !important;
+        border-color: var(--color-input-border) !important;
+        color: var(--color-input-text) !important;
+        border-width: 1px; /* Ensure border is visible */
+    }
+    select option { /* May not be stylable consistently across browsers */
+        background-color: var(--color-input-bg);
+        color: var(--color-input-text);
+    }
+    input::placeholder, textarea::placeholder {
+        color: var(--color-placeholder-text) !important;
+    }
+    /* Specific overrides for Tailwind classes if needed, or prefer using CSS variables in Tailwind config if possible */
+    .bg-white { background-color: var(--color-card-bg); } /* This ensures Tailwind's bg-white respects the theme */
+    html.dark .bg-white { background-color: var(--color-card-bg); } /* Explicit for dark mode if needed */
+    .text-gray-800 { color: var(--color-text-main); }
+    /* Add more specific overrides if Tailwind utilities don't pick up CSS vars directly in all cases */
+
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.6.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.2",
+    "recharts": "https://esm.sh/recharts@^2.15.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="https://esm.sh/gh/LuiseM93/Antimetodotracker@main/index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

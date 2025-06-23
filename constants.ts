@@ -201,7 +201,7 @@ export const ONBOARDING_SCREENS = [
   {
     title: "Input Comprensible es la Clave",
     text: "Nos centramos en la exposición masiva a contenido que entiendes y te gusta: series, música, videojuegos, libros... ¡lo que tú elijas!",
-    image: "assets/recursos-viajero-antimetodo.jpg"
+    image: "assets/recursos-viajero-antimetodo.png"
   },
   {
     title: "Tú Tienes el Control",

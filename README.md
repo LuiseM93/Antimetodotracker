@@ -1,5 +1,3 @@
-¡Claro! Aquí tienes un borrador de un README.md para la página de GitHub de "El Antimétodo - Adquiere Idiomas", enfocado en captar el interés y explicar rápidamente el valor de la aplicación:
-
 El Antimétodo - Adquiere Idiomas
 ¿Cansado de la forma tradicional de aprender idiomas? ¿Las listas de vocabulario te aburren y la gramática te frustra?
 

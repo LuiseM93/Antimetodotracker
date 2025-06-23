@@ -1,7 +1,0 @@
-{
-  "name": "El Antimétodo - Adquiere Idiomas",
-  "description": "Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.",
-  "baseUrl": "https://luisem93.github.io/Antimetodotracker/",
-  "requestFramePermissions": [],
-  "prompt": "Please ensure you have a social preview image at /assets/social-preview.png (recommended 1200x630px) for optimal social media sharing cards. The Open Graph and Twitter Card meta tags in index.html reference this path."
-}

@@ -4,12 +4,19 @@ import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, Dai
 import { storageService } from '../services/storageService';
 import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS } from '../constants';
 
-const USER_PROFILE_KEY = 'ANTIMETODO_USER_PROFILE_V3'; // Version bump for dashboardCardDisplayMode
+const USER_PROFILE_KEY = 'ANTIMETODO_USER_PROFILE_V3';
 const ACTIVITY_LOGS_KEY = 'ANTIMETODO_ACTIVITY_LOGS_V2'; 
 const USER_GOALS_KEY = 'ANTIMETODO_USER_GOALS_V2'; 
 const DAILY_TARGETS_KEY = 'ANTIMETODO_DAILY_TARGETS_V3';
 const APP_RESOURCES_KEY = 'ANTIMETODO_APP_RESOURCES';
 const SAVED_DAILY_ROUTINES_KEY = 'ANTIMETODO_SAVED_DAILY_ROUTINES';
+
+// Define potential older keys for migration
+const OLD_USER_PROFILE_KEYS = ['ANTIMETODO_USER_PROFILE_V2', 'ANTIMETODO_USER_PROFILE'];
+const OLD_ACTIVITY_LOGS_KEYS = ['ANTIMETODO_ACTIVITY_LOGS']; // Assuming only one previous unversioned or V1 was just 'ANTIMETODO_ACTIVITY_LOGS'
+const OLD_USER_GOALS_KEYS = ['ANTIMETODO_USER_GOALS'];
+const OLD_DAILY_TARGETS_KEYS = ['ANTIMETODO_DAILY_TARGETS_V2', 'ANTIMETODO_DAILY_TARGETS'];
+
 
 const DEFAULT_LOG_DURATION_MINUTES = 30;
 const DEFAULT_LOG_TIMER_MODE: TimerMode = 'manual';
@@ -70,6 +77,30 @@ const activityDetailsMap = new Map<string, ActivityDetailType>(
   ANTIMETHOD_ACTIVITIES_DETAILS.map(detail => [detail.name, detail])
 );
 
+// Helper function to load data with migration support
+function loadDataWithMigration<T>(
+    currentKey: string,
+    oldKeys: string[],
+    defaultValue: T
+): T {
+    let data = storageService.getItem<T>(currentKey);
+
+    if (data === null) { // Try loading from old keys
+        for (const oldKey of oldKeys) {
+            const oldData = storageService.getItem<T>(oldKey);
+            if (oldData !== null) {
+                data = oldData;
+                storageService.setItem(currentKey, data); // Migrate to new key
+                storageService.removeItem(oldKey);      // Clean up old key
+                console.log(`Data migrated from ${oldKey} to ${currentKey}`);
+                break;
+            }
+        }
+    }
+    return data === null ? defaultValue : data;
+}
+
+
 export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
@@ -85,10 +116,32 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => {
     const loadData = () => {
       setIsLoading(true);
-      let storedProfile = storageService.getItem<UserProfile>(USER_PROFILE_KEY);
-      const storedLogs = storageService.getItem<ActivityLogEntry[]>(ACTIVITY_LOGS_KEY, []);
-      const storedGoals = storageService.getItem<UserGoal[]>(USER_GOALS_KEY, []);
-      const storedTargets = storageService.getItem<DailyActivityGoal[]>(DAILY_TARGETS_KEY, DEFAULT_DAILY_GOALS); 
+      
+      let storedProfile = loadDataWithMigration<UserProfile | null>(
+        USER_PROFILE_KEY,
+        OLD_USER_PROFILE_KEYS,
+        null
+      );
+      
+      const storedLogs = loadDataWithMigration<ActivityLogEntry[]>(
+        ACTIVITY_LOGS_KEY,
+        OLD_ACTIVITY_LOGS_KEYS,
+        []
+      );
+      
+      const storedGoals = loadDataWithMigration<UserGoal[]>(
+        USER_GOALS_KEY,
+        OLD_USER_GOALS_KEYS,
+        []
+      );
+
+      const storedTargets = loadDataWithMigration<DailyActivityGoal[]>(
+        DAILY_TARGETS_KEY,
+        OLD_DAILY_TARGETS_KEYS,
+        DEFAULT_DAILY_GOALS
+      );
+      
+      // Resources and SavedRoutines are not versioned in the same way, using existing logic
       const storedResources = storageService.getItem<Resource[]>(APP_RESOURCES_KEY, INITIAL_RESOURCES);
       const storedSavedRoutines = storageService.getItem<SavedDailyRoutine[]>(SAVED_DAILY_ROUTINES_KEY, []);
 
@@ -105,8 +158,13 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         } else if (storedProfile.learningLanguages.length === 0 && storedProfile.primaryLanguage) {
              storedProfile.primaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
         }
+        
+        // Ensure UserProfile is saved with new key if migrated, and defaults applied
+        if (storageService.getItem(USER_PROFILE_KEY) === null && storedProfile !== null) {
+            storageService.setItem(USER_PROFILE_KEY, storedProfile);
+        }
 
-        const updatedGoals = (storedGoals || []).map(g => ({
+        const updatedGoals = storedGoals.map(g => ({
             ...g,
             currentValue: g.currentValue ?? 0,
             targetValue: g.targetValue ?? 0,
@@ -115,22 +173,28 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
         setUserProfile(storedProfile);
         setUserGoals(updatedGoals);
+        // Save goals again under new key if they were migrated or just to ensure structure
         storageService.setItem(USER_GOALS_KEY, updatedGoals);
+
 
         setAppTheme(storedProfile.theme);
       } else {
         setAppTheme(DEFAULT_APP_THEME);
       }
       
-      const updatedLogs = (storedLogs || []).map(log => ({
+      const updatedLogs = storedLogs.map(log => ({
         ...log,
         customTitle: log.customTitle || undefined
       }));
       setActivityLogs(updatedLogs);
+      // Save logs again under new key if they were migrated or just to ensure structure
       storageService.setItem(ACTIVITY_LOGS_KEY, updatedLogs);
 
 
-      setDailyTargets(storedTargets || DEFAULT_DAILY_GOALS);
+      setDailyTargets(storedTargets);
+      // Save targets again under new key if they were migrated or just to ensure structure
+      storageService.setItem(DAILY_TARGETS_KEY, storedTargets);
+
       setResources(storedResources || INITIAL_RESOURCES);
       setSavedDailyRoutines(storedSavedRoutines || []);
       
@@ -223,7 +287,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
          storageService.setItem(USER_GOALS_KEY, newProfile.goals);
       }
       
-      if (newProfile.theme && newProfile.theme !== prev.theme) {
+      if (newProfile.theme && (!prev.theme || newProfile.theme !== prev.theme)) {
         setAppTheme(newProfile.theme);
       }
   
@@ -487,10 +551,19 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const resetAllData = useCallback(() => {
     storageService.removeItem(USER_PROFILE_KEY);
+    OLD_USER_PROFILE_KEYS.forEach(key => storageService.removeItem(key));
+    
     storageService.removeItem(ACTIVITY_LOGS_KEY);
+    OLD_ACTIVITY_LOGS_KEYS.forEach(key => storageService.removeItem(key));
+
     storageService.removeItem(USER_GOALS_KEY);
+    OLD_USER_GOALS_KEYS.forEach(key => storageService.removeItem(key));
+    
     storageService.removeItem(DAILY_TARGETS_KEY);
+    OLD_DAILY_TARGETS_KEYS.forEach(key => storageService.removeItem(key));
+    
     storageService.removeItem(SAVED_DAILY_ROUTINES_KEY);
+    // storageService.removeItem(APP_RESOURCES_KEY); // Typically INITIAL_RESOURCES are fine to keep or reload
 
     setUserProfile(null);
     setActivityLogs([]);

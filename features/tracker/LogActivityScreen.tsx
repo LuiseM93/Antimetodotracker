@@ -39,16 +39,22 @@ export const LogActivityScreen: React.FC = () => {
   
   const [timerDisplayMode, setTimerDisplayMode] = useState<TimerDisplayMode>(userProfile?.defaultLogTimerMode === 'countdown' ? 'countdown' : 'stopwatch');
 
+  // Stopwatch state
   const [stopwatchSeconds, setStopwatchSeconds] = useState<number>(0);
   const [isStopwatchRunning, setIsStopwatchRunning] = useState<boolean>(false);
   const stopwatchIntervalRef = useRef<number | null>(null);
+  const stopwatchTrueStartTimestampRef = useRef<number | null>(null); // For robust timing
 
+  // Countdown state
   const [countdownSetMinutes, setCountdownSetMinutes] = useState<number>(userProfile?.defaultLogDurationMinutes || 30);
   const [countdownRemainingSeconds, setCountdownRemainingSeconds] = useState<number>(countdownSetMinutes * 60);
   const [isCountdownRunning, setIsCountdownRunning] = useState<boolean>(false);
-  const countdownInitialDurationRef = useRef<number>(countdownSetMinutes * 60);
+  const countdownInitialDurationRef = useRef<number>(countdownSetMinutes * 60); // Stores the duration when countdown started
   const countdownIntervalRef = useRef<number | null>(null);
   const [countdownComplete, setCountdownComplete] = useState<boolean>(false);
+  const countdownTargetTimestampRef = useRef<number | null>(null); // For robust timing
+
+  const lastPauseTimestampRef = useRef<number | null>(null); // For manual pauses of either timer
   
   const [notes, setNotes] = useState<string>('');
   const [capturedDateTime, setCapturedDateTime] = useState<{date: string, time: string} | null>(null);
@@ -76,10 +82,31 @@ export const LogActivityScreen: React.FC = () => {
   });
 
   const [isSelectActivityModalOpenForManualLog, setIsSelectActivityModalOpenForManualLog] = useState(false);
-  const reLogProcessedRef = useRef(false); // Ref to track if reLogData was just processed
+  const reLogProcessedRef = useRef(false);
 
+  // Effect to handle initialization from logId or reLogData
   useEffect(() => {
     const currentPathState = location.state as LocationState | null;
+
+    const resetTimersState = (defaultDuration: number) => {
+        if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
+        setStopwatchSeconds(0);
+        setIsStopwatchRunning(false);
+        stopwatchTrueStartTimestampRef.current = null;
+
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        setCountdownSetMinutes(defaultDuration);
+        setCountdownRemainingSeconds(defaultDuration * 60);
+        countdownInitialDurationRef.current = defaultDuration * 60;
+        setIsCountdownRunning(false);
+        setCountdownComplete(false);
+        countdownTargetTimestampRef.current = null;
+        
+        lastPauseTimestampRef.current = null;
+        setCapturedDateTime(null);
+    };
+    
+    const defaultDurationSetting = userProfile?.defaultLogDurationMinutes || 30;
 
     if (currentPathState?.reLogData) {
         const { reLogData } = currentPathState;
@@ -91,38 +118,17 @@ export const LogActivityScreen: React.FC = () => {
         setCustomTitle(reLogData.customTitle || '');
         setNotes(reLogData.notes || '');
         setCurrentLanguageForLog(reLogData.language || userProfile?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language);
-        setInitialManualDuration(reLogData.durationMinutes ?? userProfile?.defaultLogDurationMinutes ?? 30);
+        setInitialManualDuration(reLogData.durationMinutes ?? defaultDurationSetting);
 
-        if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
-        setStopwatchSeconds(0);
-        setIsStopwatchRunning(false);
-
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        setIsCountdownRunning(false);
-        setCountdownComplete(false);
-
-        let initialSeconds;
-        if (reLogData.durationMinutes && reLogData.durationMinutes > 0) {
-            setTimerDisplayMode('countdown');
-            setCountdownSetMinutes(reLogData.durationMinutes);
-            initialSeconds = reLogData.durationMinutes * 60;
-        } else {
-            const defaultMode = userProfile?.defaultLogTimerMode === 'countdown' ? 'countdown' : 'stopwatch';
-            setTimerDisplayMode(defaultMode);
-            const defaultDuration = userProfile?.defaultLogDurationMinutes || 30;
-            setCountdownSetMinutes(defaultDuration);
-            initialSeconds = defaultDuration * 60;
-        }
-        countdownInitialDurationRef.current = initialSeconds;
-        setCountdownRemainingSeconds(initialSeconds);
+        let reLogTimerDuration = reLogData.durationMinutes ?? defaultDurationSetting;
+        resetTimersState(reLogTimerDuration);
+        setTimerDisplayMode(reLogData.durationMinutes && reLogData.durationMinutes > 0 ? 'countdown' : (userProfile?.defaultLogTimerMode === 'countdown' ? 'countdown' : 'stopwatch'));
         
-        setCapturedDateTime(null);
-        
-        reLogProcessedRef.current = true; // Mark as processed
-        navigate(location.pathname, { replace: true, state: {} }); // Clear state, will re-trigger effect
+        reLogProcessedRef.current = true;
+        navigate(location.pathname, { replace: true, state: {} });
 
     } else if (logId) {
-        reLogProcessedRef.current = false; // Reset for other scenarios
+        reLogProcessedRef.current = false;
         const logToEdit = activityLogs.find(log => log.id === logId);
         if (logToEdit) {
             setIsEditing(true);
@@ -145,26 +151,16 @@ export const LogActivityScreen: React.FC = () => {
                 notes: logToEdit.notes || ''
             });
             setIsManualLogModalOpen(true);
-
-            if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
-            setStopwatchSeconds(0); setIsStopwatchRunning(false);
-            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-            const defaultDurationForEdit = userProfile?.defaultLogDurationMinutes || 30;
-            setCountdownSetMinutes(defaultDurationForEdit); 
-            setCountdownRemainingSeconds(defaultDurationForEdit * 60); setIsCountdownRunning(false); setCountdownComplete(false);
-            setCapturedDateTime(null);
+            resetTimersState(defaultDurationSetting); // Timers not active in edit mode
 
         } else {
             navigate(AppView.DASHBOARD); 
         }
     } else {
-        // This block is for a brand new log, or if the effect re-runs after reLogData was cleared
         if (reLogProcessedRef.current) {
-            // Re-log was just processed and state cleared, skip resetting fields
-            reLogProcessedRef.current = false; // Reset the flag for next time
-            return; // Exit effect early
+            reLogProcessedRef.current = false;
+            return; 
         }
-        // Proceed with new log initialization
         setIsEditing(false);
         setCurrentLogEntry({});
         setSelectedActivityName('Ninguna seleccionada');
@@ -172,25 +168,12 @@ export const LogActivityScreen: React.FC = () => {
         setCustomTitle('');
         setCurrentLanguageForLog(userProfile?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language);
         setNotes('');
-        
-        const defaultDurationNew = userProfile?.defaultLogDurationMinutes || 30;
-        setInitialManualDuration(defaultDurationNew);
+        setInitialManualDuration(defaultDurationSetting);
+        resetTimersState(defaultDurationSetting);
         setTimerDisplayMode(userProfile?.defaultLogTimerMode === 'countdown' ? 'countdown' : 'stopwatch');
-        
-        if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
-        setStopwatchSeconds(0); setIsStopwatchRunning(false);
-        
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        setCountdownSetMinutes(defaultDurationNew);
-        const initialSecondsNew = defaultDurationNew * 60;
-        setCountdownRemainingSeconds(initialSecondsNew);
-        countdownInitialDurationRef.current = initialSecondsNew;
-        setIsCountdownRunning(false); setCountdownComplete(false);
-        
-        setCapturedDateTime(null);
     }
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [logId, location.state, userProfile, activityLogs, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logId, location.state, userProfile, activityLogs, navigate]);
 
 
   const handleActivitySelected = (activity: ActivityDetailType) => {
@@ -208,38 +191,80 @@ export const LogActivityScreen: React.FC = () => {
     setIsSelectActivityModalOpenForManualLog(false);
   };
 
-
+  // Stopwatch interval
   useEffect(() => {
-    if (isStopwatchRunning) {
-      stopwatchIntervalRef.current = window.setInterval(() => setStopwatchSeconds(prev => prev + 1), 1000);
+    if (isStopwatchRunning && stopwatchTrueStartTimestampRef.current !== null) {
+      stopwatchIntervalRef.current = window.setInterval(() => {
+        setStopwatchSeconds(Math.floor((Date.now() - stopwatchTrueStartTimestampRef.current!) / 1000));
+      }, 1000);
     } else {
       if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
     }
     return () => { if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current); };
   }, [isStopwatchRunning]);
 
+  // Countdown interval
   useEffect(() => {
-    if (!isCountdownRunning) {
-        countdownInitialDurationRef.current = countdownSetMinutes * 60;
-        setCountdownRemainingSeconds(countdownInitialDurationRef.current);
-        setCountdownComplete(false); 
-    }
-  }, [countdownSetMinutes, isCountdownRunning]); 
-
-  useEffect(() => {
-    if (isCountdownRunning && countdownRemainingSeconds > 0) {
-      countdownIntervalRef.current = window.setInterval(() => setCountdownRemainingSeconds(prev => prev - 1), 1000);
-    } else if (countdownRemainingSeconds === 0 && isCountdownRunning) {
-      setIsCountdownRunning(false);
-      setCountdownComplete(true);
-      if (typeof Audio !== "undefined") {
-        new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
-      }
+    if (isCountdownRunning && countdownTargetTimestampRef.current !== null) {
+      countdownIntervalRef.current = window.setInterval(() => {
+        const remaining = Math.max(0, Math.floor((countdownTargetTimestampRef.current! - Date.now()) / 1000));
+        setCountdownRemainingSeconds(remaining);
+        if (remaining === 0) {
+          setIsCountdownRunning(false); 
+          setCountdownComplete(true);
+          if (typeof Audio !== "undefined") {
+            new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+          }
+        }
+      }, 1000);
     } else {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     }
     return () => { if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current); };
-  }, [isCountdownRunning, countdownRemainingSeconds]);
+  }, [isCountdownRunning]);
+
+  // Handle countdown duration changes from slider
+  useEffect(() => {
+    if (!isCountdownRunning) {
+      const newDurationSeconds = countdownSetMinutes * 60;
+      countdownInitialDurationRef.current = newDurationSeconds;
+      setCountdownRemainingSeconds(newDurationSeconds);
+      setCountdownComplete(false);
+      countdownTargetTimestampRef.current = null; // Will be reset on next start
+    }
+  }, [countdownSetMinutes]);
+
+
+  // Page Visibility API handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Timers will be throttled by browser. No specific action needed here
+        // as intervals recalculate from absolute timestamps when visible.
+      } else {
+        // Page is visible, correct timers
+        if (isStopwatchRunning && stopwatchTrueStartTimestampRef.current !== null) {
+          setStopwatchSeconds(Math.floor((Date.now() - stopwatchTrueStartTimestampRef.current) / 1000));
+        }
+        if (isCountdownRunning && countdownTargetTimestampRef.current !== null) {
+          const remaining = Math.max(0, Math.floor((countdownTargetTimestampRef.current - Date.now()) / 1000));
+          setCountdownRemainingSeconds(remaining);
+          if (remaining === 0 && !countdownComplete) {
+            setIsCountdownRunning(false);
+            setCountdownComplete(true);
+            if (typeof Audio !== "undefined") {
+              new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isStopwatchRunning, isCountdownRunning, countdownComplete]); // Add all relevant state dependencies
 
 
   const startTimerCommonLogic = () => {
@@ -251,23 +276,67 @@ export const LogActivityScreen: React.FC = () => {
   };
 
   const handleStartStopwatch = () => {
-    if (!isStopwatchRunning && stopwatchSeconds === 0) startTimerCommonLogic();
-    setIsStopwatchRunning(prev => !prev);
+    if (!isStopwatchRunning) { // About to start or resume
+      if (stopwatchTrueStartTimestampRef.current === null) { // First start or after reset
+        stopwatchTrueStartTimestampRef.current = Date.now();
+      } else { // Resuming from pause
+        if (lastPauseTimestampRef.current) {
+          const pauseDuration = Date.now() - lastPauseTimestampRef.current;
+          stopwatchTrueStartTimestampRef.current! += pauseDuration;
+          lastPauseTimestampRef.current = null;
+        }
+      }
+      if (stopwatchSeconds === 0 && !capturedDateTime) startTimerCommonLogic();
+      setIsStopwatchRunning(true);
+    } else { // About to pause
+      lastPauseTimestampRef.current = Date.now();
+      setIsStopwatchRunning(false);
+    }
   };
-  const handleResetStopwatch = () => { setIsStopwatchRunning(false); setStopwatchSeconds(0); setCapturedDateTime(null); };
+
+  const handleResetStopwatch = () => { 
+    setIsStopwatchRunning(false); 
+    setStopwatchSeconds(0); 
+    stopwatchTrueStartTimestampRef.current = null;
+    lastPauseTimestampRef.current = null;
+    setCapturedDateTime(null); 
+  };
 
   const handleStartCountdown = () => {
     if (countdownSetMinutes <= 0) { alert("Establece una duración positiva."); return; }
-    if (!isCountdownRunning && countdownRemainingSeconds === countdownInitialDurationRef.current) startTimerCommonLogic();
-    setIsCountdownRunning(prev => !prev);
-    if (countdownComplete) setCountdownComplete(false); 
+
+    if (!isCountdownRunning) { // About to start or resume
+      if (countdownTargetTimestampRef.current === null || countdownRemainingSeconds === countdownInitialDurationRef.current) { 
+        // This means it's a fresh start for this duration, or duration was changed
+        countdownTargetTimestampRef.current = Date.now() + countdownRemainingSeconds * 1000;
+        countdownInitialDurationRef.current = countdownRemainingSeconds; // Ensure initial duration is set
+      } else { // Resuming from pause
+        if (lastPauseTimestampRef.current) {
+          const pauseDuration = Date.now() - lastPauseTimestampRef.current;
+          countdownTargetTimestampRef.current! += pauseDuration;
+          lastPauseTimestampRef.current = null;
+        }
+      }
+      if (countdownRemainingSeconds === countdownInitialDurationRef.current && !capturedDateTime) startTimerCommonLogic();
+      setIsCountdownRunning(true);
+      if (countdownComplete) setCountdownComplete(false);
+    } else { // About to pause
+      lastPauseTimestampRef.current = Date.now();
+      setIsCountdownRunning(false);
+    }
   };
+
   const handleResetCountdown = () => {
     setIsCountdownRunning(false);
-    setCountdownRemainingSeconds(countdownInitialDurationRef.current); 
+    const newRemaining = countdownSetMinutes * 60; // Reset to the currently set minutes on slider
+    setCountdownRemainingSeconds(newRemaining); 
+    countdownInitialDurationRef.current = newRemaining;
     setCountdownComplete(false);
+    countdownTargetTimestampRef.current = null; // Important: will be recalculated on next start
+    lastPauseTimestampRef.current = null;
     setCapturedDateTime(null);
   };
+
 
   const handleSaveActivity = () => {
     if (!selectedCategory || selectedActivityName === 'Ninguna seleccionada' || selectedActivityName.trim() === '') {
@@ -282,14 +351,16 @@ export const LogActivityScreen: React.FC = () => {
     if (timerDisplayMode === 'stopwatch' && stopwatchSeconds > 0) {
       durationToSave = Math.max(1, Math.round(stopwatchSeconds / 60));
     } else if (timerDisplayMode === 'countdown') {
-      if (isCountdownRunning || countdownComplete || (countdownInitialDurationRef.current > 0 && countdownRemainingSeconds < countdownInitialDurationRef.current)) { 
-        durationToSave = Math.max(1, Math.round((countdownInitialDurationRef.current - (isCountdownRunning ? countdownRemainingSeconds : 0)) / 60));
-      } else if (countdownSetMinutes > 0 && !isCountdownRunning && !countdownComplete && countdownRemainingSeconds === countdownInitialDurationRef.current) {
+      const elapsedSeconds = countdownInitialDurationRef.current - countdownRemainingSeconds;
+      if (isCountdownRunning || countdownComplete || elapsedSeconds > 0) {
+        durationToSave = Math.max(1, Math.round(elapsedSeconds / 60));
+      } else if (countdownSetMinutes > 0 && !isCountdownRunning && !countdownComplete && countdownRemainingSeconds === (countdownSetMinutes*60)) {
+        // Case: User set duration, didn't start timer, and pressed save
         durationToSave = countdownSetMinutes;
-        dateToSave = new Date().toISOString().split('T')[0];
+        dateToSave = new Date().toISOString().split('T')[0]; // Use current time if timer wasn't run
         timeToSave = new Date().toTimeString().substring(0,5);
       } else {
-         alert("No hay tiempo registrado por el temporizador/cronómetro o la duración es cero.");
+         alert("No hay tiempo registrado por el temporizador o la duración es cero.");
          return;
       }
     } else {
@@ -347,7 +418,7 @@ export const LogActivityScreen: React.FC = () => {
   const closeManualLogModal = () => {
     setIsManualLogModalOpen(false);
     if (isEditing) {
-      navigate(-1); // Go back to the previous screen (Dashboard or Tracker)
+      navigate(-1); 
     }
   };
   
@@ -423,7 +494,7 @@ export const LogActivityScreen: React.FC = () => {
             <Button onClick={handleStartCountdown} variant={isCountdownRunning ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full">
               {isCountdownRunning ? <PauseIcon className="w-8 h-8"/> : <PlayIcon className="w-8 h-8"/>}
             </Button>
-            <Button onClick={handleResetCountdown} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={countdownRemainingSeconds === countdownInitialDurationRef.current && !isCountdownRunning && !countdownComplete}>
+            <Button onClick={handleResetCountdown} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={countdownRemainingSeconds === (countdownSetMinutes*60) && !isCountdownRunning && !countdownComplete}>
                <ResetIcon className="w-8 h-8"/>
             </Button>
           </div>
@@ -473,16 +544,9 @@ export const LogActivityScreen: React.FC = () => {
                 key={mode} 
                 type="button" 
                 onClick={() => {
-                    if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
-                    setStopwatchSeconds(0); setIsStopwatchRunning(false);
-                    
-                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-                    const currentSetDurationSeconds = countdownSetMinutes * 60;
-                    setCountdownRemainingSeconds(currentSetDurationSeconds); 
-                    countdownInitialDurationRef.current = currentSetDurationSeconds;
-                    setIsCountdownRunning(false); setCountdownComplete(false);
-                    
-                    setCapturedDateTime(null); 
+                    // Reset both timers when switching modes
+                    handleResetStopwatch();
+                    handleResetCountdown(); // This will also reset countdownSetMinutes to its original or slider value
                     setTimerDisplayMode(mode);
                 }}
                 className={`flex-1 py-3 px-2 text-sm font-medium focus:outline-none transition-colors duration-150

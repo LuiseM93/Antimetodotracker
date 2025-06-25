@@ -191,6 +191,37 @@ export const LogActivityScreen: React.FC = () => {
     setIsSelectActivityModalOpenForManualLog(false);
   };
 
+  const showCountdownCompletionNotification = useCallback(async () => {
+    if (!("Notification" in window)) {
+      console.warn("Este navegador no soporta notificaciones de escritorio.");
+      return;
+    }
+
+    const activityDisplayName = customTitle.trim() || (selectedActivityName !== 'Ninguna seleccionada' ? selectedActivityName : 'Actividad');
+    const notificationBody = `Tu sesión de '${activityDisplayName}' ha finalizado.`;
+    const notificationOptions = {
+      body: notificationBody,
+      icon: 'assets/logo.png'
+    };
+
+    if (Notification.permission === "granted") {
+      new Notification("¡Tiempo Completado!", notificationOptions);
+    } else if (Notification.permission !== "denied") {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          new Notification("¡Tiempo Completado!", notificationOptions);
+        } else {
+          console.warn("Permiso para notificaciones denegado por el usuario.");
+        }
+      } catch (error) {
+        console.error("Error al solicitar permiso de notificación:", error);
+      }
+    } else {
+        console.warn("Permiso para notificaciones ya ha sido denegado.");
+    }
+  }, [customTitle, selectedActivityName]);
+
   // Stopwatch interval
   useEffect(() => {
     if (isStopwatchRunning && stopwatchTrueStartTimestampRef.current !== null) {
@@ -215,13 +246,14 @@ export const LogActivityScreen: React.FC = () => {
           if (typeof Audio !== "undefined") {
             new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
           }
+          showCountdownCompletionNotification();
         }
       }, 1000);
     } else {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     }
     return () => { if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current); };
-  }, [isCountdownRunning]);
+  }, [isCountdownRunning, showCountdownCompletionNotification]);
 
   // Handle countdown duration changes from slider
   useEffect(() => {
@@ -232,7 +264,7 @@ export const LogActivityScreen: React.FC = () => {
       setCountdownComplete(false);
       countdownTargetTimestampRef.current = null; // Will be reset on next start
     }
-  }, [countdownSetMinutes]);
+  }, [countdownSetMinutes, isCountdownRunning]);
 
 
   // Page Visibility API handler
@@ -255,6 +287,7 @@ export const LogActivityScreen: React.FC = () => {
             if (typeof Audio !== "undefined") {
               new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
             }
+            showCountdownCompletionNotification();
           }
         }
       }
@@ -264,7 +297,7 @@ export const LogActivityScreen: React.FC = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isStopwatchRunning, isCountdownRunning, countdownComplete]); // Add all relevant state dependencies
+  }, [isStopwatchRunning, isCountdownRunning, countdownComplete, showCountdownCompletionNotification]);
 
 
   const startTimerCommonLogic = () => {

@@ -1,4 +1,3 @@
-
 import { Language, ActivityCategory, AntimethodStage, AppTheme, FeedItemType } from '../types';
 
 export type Json =
@@ -52,7 +51,14 @@ export interface Database {
           sub_activity?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       feed_item_likes: {
         Row: {
@@ -75,6 +81,12 @@ export interface Database {
             foreignKeyName: "feed_item_likes_feed_item_id_fkey"
             columns: ["feed_item_id"]
             referencedRelation: "feed_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_item_likes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -101,7 +113,14 @@ export interface Database {
           type?: FeedItemType
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feed_items_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
@@ -140,7 +159,14 @@ export interface Database {
           theme?: AppTheme | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       relationships: {
         Row: {

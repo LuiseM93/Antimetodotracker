@@ -16,6 +16,7 @@ import { TrophyIcon } from './icons/TrophyIcon';
 import { NewspaperIcon } from './icons/NewspaperIcon'; // New icon
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from './Button';
+import logo from '../assets/logo.png';
 
 interface NavbarProps {
   isMobileNavOpen: boolean;
@@ -80,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
             onClick={() => setIsMobileNavOpen(false)}
             aria-label="Ir al Dashboard"
         >
-          <img src="/assets/logo.png" alt="El Antimétodo Logo" className="h-10 w-auto" />
+          <img src={logo} alt="El Antimétodo Logo" className="h-10 w-auto" />
           <span className={`ml-3 text-xl font-poppins font-bold text-[var(--color-text-inverse)] whitespace-nowrap`}>
             El Antimétodo
           </span>

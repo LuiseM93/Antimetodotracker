@@ -1,236 +1,301 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { supabase } from '../../services/supabaseClient';
-import { UserProfile, AntimethodStage, AppView, AppTheme } from '../../types';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { AVAILABLE_REWARDS, REDEEM_CODES_MAP, MASTER_REDEEM_CODE, ALL_REWARD_DEFINITIONS } from '../../constants';
+import { RewardItem, AppTheme } from '../../types';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { UserCircleIcon } from '../../components/icons/UserCircleIcon';
-import { STAGE_DETAILS, ALL_REWARD_DEFINITIONS } from '../../constants';
-import { CalendarDaysIcon } from '../../components/icons/CalendarDaysIcon';
-import { BookOpenIcon } from '../../components/icons/BookOpenIcon';
-import { FollowListModal } from '../../components/profile/FollowListModal';
+import { LockClosedIcon } from '../../components/icons/LockClosedIcon';
+import { CheckCircleIcon } from '../../components/icons/CheckCircleIcon';
+import { StarIcon } from '../../components/icons/StarIcon'; // For active flair
 import moneyIcon from '../../assets/money.png';
-import languageIcon from '../../assets/language.png';
 
-interface PublicProfileData extends Partial<UserProfile> {
-  id: string;
-  avatar_url?: string;
-  theme?: AppTheme;
-  focus_points?: number;
-  profile_flair_id?: string;
-  learning_languages?: string[];
-  learning_days_count?: number;
+const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
+
+// Placeholder for reward item icons if specific ones aren't defined in RewardItem
+const DefaultRewardIcon: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+
+interface RewardCardProps {
+  reward: RewardItem;
+  isUnlocked: boolean;
+  canAfford?: boolean; // Optional, as it's not needed for "My Flairs" display
+  onPurchase?: (rewardId: string) => void; // Optional for "My Flairs"
+  isActiveFlair?: boolean;
+  onActivateFlair: (flairId: string | null) => void;
+  currentTheme?: AppTheme; // Optional for flairs
+  onActivateTheme?: (themeId: AppTheme) => void; // Optional for flairs
 }
 
-type ModalView = 'followers' | 'following' | null;
+const RewardCard: React.FC<RewardCardProps> = ({ 
+    reward, isUnlocked, canAfford, onPurchase, 
+    isActiveFlair, onActivateFlair, currentTheme, onActivateTheme
+}) => {
+  const handleActivate = () => {
+    if (reward.type === 'flair') {
+      onActivateFlair(isActiveFlair ? null : reward.id);
+    } else if (reward.type === 'theme' && reward.value && onActivateTheme) {
+      onActivateTheme(reward.value as AppTheme);
+    }
+  };
 
-export const ProfileScreen: React.FC = () => {
-    const { username } = useParams<{ username: string }>();
-    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts } = useAppContext(); 
+  const isThemeActive = reward.type === 'theme' && currentTheme === reward.value;
 
-    const [profile, setProfile] = useState<PublicProfileData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [isFollowLoading, setIsFollowLoading] = useState(false);
-    const [followerCount, setFollowerCount] = useState(0);
-    const [followingCount, setFollowingCount] = useState(0);
-    const [modalView, setModalView] = useState<ModalView>(null);
+  return (
+    <Card 
+        title={reward.name} 
+        className={`flex flex-col justify-between h-full shadow-lg border-2 ${isUnlocked ? 'border-green-500 dark:border-green-600' : 'border-[var(--color-border-light)]'}`}
+        titleClassName={isUnlocked ? 'text-green-600 dark:text-green-400' : 'text-[var(--color-primary)]'}
+    >
+      <div>
+        {reward.icon ? (
+            <img src={reward.icon} alt={reward.name} className="w-12 h-12 mx-auto mb-3 object-contain filter dark:brightness-0 dark:invert" />
+        ) : (
+            <DefaultRewardIcon className="w-12 h-12 mx-auto mb-3 text-[var(--color-accent)]" />
+        )}
+        <p className="text-sm text-[var(--color-text-light)] mb-3 min-h-[40px]">{reward.description}</p>
+      </div>
+      <div className="mt-auto">
+        {onPurchase && canAfford !== undefined && reward.cost > 0 && ( // Only show cost if it's a purchasable context
+          <div className="flex items-center justify-center space-x-2 mb-3">
+              <img src={moneyIcon} alt="Puntos" className="w-5 h-5" />
+              <span className={`text-lg font-semibold ${!isUnlocked && !canAfford ? 'text-red-500' : 'text-[var(--color-secondary)]'}`}>
+                  {reward.cost}
+              </span>
+          </div>
+        )}
+        {isUnlocked ? (
+          <div className="text-center">
+            {reward.category !== 'Secreto' && ( // Don't show "Unlocked" for secret flairs in main store, they won't be there
+                <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center justify-center">
+                <CheckCircleIcon className="w-5 h-5 mr-1"/> Desbloqueado
+                </p>
+            )}
+            {reward.type === 'flair' && (
+              <Button onClick={handleActivate} variant={isActiveFlair ? "secondary" : "outline"} size="sm" className="mt-2 w-full">
+                {isActiveFlair ? "Desactivar Título" : "Activar Título"}
+              </Button>
+            )}
+            {reward.type === 'theme' && reward.value && onActivateTheme && (
+              <Button onClick={handleActivate} variant={isThemeActive ? "secondary" : "outline"} size="sm" className="mt-2 w-full" disabled={isThemeActive}>
+                {isThemeActive ? "Tema Activo" : "Activar Tema"}
+              </Button>
+            )}
+          </div>
+        ) : (
+          onPurchase && canAfford !== undefined && reward.cost > 0 && (
+            <Button 
+                onClick={() => onPurchase(reward.id)} 
+                variant="primary" 
+                disabled={!canAfford}
+                className="w-full"
+                leftIcon={!canAfford ? <LockClosedIcon className="w-4 h-4"/> : undefined}
+            >
+                {canAfford ? "Comprar" : "Insuficientes"}
+            </Button>
+          )
+        )}
+      </div>
+    </Card>
+  );
+};
 
 
-    const fetchProfileData = useCallback(async () => {
-        if (!username) {
-            setError("No se ha especificado un nombre de usuario.");
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        try {
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count')
-                .eq('username', username)
-                .single();
+export const RewardsScreen: React.FC = () => {
+  const { userProfile, purchaseReward, activateFlair, appTheme, updateAppTheme, unlockRewardById, updateUserProfile, getRewardById } = useAppContext();
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [redeemCodeInput, setRedeemCodeInput] = useState('');
 
-            if (profileError || !profileData) throw new Error("Perfil no encontrado.");
-            
-            setProfile(profileData);
+  const showFeedback = (message: string, type: 'success' | 'error' = 'success') => {
+    setFeedbackMessage(message);
+    setTimeout(() => setFeedbackMessage(null), 3500);
+  };
 
-            const counts = await getProfileFollowCounts(profileData.id);
-            setFollowerCount(counts.followers);
-            setFollowingCount(counts.following);
-
-            if (session?.user) {
-                const { data: followData, error: followError } = await supabase
-                    .from('relationships')
-                    .select('*', { count: 'exact' })
-                    .eq('follower_id', session.user.id)
-                    .eq('following_id', profileData.id)
-                    .single();
-                
-                if (followError && followError.code !== 'PGRST116') throw followError; // PGRST116 means no rows found, which is fine
-                setIsFollowing(!!followData);
-            }
-
-        } catch (err: any) {
-            setError("No se pudo encontrar el perfil de este usuario.");
-            console.error("Error fetching profile:", err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [username, session, getProfileFollowCounts]);
-
-    useEffect(() => {
-        fetchProfileData();
-    }, [fetchProfileData]);
-    
-    useEffect(() => {
-        if (profile?.theme) {
-            document.documentElement.className = profile.theme;
-        }
-        return () => {
-            document.documentElement.className = loggedInUserTheme;
-        };
-    }, [profile, loggedInUserTheme]);
-
-    const handleFollowToggle = async () => {
-      if (!session?.user || !profile || isFollowLoading) return;
-
-      setIsFollowLoading(true);
-      if (isFollowing) {
-        // Unfollow
-        const { error } = await supabase
-          .from('relationships')
-          .delete()
-          .match({ follower_id: session.user.id, following_id: profile.id });
-        if (!error) {
-          setIsFollowing(false);
-          setFollowerCount(c => c - 1);
-        }
+  const handlePurchase = (rewardId: string) => {
+    const success = purchaseReward(rewardId);
+    if (success) {
+      showFeedback("¡Recompensa desbloqueada y activada!");
+    } else {
+      const reward = AVAILABLE_REWARDS.find(r => r.id === rewardId);
+      if (reward && userProfile && userProfile.focusPoints < reward.cost) {
+        showFeedback("No tienes suficientes Puntos de Enfoque.", "error");
       } else {
-        // Follow
-        const { error } = await supabase
-          .from('relationships')
-          .insert({ follower_id: session.user.id, following_id: profile.id });
-        if (!error) {
-          setIsFollowing(true);
-          setFollowerCount(c => c + 1);
+        showFeedback("No se pudo desbloquear la recompensa o ya la tienes.", "error");
+      }
+    }
+  };
+
+  const handleActivateFlair = (flairId: string | null) => {
+    activateFlair(flairId);
+    showFeedback(flairId ? "Título activado." : "Título desactivado.");
+  };
+
+  const handleActivateTheme = (themeValue: AppTheme) => {
+    updateAppTheme(themeValue, true); // true indicates it's from a reward/code
+    showFeedback(`Tema "${themeValue}" activado.`);
+  };
+
+  const handleRedeemCode = useCallback(() => {
+    if (!userProfile) return;
+
+    const now = Date.now();
+    if (userProfile.lastRedeemAttemptTimestamp && (now - userProfile.lastRedeemAttemptTimestamp) < 3000) {
+        showFeedback("Por favor, espera un momento antes de intentarlo de nuevo.", "error");
+        return;
+    }
+    updateUserProfile({ lastRedeemAttemptTimestamp: now });
+
+
+    const code = redeemCodeInput.trim().toUpperCase();
+    if (!code) {
+      showFeedback("Por favor, ingresa un código.", "error");
+      return;
+    }
+
+    const rewardId = REDEEM_CODES_MAP[code];
+
+    if (code === MASTER_REDEEM_CODE.toUpperCase()) {
+      let unlockedCount = 0;
+      AVAILABLE_REWARDS.forEach(reward => {
+        if (!(userProfile.unlockedRewards || []).includes(reward.id)) {
+          if (unlockRewardById(reward.id)) unlockedCount++;
+        }
+      });
+      ALL_REWARD_DEFINITIONS.filter(r => r.category === 'Secreto').forEach(secretReward => {
+         if (!(userProfile.unlockedRewards || []).includes(secretReward.id)) {
+          if (unlockRewardById(secretReward.id)) unlockedCount++;
+        }
+      });
+      showFeedback(unlockedCount > 0 ? `¡Código maestro! ${unlockedCount} recompensas desbloqueadas.` : "¡Código maestro! Todas las recompensas base y secretas disponibles ya estaban desbloqueadas.");
+    } else if (rewardId) {
+      if ((userProfile.unlockedRewards || []).includes(rewardId)) {
+        showFeedback("Ya has desbloqueado esta recompensa.", "error");
+      } else {
+        const success = unlockRewardById(rewardId);
+        if (success) {
+          const reward = ALL_REWARD_DEFINITIONS.find(r => r.id === rewardId);
+          showFeedback(`¡"${reward?.name || 'Recompensa'}" desbloqueada y activada!`);
+        } else {
+          showFeedback("No se pudo canjear el código.", "error");
         }
       }
-      setIsFollowLoading(false);
-    };
-
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-[var(--color-app-bg)]">
-                <LoadingSpinner size="lg" text="Cargando perfil..." />
-            </div>
-        );
+    } else {
+      showFeedback("Código inválido.", "error");
     }
+    setRedeemCodeInput('');
+  }, [userProfile, redeemCodeInput, unlockRewardById, updateUserProfile]);
 
-    if (error) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-app-bg)] p-4 text-center">
-                <h1 className="text-2xl font-bold text-[var(--color-error)] mb-4">{error}</h1>
-                <Link to={AppView.DASHBOARD} className="text-[var(--color-accent)] hover:underline">
-                    Volver al Dashboard
-                </Link>
-            </div>
-        );
-    }
+
+  if (!userProfile) {
+    return <p className="p-4 text-center">Cargando perfil...</p>;
+  }
+
+  const unlockedFlairItems = useMemo(() => {
+    return (userProfile.unlockedRewards || [])
+      .map(id => getRewardById(id))
+      .filter(reward => reward && reward.type === 'flair') as RewardItem[];
+  }, [userProfile.unlockedRewards, getRewardById]);
+
+
+  const rewardsByCategory = AVAILABLE_REWARDS.reduce((acc, reward) => {
+    const category = reward.category;
+    // Exclude 'Secreto' category from main store display
+    if (category === 'Secreto') return acc;
     
-    if (!profile) return null;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(reward);
+    return acc;
+  }, {} as Record<Exclude<RewardItem['category'], 'Secreto'>, RewardItem[]>);
 
-    const activeFlair = profile.profileFlairId ? ALL_REWARD_DEFINITIONS.find(r => r.id === profile.profileFlairId) : null;
-    const stageDetails = profile.currentStage ? STAGE_DETAILS[profile.currentStage as AntimethodStage] : null;
-    const isOwnProfile = session?.user?.id === profile.id;
 
-    return (
-        <div className="min-h-screen bg-[var(--color-app-bg)] bg-cover bg-center bg-fixed" style={{ backgroundImage: `var(--theme-background-image-url-light)` }}>
-           <div className="min-h-screen backdrop-blur-sm bg-black/10">
-                <div className="max-w-4xl mx-auto p-4 sm:p-8">
-                    {/* Profile Header */}
-                    <div className="relative text-center mb-8">
-                        <div className="relative inline-block">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Avatar" className="w-32 h-32 rounded-full mx-auto ring-4 ring-[var(--color-accent)] ring-offset-4 ring-offset-[var(--color-app-bg)] shadow-lg" />
-                            ) : (
-                                <UserCircleIcon className="w-32 h-32 text-[var(--color-primary)] mx-auto" />
-                            )}
-                        </div>
-                        <h1 className="text-4xl font-poppins font-bold mt-4 text-[var(--color-primary)]">{profile.display_name}</h1>
-                        <p className="text-lg text-[var(--color-text-light)]">@{profile.username}</p>
-                        {activeFlair && (
-                             <span className="mt-2 inline-block text-sm font-semibold px-3 py-1 rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverse)] shadow-sm">
-                                {activeFlair.value}
-                            </span>
-                        )}
-                         <div className="mt-3 flex items-center justify-center space-x-2">
-                            <img src={moneyIcon} alt="Puntos de Enfoque" className="w-6 h-6" />
-                            <span className={`text-lg font-medium text-[var(--color-primary)]`}>
-                                {profile.focusPoints || 0} Puntos de Enfoque
-                            </span>
-                        </div>
-                        {session && !isOwnProfile && (
-                            <div className="mt-4">
-                                <Button 
-                                    onClick={handleFollowToggle}
-                                    variant={isFollowing ? 'outline' : 'primary'}
-                                    isLoading={isFollowLoading}
-                                >
-                                    {isFollowing ? 'Dejar de seguir' : 'Seguir'}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Stats Section */}
-                    <Card title="Resumen" className="shadow-xl">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center divide-x divide-gray-200 dark:divide-gray-700">
-                             <button onClick={() => setModalView('followers')} className="p-3 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
-                                <p className="text-3xl font-bold text-[var(--color-primary)]">{followerCount}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Seguidores</p>
-                            </button>
-                             <button onClick={() => setModalView('following')} className="p-3 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
-                                <p className="text-3xl font-bold text-[var(--color-primary)]">{followingCount}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Siguiendo</p>
-                            </button>
-                            <div className="p-3">
-                                <CalendarDaysIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learningDaysCount || 0}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Días Adquiriendo</p>
-                            </div>
-                            <div className="p-3">
-                                <img src={languageIcon} alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learningLanguages?.length || 0}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Idiomas Activos</p>
-                            </div>
-                        </div>
-                         {stageDetails && <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-                              <BookOpenIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
-                              <p className="text-lg font-bold text-[var(--color-primary)]">{stageDetails.name}</p>
-                              <p className="text-sm text-[var(--color-text-light)]">Etapa Actual</p>
-                          </div>}
-                    </Card>
-
-                    <footer className="text-center mt-12">
-                        <Link to={AppView.DASHBOARD} className="text-[var(--color-accent)] hover:underline text-sm">
-                            Volver al Dashboard
-                        </Link>
-                    </footer>
-                </div>
-           </div>
-           {modalView && (
-                <FollowListModal
-                    isOpen={!!modalView}
-                    onClose={() => setModalView(null)}
-                    view={modalView}
-                    profileId={profile.id}
-                />
-           )}
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-[var(--color-card-bg)] p-4 rounded-lg shadow">
+        <h1 className="text-3xl font-poppins font-bold text-[var(--color-primary)] mb-2 sm:mb-0">
+          Tienda y Mis Títulos
+        </h1>
+        <div className="flex items-center space-x-2">
+          <img src={moneyIcon} alt="Puntos de Enfoque" className="w-8 h-8" />
+          <span className="text-2xl font-semibold text-[var(--color-accent)]">
+            {userProfile.focusPoints}
+          </span>
+          <span className="text-sm text-[var(--color-text-light)]">Puntos de Enfoque</span>
         </div>
-    );
+      </div>
+
+      {feedbackMessage && (
+        <div className={`p-3 rounded-md text-center text-sm ${feedbackMessage.includes("desbloqueada") || feedbackMessage.includes("activado") || feedbackMessage.includes("maestro") ? 'bg-green-100 dark:bg-green-700/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-700/30 text-red-700 dark:text-red-300'}`}>
+          {feedbackMessage}
+        </div>
+      )}
+
+      <Card title="Canjear Código">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+            <input 
+                type="text"
+                value={redeemCodeInput}
+                onChange={(e) => setRedeemCodeInput(e.target.value)}
+                placeholder="Ingresa tu código promocional"
+                className={`${inputBaseStyle} flex-grow`}
+                aria-label="Código promocional"
+            />
+            <Button onClick={handleRedeemCode} variant="accent" className="sm:w-auto w-full">
+                Canjear
+            </Button>
+        </div>
+      </Card>
+
+      {unlockedFlairItems.length > 0 && (
+        <Card title="Mis Títulos Desbloqueados" className="border-t-4 border-[var(--color-accent)]">
+          <p className="text-sm text-[var(--color-text-light)] mb-4">Activa un título para mostrarlo en tu Dashboard.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {unlockedFlairItems.map(flair => (
+              <div 
+                key={flair.id} 
+                className={`p-3 rounded-lg border flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer
+                           ${userProfile.profileFlairId === flair.id 
+                             ? 'bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-lg scale-105' 
+                             : 'bg-[var(--color-card-bg)] hover:bg-purple-50 dark:hover:bg-purple-900/40 border-[var(--color-border-light)]'}`}
+                onClick={() => handleActivateFlair(userProfile.profileFlairId === flair.id ? null : flair.id)}
+              >
+                {flair.icon && <img src={flair.icon} alt="" className="w-8 h-8 mb-1.5 filter dark:brightness-0 dark:invert opacity-75"/>}
+                <p className={`font-semibold text-sm ${userProfile.profileFlairId === flair.id ? 'text-white' : 'text-[var(--color-primary)]'}`}>{flair.name.replace("Título: ", "")}</p>
+                {userProfile.profileFlairId === flair.id && <span className="text-xs mt-1">(Activo)</span>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+
+      {Object.entries(rewardsByCategory).map(([category, rewards]) => (
+        <section key={category}>
+          <h2 className="text-2xl font-poppins font-semibold text-[var(--color-primary)] mb-4">{category}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {rewards.map(reward => (
+              <RewardCard
+                key={reward.id}
+                reward={reward}
+                isUnlocked={(userProfile.unlockedRewards || []).includes(reward.id)}
+                canAfford={(userProfile.focusPoints || 0) >= reward.cost}
+                onPurchase={handlePurchase}
+                isActiveFlair={reward.type === 'flair' && userProfile.profileFlairId === reward.id}
+                onActivateFlair={handleActivateFlair}
+                currentTheme={appTheme}
+                onActivateTheme={handleActivateTheme}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+       <p className="text-center text-xs text-[var(--color-text-light)] mt-8">
+            Más recompensas y personalizaciones se añadirán pronto. ¡Sigue acumulando Puntos de Enfoque!
+        </p>
+    </div>
+  );
 };

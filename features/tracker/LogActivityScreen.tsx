@@ -201,7 +201,7 @@ export const LogActivityScreen: React.FC = () => {
     const notificationBody = `Tu sesión de '${activityDisplayName}' ha finalizado.`;
     const notificationOptions = {
       body: notificationBody,
-      icon: 'assets/logo.png'
+      icon: '/assets/logo.png'
     };
 
     if (Notification.permission === "granted") {
@@ -244,7 +244,7 @@ export const LogActivityScreen: React.FC = () => {
           setIsCountdownRunning(false); 
           setCountdownComplete(true);
           if (typeof Audio !== "undefined") {
-            new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+            new Audio('/assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
           }
           showCountdownCompletionNotification();
         }
@@ -285,7 +285,7 @@ export const LogActivityScreen: React.FC = () => {
             setIsCountdownRunning(false);
             setCountdownComplete(true);
             if (typeof Audio !== "undefined") {
-              new Audio('assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+              new Audio('/assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
             }
             showCountdownCompletionNotification();
           }

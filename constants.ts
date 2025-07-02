@@ -1,5 +1,30 @@
 import { AntimethodStage, DailyActivityGoal, ActivityCategory, Resource, Skill, ActivityDetailType, RewardItem, DashboardCardDisplayMode, Language, AppTheme } from './types';
 
+// Asset Imports
+import supremacyImg from './assets/supremacy.jpg';
+import recursosViajeroImg from './assets/recursos-viajero-antimetodo.png';
+import weLearnThisWayImg from './assets/welearnthisway.png';
+import supremacyPngImg from './assets/supremacy.png';
+
+// Reward Icon Imports
+import flairStarIcon from './assets/icons/flair_star.svg';
+import flairRocketIcon from './assets/icons/flair_rocket.svg';
+import flairCompassIcon from './assets/icons/flair_compass.svg';
+import flairCalendarIcon from './assets/icons/flair_calendar.svg';
+import flairChatIcon from './assets/icons/flair_chat.svg';
+import flairHeadphonesIcon from './assets/icons/flair_headphones.svg';
+import flairBookIcon from './assets/icons/flair_book.svg';
+import flairCrownIcon from './assets/icons/flair_crown.svg';
+import flairRebelIcon from './assets/icons/flair_rebel.svg';
+import flairBrainIcon from './assets/icons/flair_brain.svg';
+import flairGalaxyIcon from './assets/icons/flair_galaxy.svg';
+import flairBrokenBookIcon from './assets/icons/flair_broken_book.svg';
+import flairHammerIcon from './assets/icons/flair_hammer.svg';
+import themePaletteIcon from './assets/icons/theme_palette.svg';
+import flairFounderIcon from './assets/icons/flair_founder.svg';
+import flairOriginalIcon from './assets/icons/flair_original.svg';
+
+
 export const COLORS = {
   primary: '#4a148c', // Deep Purple (Main App Color)
   secondary: '#7b1fa2', // Medium Purple (Secondary Elements)
@@ -204,22 +229,22 @@ export const ONBOARDING_SCREENS = [
   {
     title: "¡Bienvenido/a a El Antimétodo!",
     text: "Tu compañero definitivo para adquirir idiomas de forma natural y disfrutando del proceso. Olvídate de la gramática forzada y las lecciones aburridas.",
-    image: "/assets/supremacy.jpg"
+    image: supremacyImg
   },
   {
     title: "Input Comprensible es la Clave",
     text: "Nos centramos en la exposición masiva a contenido que entiendes y te gusta: series, música, videojuegos, libros... ¡lo que tú elijas!",
-    image: "/assets/recursos-viajero-antimetodo.png"
+    image: recursosViajeroImg
   },
   {
     title: "Tú Tienes el Control",
     text: "Esta app es tu centro de mando para registrar tu inmersión y visualizar tu progreso. Es 100% gratuita y sin anuncios. ⚠️Importante: Tus datos se guardan solo en este navegador. ¡Recuerda exportarlos desde Configuración para tener un respaldo!",
-    image: "/assets/welearnthisway.png"
+    image: weLearnThisWayImg
   },
   {
     title: "List@ para Empezar?",
     text: "Vamos a realizar un breve test para ubicarte en la etapa correcta del Antimétodo y personalizar tu experiencia.",
-    image: "/assets/supremacy.png"
+    image: supremacyPngImg
   }
 ];
 
@@ -536,36 +561,36 @@ export const API_KEY_WARNING = "La API Key de Gemini no está configurada. Algun
 
 export const AVAILABLE_REWARDS: RewardItem[] = [
   // Existing Flairs
-  { id: "flair_futuro", name: "Título: Futuro Políglota", description: "Para aquellos con grandes ambiciones lingüísticas.", type: "flair", cost: 50, value: "Futuro Políglota", category: "Perfil", icon: "/assets/icons/flair_star.svg" },
-  { id: "flair_iniciante", name: "Título: Iniciante del Antimétodo", description: "Marcando el comienzo de tu viaje con el método.", type: "flair", cost: 100, value: "Iniciante del Antimétodo", category: "Perfil", icon: "/assets/icons/flair_rocket.svg" },
-  { id: "flair_explorador", name: "Título: Explorador de Idiomas", description: "Aventurándose en nuevos territorios lingüísticos.", type: "flair", cost: 250, value: "Explorador de Idiomas", category: "Perfil", icon: "/assets/icons/flair_compass.svg" },
-  { id: "flair_aprendiz", name: "Título: Aprendiz Constante", description: "Demuestra tu dedicación diaria.", type: "flair", cost: 350, value: "Aprendiz Constante", category: "Perfil", icon: "/assets/icons/flair_calendar.svg" },
-  { id: "flair_polyglot", name: "Título: Políglota en Práctica", description: "Manejando múltiples idiomas con destreza.", type: "flair", cost: 500, value: "Políglota en Práctica", category: "Perfil", icon: "/assets/icons/flair_chat.svg" },
-  { id: "flair_inmerso", name: "Título: Inmersión Profunda", description: "Sumergido totalmente en el idioma.", type: "flair", cost: 750, value: "Inmersión Profunda", category: "Perfil", icon: "/assets/icons/flair_headphones.svg" },
-  { id: "flair_erudito", name: "Título: Erudito Lingüista", description: "Un conocedor profundo del idioma y su cultura.", type: "flair", cost: 1000, value: "Erudito Lingüista", category: "Perfil", icon: "/assets/icons/flair_book.svg" },
-  { id: "flair_maestro", name: "Título: Maestro Políglota", description: "Dominio legendario y sabiduría idiomática.", type: "flair", cost: 2500, value: "Maestro Políglota", category: "Perfil", icon: "/assets/icons/flair_crown.svg" },
+  { id: "flair_futuro", name: "Título: Futuro Políglota", description: "Para aquellos con grandes ambiciones lingüísticas.", type: "flair", cost: 50, value: "Futuro Políglota", category: "Perfil", icon: flairStarIcon },
+  { id: "flair_iniciante", name: "Título: Iniciante del Antimétodo", description: "Marcando el comienzo de tu viaje con el método.", type: "flair", cost: 100, value: "Iniciante del Antimétodo", category: "Perfil", icon: flairRocketIcon },
+  { id: "flair_explorador", name: "Título: Explorador de Idiomas", description: "Aventurándose en nuevos territorios lingüísticos.", type: "flair", cost: 250, value: "Explorador de Idiomas", category: "Perfil", icon: flairCompassIcon },
+  { id: "flair_aprendiz", name: "Título: Aprendiz Constante", description: "Demuestra tu dedicación diaria.", type: "flair", cost: 350, value: "Aprendiz Constante", category: "Perfil", icon: flairCalendarIcon },
+  { id: "flair_polyglot", name: "Título: Políglota en Práctica", description: "Manejando múltiples idiomas con destreza.", type: "flair", cost: 500, value: "Políglota en Práctica", category: "Perfil", icon: flairChatIcon },
+  { id: "flair_inmerso", name: "Título: Inmersión Profunda", description: "Sumergido totalmente en el idioma.", type: "flair", cost: 750, value: "Inmersión Profunda", category: "Perfil", icon: flairHeadphonesIcon },
+  { id: "flair_erudito", name: "Título: Erudito Lingüista", description: "Un conocedor profundo del idioma y su cultura.", type: "flair", cost: 1000, value: "Erudito Lingüista", category: "Perfil", icon: flairBookIcon },
+  { id: "flair_maestro", name: "Título: Maestro Políglota", description: "Dominio legendario y sabiduría idiomática.", type: "flair", cost: 2500, value: "Maestro Políglota", category: "Perfil", icon: flairCrownIcon },
   
   // New Expensive Flairs
-  { id: "flair_anti_maestro", name: "Título: El Anti-Maestro", description: "Maestría desafiante de las normas.", type: "flair", cost: 3000, value: "El Anti-Maestro", category: "Perfil", icon: "/assets/icons/flair_rebel.svg" },
-  { id: "flair_sabio_input", name: "Título: Sabio del Input Comprensible", description: "Entendimiento profundo del poder del input.", type: "flair", cost: 3500, value: "Sabio del Input Comprensible", category: "Perfil", icon: "/assets/icons/flair_brain.svg" },
-  { id: "flair_antilinguista_supremo", name: "Título: El Antilingüista Supremo", description: "La cúspide del aprendizaje no convencional.", type: "flair", cost: 5000, value: "El Antilingüista Supremo", category: "Perfil", icon: "/assets/icons/flair_galaxy.svg" },
-  { id: "flair_hater_gramatica", name: "Título: Hater de la Gramática", description: "Porque el input es rey.", type: "flair", cost: 2800, value: "Hater de la Gramática", category: "Perfil", icon: "/assets/icons/flair_broken_book.svg" },
-  { id: "flair_destructor_gramaticas", name: "Título: Destructor de Gramáticas", description: "Forjando fluidez más allá de las reglas.", type: "flair", cost: 4000, value: "Destructor de Gramáticas", category: "Perfil", icon: "/assets/icons/flair_hammer.svg" },
+  { id: "flair_anti_maestro", name: "Título: El Anti-Maestro", description: "Maestría desafiante de las normas.", type: "flair", cost: 3000, value: "El Anti-Maestro", category: "Perfil", icon: flairRebelIcon },
+  { id: "flair_sabio_input", name: "Título: Sabio del Input Comprensible", description: "Entendimiento profundo del poder del input.", type: "flair", cost: 3500, value: "Sabio del Input Comprensible", category: "Perfil", icon: flairBrainIcon },
+  { id: "flair_antilinguista_supremo", name: "Título: El Antilingüista Supremo", description: "La cúspide del aprendizaje no convencional.", type: "flair", cost: 5000, value: "El Antilingüista Supremo", category: "Perfil", icon: flairGalaxyIcon },
+  { id: "flair_hater_gramatica", name: "Título: Hater de la Gramática", description: "Porque el input es rey.", type: "flair", cost: 2800, value: "Hater de la Gramática", category: "Perfil", icon: flairBrokenBookIcon },
+  { id: "flair_destructor_gramaticas", name: "Título: Destructor de Gramáticas", description: "Forjando fluidez más allá de las reglas.", type: "flair", cost: 4000, value: "Destructor de Gramáticas", category: "Perfil", icon: flairHammerIcon },
 
   // Temas (value is AppTheme type)
-  { id: "theme_zen", name: "Tema: Jardín Zen", description: "Una paleta de colores calmante para máxima concentración.", type: "theme", cost: 300, value: "theme-zen", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
-  { id: "theme_neon", name: "Tema: Neón Nocturno", description: "Colores vibrantes para estudiar con energía.", type: "theme", cost: 300, value: "theme-neon", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
-  { id: "theme_ocean", name: "Tema: Brisa Marina", description: "Tonos azules y frescos para una experiencia relajante.", type: "theme", cost: 300, value: "theme-ocean", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
+  { id: "theme_zen", name: "Tema: Jardín Zen", description: "Una paleta de colores calmante para máxima concentración.", type: "theme", cost: 300, value: "theme-zen", category: "Personalización Visual", icon: themePaletteIcon },
+  { id: "theme_neon", name: "Tema: Neón Nocturno", description: "Colores vibrantes para estudiar con energía.", type: "theme", cost: 300, value: "theme-neon", category: "Personalización Visual", icon: themePaletteIcon },
+  { id: "theme_ocean", name: "Tema: Brisa Marina", description: "Tonos azules y frescos para una experiencia relajante.", type: "theme", cost: 300, value: "theme-ocean", category: "Personalización Visual", icon: themePaletteIcon },
   // New Cultural Themes
-  { id: "theme_japan_neon", name: "Tema: Japón Neón", description: "Sumérgete en las vibrantes noches de Tokio.", type: "theme", cost: 400, value: "theme-japan-neon", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
-  { id: "theme_cafe_parisien", name: "Tema: Café Parisino", description: "Un ambiente acogedor con el encanto de París.", type: "theme", cost: 400, value: "theme-cafe-parisien", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
-  { id: "theme_fiesta_brasil", name: "Tema: Fiesta Brasileña", description: "Colores alegres y energía tropical.", type: "theme", cost: 400, value: "theme-fiesta-brasil", category: "Personalización Visual", icon: "/assets/icons/theme_palette.svg" },
+  { id: "theme_japan_neon", name: "Tema: Japón Neón", description: "Sumérgete en las vibrantes noches de Tokio.", type: "theme", cost: 400, value: "theme-japan-neon", category: "Personalización Visual", icon: themePaletteIcon },
+  { id: "theme_cafe_parisien", name: "Tema: Café Parisino", description: "Un ambiente acogedor con el encanto de París.", type: "theme", cost: 400, value: "theme-cafe-parisien", category: "Personalización Visual", icon: themePaletteIcon },
+  { id: "theme_fiesta_brasil", name: "Tema: Fiesta Brasileña", description: "Colores alegres y energía tropical.", type: "theme", cost: 400, value: "theme-fiesta-brasil", category: "Personalización Visual", icon: themePaletteIcon },
 ];
 
 // Definitions for Secret Rewards (not displayed in store, only unlockable via code)
 export const SECRET_REWARDS_DEFINITIONS: RewardItem[] = [
-    { id: "secret_flair_founder", name: "Título: Fundador del Antimétodo", description: "Por estar desde el inicio.", type: "flair", cost: 0, value: "Fundador del Antimétodo", category: "Secreto", icon: "/assets/icons/flair_founder.svg" }, 
-    { id: "secret_flair_original_master", name: "Título: El Antimaestro Original", description: "Un pionero del método.", type: "flair", cost: 0, value: "El Antimaestro Original", category: "Secreto", icon: "/assets/icons/flair_original.svg" }, 
+    { id: "secret_flair_founder", name: "Título: Fundador del Antimétodo", description: "Por estar desde el inicio.", type: "flair", cost: 0, value: "Fundador del Antimétodo", category: "Secreto", icon: flairFounderIcon }, 
+    { id: "secret_flair_original_master", name: "Título: El Antimaestro Original", description: "Un pionero del método.", type: "flair", cost: 0, value: "El Antimaestro Original", category: "Secreto", icon: flairOriginalIcon }, 
 ];
 
 export const MASTER_REDEEM_CODE = "ANTIMETODOMASTER24";
@@ -591,7 +616,7 @@ export const REDEEM_CODES_MAP: Record<string, string> = {
   "AMORIGINALSECRET": "secret_flair_original_master",
   "JAPANNIGHTS24": "theme_japan_neon",    // New Code
   "PARISCAFE24": "theme_cafe_parisien", // New Code
-  "BRASILFEST24": "theme_fiesta_brasil", // New Code
+  "BRASILFEST24": "theme_fiesta-brasil", // New Code
   [MASTER_REDEEM_CODE]: "__UNLOCK_ALL__", // Special identifier for master code
 };
 

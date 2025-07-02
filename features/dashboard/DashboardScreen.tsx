@@ -14,7 +14,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { formatDurationFromSeconds, formatTimeHHMMSS } from '../../utils/timeUtils';
 import { PlayIcon as ReLogIcon } from '../../components/icons/TimerIcons'; 
 import { PencilIcon } from '../../components/icons/PencilIcon';
-// StreakCard is removed
+import moneyIcon from '../../assets/money.png';
 
 const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -223,7 +223,7 @@ export const DashboardScreen: React.FC = () => {
             </div>
           )}
            <Link to={AppView.REWARDS} className="mt-2 flex items-center space-x-2 group focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] rounded-md p-1 -ml-1">
-            <img src="/assets/money.png" alt="Puntos de Enfoque" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <img src={moneyIcon} alt="Puntos de Enfoque" className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className={`text-sm font-medium text-[var(--color-primary)] group-hover:text-[var(--color-accent)] transition-colors`}>
                 {userProfile.focusPoints} Puntos de Enfoque
             </span>

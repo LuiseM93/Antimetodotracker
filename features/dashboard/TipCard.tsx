@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/Card';
-// import { LightBulbIcon } from '../../components/icons/LightBulbIcon'; // Removed
 import { geminiService } from '../../services/geminiService';
 import { useAppContext } from '../../contexts/AppContext';
+import lightIcon from '../../assets/light.png';
 
 export const TipCard: React.FC = () => {
   const { userProfile } = useAppContext();
@@ -25,7 +25,7 @@ export const TipCard: React.FC = () => {
     <Card title="Consejo del Día" className={`bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-accent)] text-white shadow-xl`}>
       <div className="flex items-start space-x-3">
         <img 
-          src="/assets/light.png" 
+          src={lightIcon} 
           alt="Consejo" 
           className="w-10 h-10 object-contain mt-1 flex-shrink-0" // Adjusted size for better fit
         />

@@ -164,6 +164,7 @@ export enum AppView {
   REWARDS = "/rewards", // New view for rewards
   LEADERBOARD = "/leaderboard", // New view for leaderboards
   FEED = "/feed", // New view for activity feed
+  BULK_IMPORT = "/bulk-import", // New view for bulk import tool
 }
 
 // For data export/import
@@ -225,14 +226,13 @@ export interface FeedItem {
     hours?: number;
     language?: Language;
     reward_name?: string;
-    reward_type?: RewardItem['type'];
+    reward_type?: 'theme' | 'flair' | 'content';
   };
   created_at: string;
-  // This part is for data joined from the 'profiles' table
   profiles: {
     username: string;
     display_name: string;
-    avatar_url: string;
+    avatar_url?: string;
   } | null;
   like_count: number;
   user_has_liked: boolean;

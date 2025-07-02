@@ -52,14 +52,7 @@ export interface Database {
           sub_activity?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "activity_logs_user_id_fkey"
-            columns: ["user_id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       feed_item_likes: {
         Row: {
@@ -82,12 +75,6 @@ export interface Database {
             foreignKeyName: "feed_item_likes_feed_item_id_fkey"
             columns: ["feed_item_id"]
             referencedRelation: "feed_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feed_item_likes_user_id_fkey"
-            columns: ["user_id"]
-            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
@@ -114,14 +101,7 @@ export interface Database {
           type?: FeedItemType
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "feed_items_user_id_fkey"
-            columns: ["user_id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -160,14 +140,7 @@ export interface Database {
           theme?: AppTheme | null
           username?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       relationships: {
         Row: {

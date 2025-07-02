@@ -12,6 +12,9 @@ import { SelectActivityModal } from './SelectActivityModal';
 import { PlusCircleIcon } from '../../components/icons/PlusCircleIcon';
 import { Modal } from '../../components/Modal';
 import { formatTimeHHMMSS } from '../../utils/timeUtils';
+import logo from '../../assets/logo.png';
+import notificationSound from '../../assets/notification.mp3';
+
 
 const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -201,7 +204,7 @@ export const LogActivityScreen: React.FC = () => {
     const notificationBody = `Tu sesión de '${activityDisplayName}' ha finalizado.`;
     const notificationOptions = {
       body: notificationBody,
-      icon: '/assets/logo.png'
+      icon: logo
     };
 
     if (Notification.permission === "granted") {
@@ -244,7 +247,7 @@ export const LogActivityScreen: React.FC = () => {
           setIsCountdownRunning(false); 
           setCountdownComplete(true);
           if (typeof Audio !== "undefined") {
-            new Audio('/assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+            new Audio(notificationSound).play().catch(e => console.warn("Fallo al reproducir audio.", e));
           }
           showCountdownCompletionNotification();
         }
@@ -285,7 +288,7 @@ export const LogActivityScreen: React.FC = () => {
             setIsCountdownRunning(false);
             setCountdownComplete(true);
             if (typeof Audio !== "undefined") {
-              new Audio('/assets/notification.mp3').play().catch(e => console.warn("Fallo al reproducir audio.", e));
+              new Audio(notificationSound).play().catch(e => console.warn("Fallo al reproducir audio.", e));
             }
             showCountdownCompletionNotification();
           }

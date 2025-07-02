@@ -1,9 +1,10 @@
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// The user has confirmed the environment variables are named without prefixes.
-// The execution environment is expected to populate process.env.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// Vite requires environment variables to be prefixed with VITE_ to be exposed to the browser.
+// Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your hosting environment (e.g., Vercel).
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
 
 let supabase: SupabaseClient;
@@ -15,7 +16,7 @@ if (supabaseUrl && supabaseAnonKey) {
   // If variables are missing, log a critical error and create a dummy client.
   // This prevents the app from crashing and allows it to load a fallback UI.
   console.error(
-    "CRITICAL: Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY) are not set or not exposed to the browser. " +
+    "CRITICAL: Supabase environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) are not set. " +
     "The application will not connect to the backend. Please configure them in your hosting environment."
   );
 

@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { LockClosedIcon } from '../../components/icons/LockClosedIcon';
 import { CheckCircleIcon } from '../../components/icons/CheckCircleIcon';
 import { StarIcon } from '../../components/icons/StarIcon'; // For active flair
+import moneyIcon from '../../assets/money.png';
 
 const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -60,7 +61,7 @@ const RewardCard: React.FC<RewardCardProps> = ({
       <div className="mt-auto">
         {onPurchase && canAfford !== undefined && reward.cost > 0 && ( // Only show cost if it's a purchasable context
           <div className="flex items-center justify-center space-x-2 mb-3">
-              <img src="/assets/money.png" alt="Puntos" className="w-5 h-5" />
+              <img src={moneyIcon} alt="Puntos" className="w-5 h-5" />
               <span className={`text-lg font-semibold ${!isUnlocked && !canAfford ? 'text-red-500' : 'text-[var(--color-secondary)]'}`}>
                   {reward.cost}
               </span>
@@ -219,7 +220,7 @@ export const RewardsScreen: React.FC = () => {
           Tienda y Mis Títulos
         </h1>
         <div className="flex items-center space-x-2">
-          <img src="/assets/money.png" alt="Puntos de Enfoque" className="w-8 h-8" />
+          <img src={moneyIcon} alt="Puntos de Enfoque" className="w-8 h-8" />
           <span className="text-2xl font-semibold text-[var(--color-accent)]">
             {userProfile.focusPoints}
           </span>

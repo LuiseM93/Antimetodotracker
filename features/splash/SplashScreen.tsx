@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logo from '../../assets/logo.png';
 
 const SPLASH_DURATION = 2000; // Total duration for the splash screen in ms
 const FADE_DURATION = 500;   // Duration of fade-in/out animation in ms
@@ -38,7 +39,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       }}
     >
       <img 
-        src="/assets/logo.png"
+        src={logo}
         alt="Logo El Antimétodo"
         className="w-32 h-32 sm:w-40 sm:h-40 mb-4 object-contain"
       />

@@ -11,6 +11,8 @@ import { STAGE_DETAILS, ALL_REWARD_DEFINITIONS } from '../../constants';
 import { CalendarDaysIcon } from '../../components/icons/CalendarDaysIcon';
 import { BookOpenIcon } from '../../components/icons/BookOpenIcon';
 import { FollowListModal } from '../../components/profile/FollowListModal';
+import moneyIcon from '../../assets/money.png';
+import languageIcon from '../../assets/language.png';
 
 interface PublicProfileData extends Partial<UserProfile> {
   id: string;
@@ -167,7 +169,7 @@ export const ProfileScreen: React.FC = () => {
                             </span>
                         )}
                          <div className="mt-3 flex items-center justify-center space-x-2">
-                            <img src="/assets/money.png" alt="Puntos de Enfoque" className="w-6 h-6" />
+                            <img src={moneyIcon} alt="Puntos de Enfoque" className="w-6 h-6" />
                             <span className={`text-lg font-medium text-[var(--color-primary)]`}>
                                 {profile.focusPoints || 0} Puntos de Enfoque
                             </span>
@@ -202,7 +204,7 @@ export const ProfileScreen: React.FC = () => {
                                 <p className="text-sm text-[var(--color-text-light)]">Días Adquiriendo</p>
                             </div>
                             <div className="p-3">
-                                <img src="/assets/language.png" alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
+                                <img src={languageIcon} alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
                                 <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learningLanguages?.length || 0}</p>
                                 <p className="text-sm text-[var(--color-text-light)]">Idiomas Activos</p>
                             </div>

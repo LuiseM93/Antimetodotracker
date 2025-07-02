@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../../components/Button';
 import { useAppContext } from '../../contexts/AppContext';
 import { GoogleIcon } from '../../components/icons/GoogleIcon';
+import logo from '../../assets/logo.png';
 
 const inputBaseStyle = "w-full px-4 py-3 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -51,7 +52,7 @@ export const AuthScreen: React.FC = () => {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)]">
             <div className="w-full max-w-md mx-auto">
                 <div className="text-center mb-8">
-                    <img src="/assets/logo.png" alt="Logo" className="w-24 h-24 mx-auto mb-4" />
+                    <img src={logo} alt="Logo" className="w-24 h-24 mx-auto mb-4" />
                     <h1 className="text-4xl font-poppins font-bold text-white">El Antimétodo</h1>
                     <p className="text-purple-200 mt-2">Tu comunidad de adquisición de idiomas.</p>
                 </div>

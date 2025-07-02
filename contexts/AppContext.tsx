@@ -1,10 +1,9 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
 import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem } from '../types';
 import { storageService } from '../services/storageService';
 import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS, LEARNING_DAY_POINTS_AWARD, HABIT_POINTS_MAP, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE, AVAILABLE_REWARDS, ALL_REWARD_DEFINITIONS, HOUR_MILESTONES } from '../constants';
 import { supabase } from '../services/supabaseClient';
-import { Session, User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 const USER_PROFILE_KEY = 'ANTIMETODO_USER_PROFILE_V5'; 
 const ACTIVITY_LOGS_KEY = 'ANTIMETODO_ACTIVITY_LOGS_V3';
@@ -39,7 +38,7 @@ interface AppContextType {
   
   // Auth methods
   signInWithPassword: typeof supabase.auth.signInWithPassword;
-  signUpWithPassword: typeof supabase.auth.signUp;
+  signUp: typeof supabase.auth.signUp;
   signInWithGoogle: () => Promise<any>;
   signOut: () => Promise<any>;
 
@@ -967,7 +966,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
         isLoading, isInitialLoadComplete, appTheme,
         signInWithPassword: supabase.auth.signInWithPassword,
-        signUpWithPassword: supabase.auth.signUp,
+        signUp: supabase.auth.signUp,
         signInWithGoogle,
         signOut,
         initializeUserProfile, updateUserProfile, updateAppTheme,

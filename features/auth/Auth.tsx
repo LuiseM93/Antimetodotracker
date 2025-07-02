@@ -6,7 +6,7 @@ import { GoogleIcon } from '../../components/icons/GoogleIcon';
 const inputBaseStyle = "w-full px-4 py-3 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
 export const AuthScreen: React.FC = () => {
-    const { signInWithPassword, signUpWithPassword, signInWithGoogle } = useAppContext();
+    const { signInWithPassword, signUp, signInWithGoogle } = useAppContext();
     const [isLoginView, setIsLoginView] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,7 +23,7 @@ export const AuthScreen: React.FC = () => {
             if (isLoginView) {
                 authResponse = await signInWithPassword({ email, password });
             } else {
-                authResponse = await signUpWithPassword({ email, password });
+                authResponse = await signUp({ email, password });
             }
 
             if (authResponse.error) {

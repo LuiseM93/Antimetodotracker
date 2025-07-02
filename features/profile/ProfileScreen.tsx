@@ -10,7 +10,7 @@ import { UserCircleIcon } from '../../components/icons/UserCircleIcon';
 import { STAGE_DETAILS, ALL_REWARD_DEFINITIONS } from '../../constants';
 import { CalendarDaysIcon } from '../../components/icons/CalendarDaysIcon';
 import { BookOpenIcon } from '../../components/icons/BookOpenIcon';
-import { FollowListModal } from './FollowListModal';
+import { FollowListModal } from '../../components/profile/FollowListModal';
 
 interface PublicProfileData extends Partial<UserProfile> {
   id: string;

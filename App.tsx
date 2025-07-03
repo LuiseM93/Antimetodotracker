@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext.tsx';
@@ -85,6 +84,22 @@ const AppRoutes: React.FC = () => {
         }
     }
   }, [appTheme]);
+
+  // Handle OAuth redirect
+  useEffect(() => {
+    const handleOAuthRedirect = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check if this is an OAuth redirect
+      if (urlParams.has('code') || hashParams.has('access_token')) {
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    handleOAuthRedirect();
+  }, []);
 
   if (!isInitialLoadComplete) {
     return (

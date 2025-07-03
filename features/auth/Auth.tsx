@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '../../components/Button.tsx';
 import { useAppContext } from '../../contexts/AppContext.tsx';
@@ -24,14 +23,25 @@ export const AuthScreen: React.FC = () => {
             if (isLoginView) {
                 authResponse = await signInWithPassword({ email, password });
             } else {
-                authResponse = await signUp({ email, password });
+                authResponse = await signUp({ 
+                    email, 
+                    password,
+                    options: {
+                        emailRedirectTo: window.location.origin
+                    }
+                });
             }
 
             if (authResponse.error) {
+                console.error('Auth error:', authResponse.error);
                 setError(authResponse.error.message);
+            } else if (!isLoginView && authResponse.data?.user && !authResponse.data?.session) {
+                // Sign up successful but needs email confirmation
+                setError("Cuenta creada exitosamente. Por favor, revisa tu email para confirmar tu cuenta.");
             }
             // On success, the onAuthStateChange listener in AppContext will handle the session update.
         } catch (err: any) {
+            console.error('Auth action error:', err);
             setError(err.message || 'An unexpected error occurred.');
         } finally {
             setLoading(false);
@@ -41,9 +51,18 @@ export const AuthScreen: React.FC = () => {
     const handleGoogleSignIn = async () => {
         setLoading(true);
         setError(null);
-        const { error } = await signInWithGoogle();
-        if (error) {
-            setError(error.message);
+        
+        try {
+            const { error } = await signInWithGoogle();
+            if (error) {
+                console.error('Google sign in error:', error);
+                setError(error.message);
+            }
+            // Note: For OAuth, the redirect happens automatically, so we don't set loading to false here
+            // unless there's an error
+        } catch (err: any) {
+            console.error('Google sign in error:', err);
+            setError(err.message || 'Error al iniciar sesión con Google');
             setLoading(false);
         }
     };
@@ -63,9 +82,13 @@ export const AuthScreen: React.FC = () => {
                     </h2>
 
                     {error && (
-                        <p className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 text-sm" role="alert">
+                        <div className={`mb-4 p-3 rounded-lg text-sm ${
+                            error.includes('exitosamente') 
+                                ? 'bg-green-100 border border-green-400 text-green-700' 
+                                : 'bg-red-100 border border-red-400 text-red-700'
+                        }`} role="alert">
                             {error}
-                        </p>
+                        </div>
                     )}
 
                     <form onSubmit={handleAuthAction} className="space-y-4">
@@ -83,7 +106,7 @@ export const AuthScreen: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label htmlFor="password"className="sr-only">Contraseña</label>
+                            <label htmlFor="password" className="sr-only">Contraseña</label>
                             <input
                                 id="password"
                                 type="password"
@@ -136,6 +159,7 @@ export const AuthScreen: React.FC = () => {
                                 setError(null);
                             }}
                             className="font-medium text-[var(--color-accent)] hover:underline ml-1"
+                            disabled={loading}
                         >
                             {isLoginView ? 'Regístrate' : 'Inicia Sesión'}
                         </button>

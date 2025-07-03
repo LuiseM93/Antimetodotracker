@@ -1,5 +1,3 @@
-
-
 import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
 import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem } from '../types.ts';
 import { storageService } from '../services/storageService.ts';
@@ -205,18 +203,51 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Authentication listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsInitialLoadComplete(true);
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (mounted) {
+          if (error) {
+            console.error('Error getting session:', error);
+          }
+          setSession(session);
+          setUser(session?.user ?? null);
+          setIsInitialLoadComplete(true);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setIsInitialLoadComplete(true);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (mounted) {
+        console.log('Auth state changed:', event, session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Handle redirect after OAuth
+        if (event === 'SIGNED_IN' && session) {
+          // Check if this is a redirect from OAuth
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.has('code') || window.location.hash.includes('access_token')) {
+            // Clear URL parameters and redirect to dashboard
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Data loader for user profile, goals, etc. from local storage, and activity logs from Supabase.
@@ -232,18 +263,23 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       // Load activity logs from Supabase if session exists
       if (session?.user) {
-        const { data: logs, error } = await supabase
-          .from('activity_logs')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false });
+        try {
+          const { data: logs, error } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
 
-        if (error) {
+          if (error) {
+            console.error("Error fetching activity logs:", error);
+            setActivityLogs([]);
+          } else {
+            setActivityLogs(logs as ActivityLogEntry[] || []);
+          }
+        } catch (error) {
           console.error("Error fetching activity logs:", error);
           setActivityLogs([]);
-        } else {
-          setActivityLogs(logs as ActivityLogEntry[] || []);
         }
       } else {
         // No session, ensure logs are cleared
@@ -288,29 +324,50 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [isInitialLoadComplete, session]);
   
   const signInWithGoogle = async () => {
-    // Determinar la URL de redirección basada en el entorno
-    const redirectUrl = window.location.hostname === 'localhost' 
-      ? window.location.origin + window.location.pathname
-      : 'https://antimetodo.vercel.app' + window.location.pathname;
-      
-    return supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl
+    try {
+      // Determinar la URL de redirección basada en el entorno
+      const isProduction = window.location.hostname === 'antimetodo.vercel.app';
+      const redirectUrl = isProduction 
+        ? 'https://antimetodo.vercel.app/'
+        : window.location.origin + '/';
+        
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error signing in with Google:', error);
       }
-    });
+
+      return { data, error };
+    } catch (error) {
+      console.error('Error in signInWithGoogle:', error);
+      return { data: null, error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setUserProfile(null);
-      setActivityLogs([]);
-      setUserGoals([]);
-      setDailyTargets([]);
-      setSavedDailyRoutines([]);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (!error) {
+        setUserProfile(null);
+        setActivityLogs([]);
+        setUserGoals([]);
+        setDailyTargets([]);
+        setSavedDailyRoutines([]);
+      }
+      return { error };
+    } catch (error) {
+      console.error('Error signing out:', error);
+      return { error };
     }
-    return { error };
   };
 
   const updateAppTheme = useCallback((theme: AppTheme, fromRewardOrCode: boolean = false) => {
@@ -327,61 +384,67 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         console.error("No user session found to initialize profile.");
         return { success: false, error: new Error("No user session") };
     }
-    const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
-
-    const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
-        username: profile.username,
-        display_name: profile.display_name,
-        current_stage: profile.currentStage,
-        avatar_url: session.user.user_metadata.avatar_url ?? null,
-        theme: initialTheme,
-        focus_points: profile.focusPoints || 0,
-        profile_flair_id: profile.profileFlairId || null,
-        learning_languages: profile.learningLanguages || [],
-        learning_days_count: profile.learningDaysCount || 0,
-    };
-
-    const { error } = await supabase.from('profiles').update(profileToSync).eq('id', session.user.id);
-
-    if (error) {
-        console.error("Error updating profile in Supabase:", error);
-        return { success: false, error };
-    }
     
-    const initialLearningLanguages = profile.learningLanguages || [];
-    let initialPrimaryLanguage = profile.primaryLanguage;
+    try {
+      const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
 
-    if (!initialPrimaryLanguage || (initialLearningLanguages.length > 0 && !initialLearningLanguages.includes(initialPrimaryLanguage))) {
-        initialPrimaryLanguage = initialLearningLanguages.length > 0 ? initialLearningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
-    } else if (initialLearningLanguages.length === 0) {
-        initialPrimaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
+          username: profile.username,
+          display_name: profile.display_name,
+          current_stage: profile.currentStage,
+          avatar_url: session.user.user_metadata.avatar_url ?? null,
+          theme: initialTheme,
+          focus_points: profile.focusPoints || 0,
+          profile_flair_id: profile.profileFlairId || null,
+          learning_languages: profile.learningLanguages || [],
+          learning_days_count: profile.learningDaysCount || 0,
+      };
+
+      const { error } = await supabase.from('profiles').update(profileToSync).eq('id', session.user.id);
+
+      if (error) {
+          console.error("Error updating profile in Supabase:", error);
+          return { success: false, error };
+      }
+      
+      const initialLearningLanguages = profile.learningLanguages || [];
+      let initialPrimaryLanguage = profile.primaryLanguage;
+
+      if (!initialPrimaryLanguage || (initialLearningLanguages.length > 0 && !initialLearningLanguages.includes(initialPrimaryLanguage))) {
+          initialPrimaryLanguage = initialLearningLanguages.length > 0 ? initialLearningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      } else if (initialLearningLanguages.length === 0) {
+          initialPrimaryLanguage = AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language;
+      }
+
+      const profileWithDefaults: UserProfile = {
+          ...profile,
+          learningLanguages: initialLearningLanguages,
+          defaultLogDurationSeconds: profile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
+          defaultLogTimerMode: profile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+          primaryLanguage: initialPrimaryLanguage,
+          theme: initialTheme,
+          favoriteActivities: profile.favoriteActivities || [],
+          dashboardCardDisplayMode: profile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+          goals: (profile.goals || []).map(g => ({ ...g, currentValue: g.currentValue ?? 0, targetValue: g.targetValue ?? 0, unit: g.unit ?? '' })),
+          learningDaysCount: profile.learningDaysCount || 0,
+          focusPoints: profile.focusPoints || 0,
+          unlockedRewards: profile.unlockedRewards || [],
+          profileFlairId: profile.profileFlairId || null,
+          lastActivityDateByLanguage: profile.lastActivityDateByLanguage || {},
+          lastHabitPointsAwardDate: profile.lastHabitPointsAwardDate || null,
+          lastRedeemAttemptTimestamp: profile.lastRedeemAttemptTimestamp || undefined,
+          customActivities: profile.customActivities || [],
+      };
+      setUserProfile(profileWithDefaults);
+      setAppTheme(initialTheme);
+      storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
+      setUserGoals(profileWithDefaults.goals);
+      storageService.setItem(USER_GOALS_KEY, profileWithDefaults.goals);
+      return { success: true };
+    } catch (error) {
+      console.error("Error in initializeUserProfile:", error);
+      return { success: false, error };
     }
-
-    const profileWithDefaults: UserProfile = {
-        ...profile,
-        learningLanguages: initialLearningLanguages,
-        defaultLogDurationSeconds: profile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
-        defaultLogTimerMode: profile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
-        primaryLanguage: initialPrimaryLanguage,
-        theme: initialTheme,
-        favoriteActivities: profile.favoriteActivities || [],
-        dashboardCardDisplayMode: profile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-        goals: (profile.goals || []).map(g => ({ ...g, currentValue: g.currentValue ?? 0, targetValue: g.targetValue ?? 0, unit: g.unit ?? '' })),
-        learningDaysCount: profile.learningDaysCount || 0,
-        focusPoints: profile.focusPoints || 0,
-        unlockedRewards: profile.unlockedRewards || [],
-        profileFlairId: profile.profileFlairId || null,
-        lastActivityDateByLanguage: profile.lastActivityDateByLanguage || {},
-        lastHabitPointsAwardDate: profile.lastHabitPointsAwardDate || null,
-        lastRedeemAttemptTimestamp: profile.lastRedeemAttemptTimestamp || undefined,
-        customActivities: profile.customActivities || [],
-    };
-    setUserProfile(profileWithDefaults);
-    setAppTheme(initialTheme);
-    storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
-    setUserGoals(profileWithDefaults.goals);
-    storageService.setItem(USER_GOALS_KEY, profileWithDefaults.goals);
-    return { success: true };
   }, [session]);
 
   const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
@@ -440,110 +503,122 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       return;
     }
 
-    const { data: previousLogs, error: previousLogsError } = await supabase
-        .from('activity_logs')
-        .select('duration_seconds')
-        .eq('user_id', session.user.id)
-        .eq('language', logData.language);
+    try {
+      const { data: previousLogs, error: previousLogsError } = await supabase
+          .from('activity_logs')
+          .select('duration_seconds')
+          .eq('user_id', session.user.id)
+          .eq('language', logData.language);
 
-    if (previousLogsError) {
-      console.error("Could not fetch previous logs for milestone check", previousLogsError);
-    }
-    const previousTotalSeconds = previousLogs?.reduce((sum, log) => sum + log.duration_seconds, 0) || 0;
-
-    const logToInsert: Database['public']['Tables']['activity_logs']['Insert'] = {
-       language: logData.language,
-       category: logData.category,
-       sub_activity: logData.sub_activity,
-       duration_seconds: logData.duration_seconds,
-       date: logData.date,
-       custom_title: logData.custom_title || null,
-       start_time: logData.start_time || null,
-       notes: logData.notes || null,
-       user_id: session.user.id
-    };
-
-    const { data: newLog, error } = await supabase
-      .from('activity_logs')
-      .insert(logToInsert)
-      .select()
-      .single();
-
-    if (error || !newLog) {
-      console.error("Error adding activity log:", error);
-      return;
-    }
-    
-    setActivityLogs(prev => [(newLog as ActivityLogEntry), ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    
-    const currentTotalSeconds = previousTotalSeconds + newLog.duration_seconds;
-    const milestoneHoursCrossed = HOUR_MILESTONES.find(
-        milestone => (previousTotalSeconds / 3600) < milestone && (currentTotalSeconds / 3600) >= milestone
-    );
-    if (milestoneHoursCrossed) {
-        const feedItem: Database['public']['Tables']['feed_items']['Insert'] = {
-            user_id: session.user.id,
-            type: 'milestone_achieved',
-            content: { hours: milestoneHoursCrossed, language: newLog.language }
-        };
-        await supabase.from('feed_items').insert(feedItem);
-    }
-
-    setUserProfile(prevProfile => {
-      if (!prevProfile) return null;
-      let updatedProfile = { ...prevProfile };
-      const lastDateForLang = prevProfile.lastActivityDateByLanguage[logData.language] || '';
-      if (logData.date > lastDateForLang) {
-        updatedProfile = {
-          ...updatedProfile,
-          learningDaysCount: (prevProfile.learningDaysCount || 0) + 1,
-          focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
-          lastActivityDateByLanguage: {
-            ...prevProfile.lastActivityDateByLanguage,
-            [logData.language]: logData.date,
-          }
-        };
+      if (previousLogsError) {
+        console.error("Could not fetch previous logs for milestone check", previousLogsError);
       }
-      storageService.setItem(USER_PROFILE_KEY, updatedProfile);
-      return updatedProfile;
-    });
+      const previousTotalSeconds = previousLogs?.reduce((sum, log) => sum + log.duration_seconds, 0) || 0;
+
+      const logToInsert: Database['public']['Tables']['activity_logs']['Insert'] = {
+         language: logData.language,
+         category: logData.category,
+         sub_activity: logData.sub_activity,
+         duration_seconds: logData.duration_seconds,
+         date: logData.date,
+         custom_title: logData.custom_title || null,
+         start_time: logData.start_time || null,
+         notes: logData.notes || null,
+         user_id: session.user.id
+      };
+
+      const { data: newLog, error } = await supabase
+        .from('activity_logs')
+        .insert(logToInsert)
+        .select()
+        .single();
+
+      if (error || !newLog) {
+        console.error("Error adding activity log:", error);
+        return;
+      }
+      
+      setActivityLogs(prev => [(newLog as ActivityLogEntry), ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      
+      const currentTotalSeconds = previousTotalSeconds + newLog.duration_seconds;
+      const milestoneHoursCrossed = HOUR_MILESTONES.find(
+          milestone => (previousTotalSeconds / 3600) < milestone && (currentTotalSeconds / 3600) >= milestone
+      );
+      if (milestoneHoursCrossed) {
+          const feedItem: Database['public']['Tables']['feed_items']['Insert'] = {
+              user_id: session.user.id,
+              type: 'milestone_achieved',
+              content: { hours: milestoneHoursCrossed, language: newLog.language }
+          };
+          await supabase.from('feed_items').insert(feedItem);
+      }
+
+      setUserProfile(prevProfile => {
+        if (!prevProfile) return null;
+        let updatedProfile = { ...prevProfile };
+        const lastDateForLang = prevProfile.lastActivityDateByLanguage[logData.language] || '';
+        if (logData.date > lastDateForLang) {
+          updatedProfile = {
+            ...updatedProfile,
+            learningDaysCount: (prevProfile.learningDaysCount || 0) + 1,
+            focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
+            lastActivityDateByLanguage: {
+              ...prevProfile.lastActivityDateByLanguage,
+              [logData.language]: logData.date,
+            }
+          };
+        }
+        storageService.setItem(USER_PROFILE_KEY, updatedProfile);
+        return updatedProfile;
+      });
+    } catch (error) {
+      console.error("Error in addActivityLog:", error);
+    }
   }, [session]);
   
   const updateActivityLog = useCallback(async (updatedLog: ActivityLogEntry) => {
-    const { id, user_id, created_at, ...logToUpdateWithoutMeta } = updatedLog;
-    const logToUpdate: Database['public']['Tables']['activity_logs']['Update'] = {
-      ...logToUpdateWithoutMeta,
-      custom_title: updatedLog.custom_title || null,
-      notes: updatedLog.notes || null,
-      start_time: updatedLog.start_time || null,
-    };
-    
-    const { data: newUpdatedLog, error } = await supabase
-      .from('activity_logs')
-      .update(logToUpdate)
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { id, user_id, created_at, ...logToUpdateWithoutMeta } = updatedLog;
+      const logToUpdate: Database['public']['Tables']['activity_logs']['Update'] = {
+        ...logToUpdateWithoutMeta,
+        custom_title: updatedLog.custom_title || null,
+        notes: updatedLog.notes || null,
+        start_time: updatedLog.start_time || null,
+      };
+      
+      const { data: newUpdatedLog, error } = await supabase
+        .from('activity_logs')
+        .update(logToUpdate)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      console.error("Error updating activity log:", error);
-      return;
-    }
+      if (error) {
+        console.error("Error updating activity log:", error);
+        return;
+      }
 
-    if (newUpdatedLog) {
-      setActivityLogs(prevLogs => prevLogs.map(log => (log.id === (newUpdatedLog as ActivityLogEntry).id ? (newUpdatedLog as ActivityLogEntry) : log)));
+      if (newUpdatedLog) {
+        setActivityLogs(prevLogs => prevLogs.map(log => (log.id === (newUpdatedLog as ActivityLogEntry).id ? (newUpdatedLog as ActivityLogEntry) : log)));
+      }
+    } catch (error) {
+      console.error("Error in updateActivityLog:", error);
     }
   }, []);
 
   const deleteActivityLog = useCallback(async (logId: string) => {
-    const { error } = await supabase.from('activity_logs').delete().eq('id', logId);
+    try {
+      const { error } = await supabase.from('activity_logs').delete().eq('id', logId);
 
-    if (error) {
-      console.error("Error deleting activity log:", error);
-      return;
+      if (error) {
+        console.error("Error deleting activity log:", error);
+        return;
+      }
+      
+      setActivityLogs(prevLogs => prevLogs.filter(log => log.id !== logId));
+    } catch (error) {
+      console.error("Error in deleteActivityLog:", error);
     }
-    
-    setActivityLogs(prevLogs => prevLogs.filter(log => log.id !== logId));
   }, []);
 
   const addUserGoal = useCallback((goalData: Omit<UserGoal, 'id' | 'achieved'>) => {
@@ -709,70 +784,75 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [activityLogs]);
 
   const importAppData = useCallback(async (data: AppDataExport): Promise<{success: boolean, error?: string}> => {
-    // 1. Restore local data (profile, goals, routines, etc.)
-    if (data.userProfile) {
-        const migratedProfile = migrateUserProfile(data.userProfile);
-        if (migratedProfile) {
-            setUserProfile(migratedProfile);
-            storageService.setItem(USER_PROFILE_KEY, migratedProfile);
-            if (migratedProfile.theme) setAppTheme(migratedProfile.theme);
-        }
-    }
-    if (data.userGoals) {
-        setUserGoals(data.userGoals);
-        storageService.setItem(USER_GOALS_KEY, data.userGoals);
-    }
-    if (data.dailyTargets) {
-        const migratedTargets = migrateDailyTargets(data.dailyTargets);
-        setDailyTargets(migratedTargets);
-        storageService.setItem(DAILY_TARGETS_KEY, migratedTargets);
-    }
-    if (data.savedDailyRoutines) {
-        const migratedRoutines = migrateSavedRoutines(data.savedDailyRoutines);
-        setSavedDailyRoutines(migratedRoutines);
-        storageService.setItem(SAVED_DAILY_ROUTINES_KEY, migratedRoutines);
-    }
-    if (data.resources) {
-        setResources(data.resources);
-        storageService.setItem(APP_RESOURCES_KEY, data.resources);
-    }
+    try {
+      // 1. Restore local data (profile, goals, routines, etc.)
+      if (data.userProfile) {
+          const migratedProfile = migrateUserProfile(data.userProfile);
+          if (migratedProfile) {
+              setUserProfile(migratedProfile);
+              storageService.setItem(USER_PROFILE_KEY, migratedProfile);
+              if (migratedProfile.theme) setAppTheme(migratedProfile.theme);
+          }
+      }
+      if (data.userGoals) {
+          setUserGoals(data.userGoals);
+          storageService.setItem(USER_GOALS_KEY, data.userGoals);
+      }
+      if (data.dailyTargets) {
+          const migratedTargets = migrateDailyTargets(data.dailyTargets);
+          setDailyTargets(migratedTargets);
+          storageService.setItem(DAILY_TARGETS_KEY, migratedTargets);
+      }
+      if (data.savedDailyRoutines) {
+          const migratedRoutines = migrateSavedRoutines(data.savedDailyRoutines);
+          setSavedDailyRoutines(migratedRoutines);
+          storageService.setItem(SAVED_DAILY_ROUTINES_KEY, migratedRoutines);
+      }
+      if (data.resources) {
+          setResources(data.resources);
+          storageService.setItem(APP_RESOURCES_KEY, data.resources);
+      }
 
-    // 2. Upload activity logs to Supabase if user is logged in
-    if (session?.user && data.activityLogs && data.activityLogs.length > 0) {
-        const logsToUpload: Database['public']['Tables']['activity_logs']['Insert'][] = data.activityLogs.map(({ id, created_at, ...log }) => ({
-            ...log,
-            user_id: session.user!.id,
-            custom_title: log.custom_title || null,
-            notes: log.notes || null,
-            start_time: log.start_time || null
-        }));
-        
-        const { error } = await supabase.from('activity_logs').insert(logsToUpload);
+      // 2. Upload activity logs to Supabase if user is logged in
+      if (session?.user && data.activityLogs && data.activityLogs.length > 0) {
+          const logsToUpload: Database['public']['Tables']['activity_logs']['Insert'][] = data.activityLogs.map(({ id, created_at, ...log }) => ({
+              ...log,
+              user_id: session.user!.id,
+              custom_title: log.custom_title || null,
+              notes: log.notes || null,
+              start_time: log.start_time || null
+          }));
+          
+          const { error } = await supabase.from('activity_logs').insert(logsToUpload);
 
-        if (error) {
-            console.error("Error batch inserting logs:", error);
-            return { success: false, error: "No se pudieron subir los registros de actividad a la nube." };
-        }
+          if (error) {
+              console.error("Error batch inserting logs:", error);
+              return { success: false, error: "No se pudieron subir los registros de actividad a la nube." };
+          }
 
-        // Successfully uploaded, now refresh logs from the cloud
-        const { data: refreshedLogs, error: refreshError } = await supabase
-            .from('activity_logs')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('date', { ascending: false });
-        
-        if (refreshError) {
-             return { success: false, error: "Registros subidos, pero no se pudo refrescar la lista." };
-        }
-        
-        setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
+          // Successfully uploaded, now refresh logs from the cloud
+          const { data: refreshedLogs, error: refreshError } = await supabase
+              .from('activity_logs')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .order('date', { ascending: false });
+          
+          if (refreshError) {
+               return { success: false, error: "Registros subidos, pero no se pudo refrescar la lista." };
+          }
+          
+          setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
+      }
+      
+      // Clear old local log data if it exists, as it's now in the cloud
+      storageService.removeItem(ACTIVITY_LOGS_KEY);
+      OLD_ACTIVITY_LOGS_KEYS.forEach(key => storageService.removeItem(key));
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in importAppData:", error);
+      return { success: false, error: "Error al importar los datos." };
     }
-    
-    // Clear old local log data if it exists, as it's now in the cloud
-    storageService.removeItem(ACTIVITY_LOGS_KEY);
-    OLD_ACTIVITY_LOGS_KEYS.forEach(key => storageService.removeItem(key));
-
-    return { success: true };
   }, [session, setAppTheme]);
   
   const resetAllData = useCallback(() => {
@@ -877,22 +957,27 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [dailyTargets, activityLogs, userProfile?.learningLanguages]);
 
   const getProfileFollowCounts = useCallback(async (profileId: string): Promise<{ followers: number; following: number }> => {
-    const { count: followers, error: followersError } = await supabase
-      .from('relationships')
-      .select('*', { count: 'exact', head: true })
-      .eq('following_id', profileId);
+    try {
+      const { count: followers, error: followersError } = await supabase
+        .from('relationships')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', profileId);
 
-    const { count: following, error: followingError } = await supabase
-      .from('relationships')
-      .select('*', { count: 'exact', head: true })
-      .eq('follower_id', profileId);
+      const { count: following, error: followingError } = await supabase
+        .from('relationships')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', profileId);
 
-    if (followersError || followingError) {
-      console.error("Error fetching follow counts:", followersError || followingError);
+      if (followersError || followingError) {
+        console.error("Error fetching follow counts:", followersError || followingError);
+        return { followers: 0, following: 0 };
+      }
+
+      return { followers: followers || 0, following: following || 0 };
+    } catch (error) {
+      console.error("Error in getProfileFollowCounts:", error);
       return { followers: 0, following: 0 };
     }
-
-    return { followers: followers || 0, following: following || 0 };
   }, []);
 
   const toggleFavoriteActivity = useCallback((activityName: string) => {

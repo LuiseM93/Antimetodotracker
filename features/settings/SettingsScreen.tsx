@@ -10,6 +10,7 @@ import { Modal } from '../../components/Modal.tsx';
 import { ArrowDownTrayIcon } from '../../components/icons/ArrowDownTrayIcon.tsx';
 import { ArrowUpTrayIcon } from '../../components/icons/ArrowUpTrayIcon.tsx';
 import { TrashIcon } from '../../components/icons/TrashIcon.tsx';
+import { AvatarUploader } from './AvatarUploader.tsx';
 
 const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -124,6 +125,10 @@ export const SettingsScreen: React.FC = () => {
     return (
         <div className="p-4 sm:p-6 space-y-6">
             <h1 className="text-3xl font-poppins font-bold text-[var(--color-primary)]">Configuración</h1>
+
+            <Card title="Foto de Perfil">
+                <AvatarUploader />
+            </Card>
 
             <Card title="Perfil de Usuario">
                 <div className="space-y-4">

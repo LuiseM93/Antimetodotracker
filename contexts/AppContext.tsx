@@ -391,6 +391,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
           username: profile.username,
           display_name: profile.display_name,
+          email: session.user.email!,
           current_stage: profile.currentStage,
           avatar_url: session.user.user_metadata.avatar_url ?? null,
           theme: initialTheme,

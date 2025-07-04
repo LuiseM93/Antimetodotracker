@@ -129,6 +129,7 @@ export interface Database {
           display_name: string
           focus_points: number
           id: string
+          email: string
           learning_days_count: number
           learning_languages: string[]
           profile_flair_id: string | null
@@ -139,6 +140,7 @@ export interface Database {
           avatar_url?: string | null
           current_stage?: AntimethodStage
           display_name: string
+          email: string
           focus_points?: number
           id: string
           learning_days_count?: number
@@ -151,6 +153,7 @@ export interface Database {
           avatar_url?: string | null
           current_stage?: AntimethodStage
           display_name?: string
+          email?: string
           focus_points?: number
           id?: string
           learning_days_count?: number

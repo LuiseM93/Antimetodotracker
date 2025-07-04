@@ -1098,8 +1098,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     <AppContext.Provider value={{ 
         session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
         isLoading, isInitialLoadComplete, appTheme,
-        signInWithPassword: supabase.auth.signInWithPassword,
-        signUp: supabase.auth.signUp,
+        signInWithPassword: (credentials) => supabase.auth.signInWithPassword(credentials),
+        signUp: (credentials) => supabase.auth.signUp(credentials),
         signInWithGoogle,
         signOut,
         initializeUserProfile, updateUserProfile, updateAppTheme,

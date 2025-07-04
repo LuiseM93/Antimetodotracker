@@ -199,7 +199,7 @@ export interface RewardItem {
   id: string; // Unique identifier for the reward (e.g., "flair_futuro", "theme_zen", "secret_flair_founder")
   name: string;
   description: string;
-  type: 'theme' | 'flair' | 'content' | 'timer_sound'; // Extend as needed
+  type: 'theme' | 'flair' | 'content' | 'timer_sound' | 'points'; // Extend as needed
   cost: number; // In Focus Points (0 for secret/code-only rewards not meant for purchase)
   value?: string; // e.g., theme class name, flair text, content ID
   icon?: string; // Path or identifier for an icon
@@ -216,7 +216,7 @@ export interface LeaderboardEntry {
 }
 
 // New types for Activity Feed
-export type FeedItemType = 'milestone_achieved' | 'reward_unlocked';
+export type FeedItemType = 'milestone_achieved' | 'reward_unlocked' | 'bulk_import';
 
 export interface FeedItem {
   id: number;

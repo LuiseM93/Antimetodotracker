@@ -161,22 +161,37 @@ export const RewardsScreen: React.FC = () => {
       let unlockedCount = 0;
       AVAILABLE_REWARDS.forEach(reward => {
         if (!(userProfile.unlockedRewards || []).includes(reward.id)) {
-          if (unlockRewardById(reward.id)) unlockedCount++;
+          if (unlockRewardById(reward.id, true, true)) unlockedCount++; // bypassCost, silent
         }
       });
       ALL_REWARD_DEFINITIONS.filter(r => r.category === 'Secreto').forEach(secretReward => {
          if (!(userProfile.unlockedRewards || []).includes(secretReward.id)) {
-          if (unlockRewardById(secretReward.id)) unlockedCount++;
+          if (unlockRewardById(secretReward.id, true, true)) unlockedCount++; // bypassCost, silent
         }
       });
       showFeedback(unlockedCount > 0 ? `¡Código maestro! ${unlockedCount} recompensas desbloqueadas.` : "¡Código maestro! Todas las recompensas base y secretas disponibles ya estaban desbloqueadas.");
     } else if (rewardId) {
+      const reward = getRewardById(rewardId);
+      if (!reward) {
+        showFeedback("No se encontró la recompensa asociada al código.", "error");
+        return;
+      }
+
       if ((userProfile.unlockedRewards || []).includes(rewardId)) {
         showFeedback("Ya has desbloqueado esta recompensa.", "error");
+      } else if (reward.type === 'points') {
+        // Handle points redemption
+        const pointsToAdd = parseInt(reward.value || '0', 10);
+        if (pointsToAdd > 0) {
+          updateUserProfile({ focusPoints: userProfile.focusPoints + pointsToAdd });
+          unlockRewardById(reward.id, true, true); // Mark as unlocked, bypass cost, silent
+          showFeedback(`¡Has canjeado ${pointsToAdd} Puntos de Enfoque!`);
+        } else {
+          showFeedback("No se pudo canjear el código de puntos.", "error");
+        }
       } else {
         const success = unlockRewardById(rewardId);
         if (success) {
-          const reward = ALL_REWARD_DEFINITIONS.find(r => r.id === rewardId);
           showFeedback(`¡"${reward?.name || 'Recompensa'}" desbloqueada y activada!`);
         } else {
           showFeedback("No se pudo canjear el código.", "error");

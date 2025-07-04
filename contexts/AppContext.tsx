@@ -48,8 +48,10 @@ interface AppContextType {
   updateAppTheme: (theme: AppTheme, fromRewardOrCode?: boolean) => void;
 
   addActivityLog: (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+  bulkAddActivityLogs: (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => Promise<void>;
   updateActivityLog: (log: ActivityLogEntry) => Promise<void>;
   deleteActivityLog: (logId: string) => Promise<void>;
+  createFeedItem: (type: FeedItemType, content: Json) => Promise<void>;
   
   addUserGoal: (goalData: Omit<UserGoal, 'id' | 'achieved'>) => void;
   updateUserGoal: (updatedGoal: UserGoal) => void; 
@@ -81,7 +83,7 @@ interface AppContextType {
   toggleFavoriteActivity: (activityName: string) => void;
 
   awardHabitPoints: (habitHealthPercentageForToday: number) => void;
-  purchaseReward: (rewardId: string, bypassCost?: boolean) => boolean;
+  purchaseReward: (rewardId: string, bypassCost?: boolean, silent?: boolean) => boolean;
   activateFlair: (flairId: string | null) => void;
   getRewardById: (rewardId: string) => RewardItem | undefined;
   unlockRewardById: (rewardId: string) => boolean;
@@ -239,6 +241,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           if (urlParams.has('code') || window.location.hash.includes('access_token')) {
             // Clear URL parameters and redirect to dashboard
             window.history.replaceState({}, document.title, window.location.pathname);
+            // Force a reload to ensure AppContext re-initializes with the new session
+            window.location.reload();
           }
         }
       }
@@ -546,12 +550,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           milestone => (previousTotalSeconds / 3600) < milestone && (currentTotalSeconds / 3600) >= milestone
       );
       if (milestoneHoursCrossed) {
-          const feedItem: Database['public']['Tables']['feed_items']['Insert'] = {
-              user_id: session.user.id,
-              type: 'milestone_achieved',
-              content: { hours: milestoneHoursCrossed, language: newLog.language }
-          };
-          await supabase.from('feed_items').insert(feedItem);
+          await createFeedItem('milestone_achieved', { hours: milestoneHoursCrossed, language: newLog.language });
       }
 
       setUserProfile(prevProfile => {
@@ -574,6 +573,80 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       });
     } catch (error) {
       console.error("Error in addActivityLog:", error);
+    }
+  }, [session]);
+
+  const bulkAddActivityLogs = useCallback(async (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => {
+    if (!session?.user) {
+      console.error("No user session found to bulk add activity logs.");
+      return;
+    }
+
+    const logsToInsert: Database['public']['Tables']['activity_logs']['Insert'][] = logsData.map(log => ({
+      ...log,
+      user_id: session.user!.id,
+      custom_title: log.custom_title || null,
+      notes: log.notes || null,
+      start_time: log.start_time || null,
+    }));
+
+    try {
+      // Supabase recommends batching inserts for large arrays
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < logsToInsert.length; i += BATCH_SIZE) {
+        const batch = logsToInsert.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('activity_logs').insert(batch);
+        if (error) {
+          throw error;
+        }
+      }
+
+      // After successful bulk insert, re-fetch all logs to ensure UI consistency
+      const { data: refreshedLogs, error: fetchError } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error("Error re-fetching activity logs after bulk insert:", fetchError);
+        // Even if re-fetch fails, the logs are in DB, so we proceed with local update
+        setActivityLogs(prev => [...prev, ...logsData as ActivityLogEntry[]].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      } else {
+        setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
+      }
+
+      // Update user profile stats (learning days, focus points) based on the bulk import
+      setUserProfile(prevProfile => {
+        if (!prevProfile) return null;
+        let updatedProfile = { ...prevProfile };
+        let newLearningDaysCount = prevProfile.learningDaysCount || 0;
+        let newFocusPoints = prevProfile.focusPoints || 0;
+        let newLastActivityDateByLanguage = { ...prevProfile.lastActivityDateByLanguage };
+
+        logsData.forEach(log => {
+          const lastDateForLang = newLastActivityDateByLanguage[log.language] || '';
+          if (log.date > lastDateForLang) {
+            newLearningDaysCount += 1;
+            newFocusPoints += LEARNING_DAY_POINTS_AWARD;
+            newLastActivityDateByLanguage[log.language] = log.date;
+          }
+        });
+
+        updatedProfile = {
+          ...updatedProfile,
+          learningDaysCount: newLearningDaysCount,
+          focusPoints: newFocusPoints,
+          lastActivityDateByLanguage: newLastActivityDateByLanguage,
+        };
+        storageService.setItem(USER_PROFILE_KEY, updatedProfile);
+        return updatedProfile;
+      });
+
+    } catch (error) {
+      console.error("Error in bulkAddActivityLogs:", error);
+      throw error; // Re-throw to be caught by the calling component
     }
   }, [session]);
   
@@ -621,6 +694,26 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       console.error("Error in deleteActivityLog:", error);
     }
   }, []);
+
+  const createFeedItem = useCallback(async (type: FeedItemType, content: Json) => {
+    if (!session?.user) {
+      console.warn("No user session found to create feed item.");
+      return;
+    }
+    try {
+      const feedItem: Database['public']['Tables']['feed_items']['Insert'] = {
+        user_id: session.user.id,
+        type: type,
+        content: content
+      };
+      const { error } = await supabase.from('feed_items').insert(feedItem);
+      if (error) {
+        console.error("Error creating feed item:", error);
+      }
+    } catch (error) {
+      console.error("Error in createFeedItem:", error);
+    }
+  }, [session]);
 
   const addUserGoal = useCallback((goalData: Omit<UserGoal, 'id' | 'achieved'>) => {
     setUserGoals(prev => {
@@ -1013,7 +1106,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       }
   }, [userProfile, updateUserProfile]);
   
-  const purchaseReward = useCallback((rewardId: string, bypassCost: boolean = false): boolean => {
+  const purchaseReward = useCallback((rewardId: string, bypassCost: boolean = false, silent: boolean = false): boolean => {
     const reward = ALL_REWARD_DEFINITIONS.find(r => r.id === rewardId);
     if (!reward || !userProfile || !session?.user?.id) return false;
     if (userProfile.unlockedRewards.includes(rewardId)) return false;
@@ -1038,15 +1131,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
     updateUserProfile(updates);
     
-    // Create feed item
-    const feedItem: Database['public']['Tables']['feed_items']['Insert'] = {
-        user_id: session.user.id,
-        type: 'reward_unlocked',
-        content: { reward_name: reward.name, reward_type: reward.type }
-    };
-    supabase.from('feed_items').insert(feedItem).then(({ error }) => {
-        if (error) console.error("Error creating feed item for reward:", error);
-    });
+    // Create feed item, unless silent
+    if (!silent) {
+        createFeedItem('reward_unlocked', { reward_name: reward.name, reward_type: reward.type });
+    }
 
     // Sync profile changes to Supabase
     const profileUpdates: Partial<Database['public']['Tables']['profiles']['Update']> = {
@@ -1060,7 +1148,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     });
 
     return true;
-}, [userProfile, session, updateUserProfile, setAppTheme]);
+}, [userProfile, session, updateUserProfile, setAppTheme, createFeedItem]);
 
 
   const unlockRewardById = useCallback((rewardId: string): boolean => {
@@ -1114,7 +1202,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         getProfileFollowCounts,
         toggleFavoriteActivity,
         awardHabitPoints, purchaseReward, activateFlair, getRewardById, unlockRewardById,
-        addCustomActivity, deleteCustomActivity, getCombinedActivities
+        addCustomActivity, deleteCustomActivity, getCombinedActivities,
+        bulkAddActivityLogs, createFeedItem
     }}>
       {children}
     </AppContext.Provider>

@@ -560,6 +560,9 @@ export const AVAILABLE_REWARDS: RewardItem[] = [
   { id: "theme_japan_neon", name: "Tema: Japón Neón", description: "Sumérgete en las vibrantes noches de Tokio.", type: "theme", cost: 400, value: "theme-japan-neon", category: "Personalización Visual" },
   { id: "theme_cafe_parisien", name: "Tema: Café Parisino", description: "Un ambiente acogedor con el encanto de París.", type: "theme", cost: 400, value: "theme-cafe-parisien", category: "Personalización Visual" },
   { id: "theme_fiesta_brasil", name: "Tema: Fiesta Brasileña", description: "Colores alegres y energía tropical.", type: "theme", cost: 400, value: "theme-fiesta-brasil", category: "Personalización Visual" },
+  // New Point Redemption Rewards
+  { id: "redeem_points_1000", name: "Canjeo de 1000 Puntos", description: "Canjea este código para obtener 1000 Puntos de Enfoque.", type: "points", cost: 0, value: "1000", category: "Canjeo" },
+  { id: "redeem_points_500", name: "Canjeo de 500 Puntos", description: "Canjea este código para obtener 500 Puntos de Enfoque.", type: "points", cost: 0, value: "500", category: "Canjeo" },
 ];
 
 // Definitions for Secret Rewards (not displayed in store, only unlockable via code)
@@ -592,6 +595,8 @@ export const REDEEM_CODES_MAP: Record<string, string> = {
   "JAPANNIGHTS24": "theme_japan_neon",    // New Code
   "PARISCAFE24": "theme_cafe_parisien", // New Code
   "BRASILFEST24": "theme_fiesta_brasil", // New Code
+  "PUNTOS1000": "redeem_points_1000", // New Code for 1000 points
+  "PUNTOS500": "redeem_points_500",   // New Code for 500 points
   [MASTER_REDEEM_CODE]: "__UNLOCK_ALL__", // Special identifier for master code
 };
 

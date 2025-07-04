@@ -11,12 +11,14 @@ import { ArrowDownTrayIcon } from '../../components/icons/ArrowDownTrayIcon.tsx'
 import { ArrowUpTrayIcon } from '../../components/icons/ArrowUpTrayIcon.tsx';
 import { TrashIcon } from '../../components/icons/TrashIcon.tsx';
 import { AvatarUploader } from './AvatarUploader.tsx';
+import { ActivityCategory, ActivityLogEntry, ActivityDetailType, Skill } from '../../types.ts';
+import { ANTIMETHOD_ACTIVITIES_DETAILS } from '../../constants.ts';
 
 const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
 export const SettingsScreen: React.FC = () => {
     const { 
-        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme 
+        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities
     } = useAppContext();
     const navigate = useNavigate();
 
@@ -26,6 +28,17 @@ export const SettingsScreen: React.FC = () => {
     const [isImporting, setIsImporting] = useState(false);
     const importFileRef = useRef<HTMLInputElement>(null);
 
+    // State for Bulk Import
+    const [bulkImportState, setBulkImportState] = useState({
+        totalHoursToImport: 0,
+        language: userProfile?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+        startDate: '',
+        endDate: '',
+        subActivityPercentages: {} as Record<string, number>, // { "Activity Name": percentage }
+    });
+    const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const [bulkImportFeedback, setBulkImportFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
     useEffect(() => {
         if (userProfile) {
             setProfileForm({
@@ -34,6 +47,10 @@ export const SettingsScreen: React.FC = () => {
                 defaultLogTimerMode: userProfile.defaultLogTimerMode || 'manual',
                 dashboardCardDisplayMode: userProfile.dashboardCardDisplayMode || DEFAULT_DASHBOARD_CARD_DISPLAY_MODE
             });
+            setBulkImportState(prev => ({
+                ...prev,
+                language: userProfile.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+            }));
         }
     }, [userProfile]);
 
@@ -115,6 +132,127 @@ export const SettingsScreen: React.FC = () => {
         // Reset file input value to allow re-uploading the same file
         event.target.value = '';
     };
+
+    const handleBulkImportChange = (field: string, value: any) => {
+        setBulkImportState(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handlePercentageChange = (activityName: string, percentage: number) => {
+        setBulkImportState(prev => ({
+            ...prev,
+            subActivityPercentages: {
+                ...prev.subActivityPercentages,
+                [activityName]: percentage,
+            },
+        }));
+    };
+
+    const processBulkImport = async () => {
+        if (!userProfile) {
+            setBulkImportFeedback({ message: "Perfil de usuario no cargado.", type: "error" });
+            return;
+        }
+
+        setIsBulkImporting(true);
+        setBulkImportFeedback(null);
+
+        const { totalHoursToImport, language, startDate, endDate, subActivityPercentages } = bulkImportState;
+
+        if (totalHoursToImport <= 0 || !language || !startDate || !endDate) {
+            setBulkImportFeedback({ message: "Por favor, completa todos los campos requeridos y asegúrate que las horas sean positivas.", type: "error" });
+            setIsBulkImporting(false);
+            return;
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (start > end) {
+            setBulkImportFeedback({ message: "La fecha de inicio no puede ser posterior a la fecha de fin.", type: "error" });
+            setIsBulkImporting(false);
+            return;
+        }
+
+        const totalPercentage = Object.values(subActivityPercentages).reduce((sum, p) => sum + p, 0);
+        if (totalPercentage !== 100) {
+            setBulkImportFeedback({ message: `Los porcentajes de sub-actividad deben sumar 100%. Actualmente suman ${totalPercentage}%.`, type: "error" });
+            setIsBulkImporting(false);
+            return;
+        }
+
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end day
+
+        const totalSecondsToImport = totalHoursToImport * 3600;
+        const secondsPerDay = totalSecondsToImport / diffDays;
+
+        let logsToCreate: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[] = [];
+        const allActivities = getCombinedActivities();
+
+        for (let i = 0; i < diffDays; i++) {
+            const currentDate = new Date(start);
+            currentDate.setDate(start.getDate() + i);
+            const formattedDate = currentDate.toISOString().split('T')[0];
+
+            let remainingSecondsForDay = secondsPerDay;
+
+            for (const activityName in subActivityPercentages) {
+                const percentage = subActivityPercentages[activityName];
+                if (percentage > 0) {
+                    const activitySeconds = (secondsPerDay * percentage) / 100;
+                    const activityDetail = allActivities.find(act => act.name === activityName);
+
+                    if (activityDetail) {
+                        logsToCreate.push({
+                            language: language,
+                            category: activityDetail.category || ActivityCategory.ACTIVE_IMMERSION, // Default if not found
+                            sub_activity: activityName,
+                            custom_title: null,
+                            duration_seconds: Math.round(activitySeconds),
+                            date: formattedDate,
+                            start_time: null,
+                            notes: "Importado masivamente",
+                        });
+                    } else {
+                        console.warn(`Actividad ${activityName} no encontrada en la lista de actividades.`);
+                    }
+                }
+            }
+        }
+
+        try {
+            // Using addActivityLog for now, but a bulk insert would be better for performance
+            // For simplicity, iterating and adding one by one.
+            await bulkAddActivityLogs(logsToCreate);
+            setBulkImportFeedback({ message: `¡${logsToCreate.length} registros de actividad importados con éxito!`, type: "success" });
+            setBulkImportState({
+                totalHoursToImport: 0,
+                language: userProfile.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+                startDate: '',
+                endDate: '',
+                subActivityPercentages: {},
+            });
+        } catch (error) {
+            console.error("Error al importar actividades masivamente:", error);
+            setBulkImportFeedback({ message: "Error al importar actividades masivamente.", type: "error" });
+        } finally {
+            setIsBulkImporting(false);
+        }
+    };
+
+    const groupedActivitiesForBulkImport = useMemo(() => {
+        const allActivities = getCombinedActivities();
+        return allActivities.reduce((acc, activity) => {
+            const category = activity.category || ActivityCategory.ACTIVE_IMMERSION;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(activity);
+            return acc;
+        }, {} as Record<ActivityCategory, ActivityDetailType[]>);
+    }, [getCombinedActivities]);
+
+    const totalPercentageEntered = Object.values(bulkImportState.subActivityPercentages).reduce((sum, p) => sum + p, 0);
 
     if (!userProfile) {
         return <div className="p-4 text-center">Cargando...</div>;
@@ -232,6 +370,115 @@ export const SettingsScreen: React.FC = () => {
                     Guardar Cambios
                 </Button>
             </div>
+
+            <Card title="Importar Actividad Agregada" className="border-t-4 border-blue-500">
+                <p className="text-sm text-[var(--color-text-light)] mb-4">
+                    Importa un total de horas distribuidas en un rango de fechas y sub-actividades.
+                </p>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="totalHoursToImport" className="block text-sm font-medium text-[var(--color-text-main)]">Total de Horas a Importar</label>
+                        <input
+                            id="totalHoursToImport"
+                            type="number"
+                            value={bulkImportState.totalHoursToImport || ''}
+                            onChange={e => handleBulkImportChange('totalHoursToImport', parseInt(e.target.value, 10) || 0)}
+                            className={inputBaseStyle}
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="bulkImportLanguage" className="block text-sm font-medium text-[var(--color-text-main)]">Idioma</label>
+                        <select
+                            id="bulkImportLanguage"
+                            value={bulkImportState.language}
+                            onChange={e => handleBulkImportChange('language', e.target.value as Language)}
+                            className={inputBaseStyle}
+                        >
+                            {userProfile?.learningLanguages && userProfile.learningLanguages.length > 0
+                                ? userProfile.learningLanguages.map(lang => (
+                                    <option key={lang} value={lang}>{lang}</option>
+                                ))
+                                : AVAILABLE_LANGUAGES_FOR_LEARNING.map(lang => (
+                                    <option key={lang} value={lang}>{lang}</option>
+                                ))
+                            }
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="startDate" className="block text-sm font-medium text-[var(--color-text-main)]">Fecha de Inicio</label>
+                            <input
+                                id="startDate"
+                                type="date"
+                                value={bulkImportState.startDate}
+                                onChange={e => handleBulkImportChange('startDate', e.target.value)}
+                                className={inputBaseStyle}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="endDate" className="block text-sm font-medium text-[var(--color-text-main)]">Fecha de Fin</label>
+                            <input
+                                id="endDate"
+                                type="date"
+                                value={bulkImportState.endDate}
+                                onChange={e => handleBulkImportChange('endDate', e.target.value)}
+                                className={inputBaseStyle}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 p-3 border border-[var(--color-input-border)] rounded-md">
+                        <h4 className="text-md font-semibold text-[var(--color-text-main)]">Desglose por Sub-Actividad (Porcentaje)</h4>
+                        <p className="text-sm text-[var(--color-text-light)] mb-2">Asegúrate de que el total sume 100%.</p>
+                        
+                        {Object.keys(groupedActivitiesForBulkImport).length === 0 ? (
+                            <p className="text-sm text-[var(--color-text-light)] italic">No hay actividades disponibles para desglosar.</p>
+                        ) : (
+                            Object.entries(groupedActivitiesForBulkImport).map(([category, activities]) => (
+                                <div key={category} className="mb-4">
+                                    <h5 className="text-sm font-medium text-[var(--color-text-main)] mb-2">{category}</h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {activities.map(activity => (
+                                            <div key={activity.name} className="flex items-center space-x-2">
+                                                <label htmlFor={`percent-${activity.name}`} className="text-sm text-[var(--color-text-main)] flex-grow">{activity.name}</label>
+                                                <input
+                                                    id={`percent-${activity.name}`}
+                                                    type="number"
+                                                    value={bulkImportState.subActivityPercentages[activity.name] || ''}
+                                                    onChange={e => handlePercentageChange(activity.name, parseInt(e.target.value, 10) || 0)}
+                                                    className="w-20 p-1.5 text-sm border border-[var(--color-input-border)] rounded-md text-center"
+                                                    min="0" max="100"
+                                                />
+                                                <span className="text-sm text-[var(--color-text-main)]">%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        <div className="text-right text-sm font-semibold text-[var(--color-text-main)] mt-4">
+                            Total: <span className={`${totalPercentageEntered === 100 ? 'text-green-600' : 'text-red-600'}`}>{totalPercentageEntered}%</span>
+                        </div>
+                    </div>
+
+                    {bulkImportFeedback && (
+                        <div className={`p-3 rounded-md text-center text-sm ${bulkImportFeedback.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {bulkImportFeedback.message}
+                        </div>
+                    )}
+
+                    <Button
+                        onClick={processBulkImport}
+                        variant="primary"
+                        isLoading={isBulkImporting}
+                        disabled={isBulkImporting || totalPercentageEntered !== 100}
+                        className="w-full"
+                    >
+                        {isBulkImporting ? 'Importando...' : 'Importar Horas Agregadas'}
+                    </Button>
+                </div>
+            </Card>
 
              <Card title="Gestión de Datos" className="border-t-4 border-yellow-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

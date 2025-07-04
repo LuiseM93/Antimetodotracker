@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>El Antimétodo - Adquiere Idiomas</title>
+  <link rel="manifest" href="/assets/manifest-DQuZoiZg.json">
+  <!-- Favicons -->
+  <link rel="icon" href="/assets/favicon-BAkSWkfx.ico" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16-DynIBz0P.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32-uTGsgktd.png">
+  <link rel="apple-touch-icon" href="/assets/logo-iqOCGSoa.png">
+
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#4a148c" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="/">
+  <meta property="og:title" content="El Antimétodo - Adquiere Idiomas">
+  <meta property="og:description" content="Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.">
+  <meta property="og:image" content="/assets/social-preview-9Yrmf77U.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="/">
+  <meta property="twitter:title" content="El Antimétodo - Adquiere Idiomas">
+  <meta property="twitter:description" content="Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.">
+  <meta property="twitter:image" content="./assets/social-preview.jpg">
+
+  <!-- NOTE TO USER: Ensure 'assets/money.png' exists for the gamification feature. -->
+  <!-- NOTE TO USER: Ensure 'assets/icons/*.svg' exist for reward icons, or replace paths. Placeholder icons like flair_rebel.svg, flair_brain.svg etc., need to be created. -->
+  <!-- NOTE TO USER: For new cultural themes, add images to 'assets/themes/' as specified in chat. E.g., 'assets/themes/japan-neon-alley.jpg', 'assets/themes/cafe-parisien-night.jpg'. -->
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Light Theme (Default) */
+    :root {
+      --color-primary: #4a148c;
+      --color-secondary: #7b1fa2;
+      --color-accent: #9c27b0;
+      --color-light-purple: #d1c4e9;
+      
+      --color-app-bg: #f8f7fa;
+      --color-card-bg: #ffffff;
+      --color-text-main: #333333;
+      --color-text-light: #666666;
+      --color-text-inverse: #ffffff; /* Text on dark primary/secondary bg */
+      
+      --color-input-border: #cbd5e1; /* approx. gray-300 */
+      --color-input-bg: #ffffff;
+      --color-input-text: #111827; /* approx. gray-900 */
+      --color-placeholder-text: #9ca3af; /* approx. gray-400 */
+      
+      --color-error: #ef4444;
+      --color-success: #22c55e;
+      --color-warning: #f97316;
+      --color-nav-bg: var(--color-primary);
+      --color-nav-text: #f3e5f5; /* Lighter purple text for nav */
+      --color-nav-hover-bg: var(--color-secondary);
+      --color-nav-active-bg: var(--color-accent);
+      --color-nav-active-text: #ffffff;
+      --color-border-light: var(--color-light-purple); /* General light border */
+      --color-chart-primary-line-bar: var(--color-accent);
+      --color-chart-grid-line: #e0e0e0;
+      --color-chart-text: #555555;
+      --color-chart-tooltip-bg: #ffffff;
+      --color-chart-tooltip-border: #cccccc;
+
+      /* Theme background image URLs (default to none) */
+      --theme-background-image-url-light: none;
+      --theme-background-image-url-dark: none;
+    }
+
+    /* Dark Theme */
+    html.dark {
+      --color-primary: #8e44ad; /* Slightly lighter purple for dark mode primary */
+      --color-secondary: #9b59b6; /* Lighter still for secondary */
+      --color-accent: #bb86fc; /* Common Material Design dark accent */
+      --color-light-purple: #3e2753; /* Darker purple for "light" variant in dark mode */
+      
+      --color-app-bg: #121212;
+      --color-card-bg: #1e1e1e; /* Material dark surface */
+      --color-text-main: #e0e0e0;
+      --color-text-light: #b0b0b0;
+      --color-text-inverse: #121212; /* Text on light accent bg */
+
+      --color-input-border: #4b5563; /* Gray-600 */
+      --color-input-bg: #2d3748;    /* Gray-800 or similar dark */
+      --color-input-text: #e0e0e0;
+      --color-placeholder-text: #718096; /* Gray-500 */
+      
+      --color-error: #cf6679; /* Material dark error */
+      --color-success: #66bb6a; 
+      --color-warning: #f59e0b; 
+      --color-nav-bg: #1e1e1e; /* Darker nav bg */
+      --color-nav-text: #c7c7c7;
+      --color-nav-hover-bg: #2c2c3a;
+      --color-nav-active-bg: var(--color-accent);
+      --color-nav-active-text: #121212;
+      --color-border-light: #3e3e3e; /* Darker border */
+      --color-chart-primary-line-bar: var(--color-accent);
+      --color-chart-grid-line: #4B5563;
+      --color-chart-text: var(--color-text-light);
+      --color-chart-tooltip-bg: #374151;
+      --color-chart-tooltip-border: #4B5563;
+    }
+
+    /* Theme: Zen Garden */
+    html.theme-zen {
+      --color-primary: #556B2F; 
+      --color-secondary: #8FBC8F; 
+      --color-accent: #6B8E23; 
+      --color-light-purple: #E9F5E9; 
+      --color-app-bg: #F0FFF0; 
+      --color-card-bg: #FFFFFF;
+      --color-text-main: #2F4F4F;
+      --color-text-light: #696969;
+    }
+
+    html.dark.theme-zen {
+      --color-primary: #8FBC8F;
+      --color-secondary: #6B8E23;
+      --color-accent: #9ACD32;
+      --color-app-bg: #2F4F4F;
+      --color-card-bg: #3c5d5d;
+      --color-text-main: #F0FFF0;
+      --color-text-light: #D3D3D3;
+    }
+
+    /* Theme: Neon Nocturno */
+    html.theme-neon {
+      --color-primary: #ff00ff; /* Magenta */
+      --color-secondary: #00ffff; /* Cyan */
+      --color-accent: #ffff00; /* Yellow */
+      --color-app-bg: #0d0221; 
+      --color-card-bg: rgba(26, 7, 56, 0.8);
+      --color-text-main: #ffffff;
+      --color-text-light: #a0a0ff;
+      --color-border-light: #ff00ff;
+      --color-nav-bg: #1a0738;
+      --color-nav-text: #00ffff;
+      --color-nav-hover-bg: #2c1a4d;
+      --color-nav-active-bg: #ff00ff;
+      --color-nav-active-text: #0d0221;
+    }
+
+    /* Theme: Brisa Marina */
+    html.theme-ocean {
+      --color-primary: #0077be;
+      --color-secondary: #0099cc;
+      --color-accent: #80dfff;
+      --color-app-bg: #e6f7ff;
+      --color-card-bg: #ffffff;
+      --color-text-main: #003d66;
+      --color-text-light: #005c99;
+    }
+
+    html.dark.theme-ocean {
+      --color-primary: #0099cc;
+      --color-secondary: #80dfff;
+      --color-accent: #b3ecff;
+      --color-app-bg: #001f33;
+      --color-card-bg: #003355;
+      --color-text-main: #e6f7ff;
+      --color-text-light: #b3ecff;
+    }
+    
+    html.theme-japan-neon {
+      --theme-background-image-url-light: url('/assets/japan-neon-dark-D81G5CQc.jpg');
+      --theme-background-image-url-dark: url('/assets/japan-neon-dark-D81G5CQc.jpg');
+      --color-primary: #D90429;
+      --color-secondary: #EF233C;
+      --color-accent: #FFD166;
+      --color-app-bg: rgba(20, 20, 20, 0.5); /* Semi-transparent bg */
+      --color-card-bg: rgba(30, 30, 30, 0.85);
+      --color-text-main: #FFFFFF;
+      --color-text-light: #EDF2F4;
+    }
+    
+    html.theme-cafe-parisien {
+      --theme-background-image-url-light: url('/assets/cafe-parisien-dark-CrL2dfkM.jpg');
+      --theme-background-image-url-dark: url('/assets/cafe-parisien-dark-CrL2dfkM.jpg');
+      --color-primary: #A85D2A;
+      --color-secondary: #D4A373;
+      --color-accent: #E7C8A0;
+      --color-app-bg: rgba(20, 10, 5, 0.5);
+      --color-card-bg: rgba(40, 25, 15, 0.85);
+      --color-text-main: #FEFAE0;
+      --color-text-light: #FAEDCD;
+    }
+
+    html.theme-fiesta-brasil {
+      --color-primary: #009639;
+      --color-secondary: #FFDF00;
+      --color-accent: #002776;
+      --color-app-bg: rgba(240, 240, 230, 0.5);
+      --color-card-bg: rgba(255, 255, 255, 0.9);
+      --color-text-main: #333333;
+      --color-text-light: #555555;
+      --color-nav-text: #ffffff;
+      --color-nav-active-text: #FFDF00;
+    }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--color-app-bg);
+      transition: background-color 0.3s ease-in-out;
+      background-image: var(--theme-background-image-url-light);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    
+    html.dark body {
+        background-image: var(--theme-background-image-url-dark);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .text-xxs {
+        font-size: 0.65rem;
+        line-height: 0.8rem;
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@^19.1.0",
+      "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+      "react/": "https://esm.sh/react@^19.1.0/",
+      "@google/genai": "https://esm.sh/@google/genai@^1.8.0",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.50.2",
+      "react-router-dom": "https://esm.sh/react-router-dom@^7.6.3",
+      "recharts": "https://esm.sh/recharts@^3.0.2",
+      "html2canvas": "https://esm.sh/html2canvas@^1.4.1"
+    }
+  }
+  </script>
+  <script type="module" crossorigin src="/assets/index-HEYp1kL2.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

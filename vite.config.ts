@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
           manifest: {
             name: 'El Antimétodo - Adquiere Idiomas',
             short_name: 'Antimétodo',
-            description: 'Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.',
+            description: "Tu centro de mando y compañero de viaje para aprender idiomas con la filosofía de 'El Antimétodo'. Registra tu progreso, visualiza tus estadísticas y accede a recursos útiles, todo de forma gratuita y sin anuncios.",
             theme_color: '#4a148c',
             icons: [
               {

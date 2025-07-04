@@ -61,6 +61,7 @@ export type AppTheme =
   | 'theme-japan-neon'  // New Theme
   | 'theme-cafe-parisien' // New Theme
   | 'theme-fiesta-brasil'; // New Theme
+  | 'theme-fiesta-brasil'; // New Theme
 
 // Updated to reflect learning days instead of streak
 export type DashboardCardDisplayMode = 

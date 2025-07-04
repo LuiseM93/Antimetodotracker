@@ -400,7 +400,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           learning_days_count: profile.learningDaysCount || 0,
       };
 
-      const { error } = await supabase.from('profiles').update(profileToSync).eq('id', session.user.id);
+      const { error } = await supabase.from('profiles').upsert({ ...profileToSync, id: session.user.id });
 
       if (error) {
           console.error("Error updating profile in Supabase:", error);

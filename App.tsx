@@ -39,7 +39,7 @@ const AuthenticatedAppLayout: React.FC = () => {
         <>
           <div className={`md:hidden p-3 bg-[var(--color-nav-bg)] text-[var(--color-nav-text)] flex justify-between items-center fixed top-0 left-0 right-0 z-40 shadow-md`}>
             <Link to={AppView.DASHBOARD} className="flex items-center focus:outline-none focus:ring-2 focus:ring-white rounded-md" aria-label="Ir al Dashboard">
-              <img src="./assets/logo.png" alt="Logo" className="h-8 w-auto mr-2"/>
+              <img src="/assets/logo-iqOCGSoa.png" alt="Logo" className="h-8 w-auto mr-2"/>
               <span className="font-poppins font-semibold whitespace-nowrap">El Antimétodo</span>
             </Link>
             <Button variant="ghost" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} className="text-[var(--color-nav-text)] p-2">

@@ -38,7 +38,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       }}
     >
       <img 
-        src="./assets/logo.png"
+        src="/assets/logo-iqOCGSoa.png"
         alt="Logo El Antimétodo"
         className="w-32 h-32 sm:w-40 sm:h-40 mb-4 object-contain"
       />

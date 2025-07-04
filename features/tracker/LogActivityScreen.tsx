@@ -201,7 +201,7 @@ export const LogActivityScreen: React.FC = () => {
     const notificationBody = `Tu sesión de '${activityDisplayName}' ha finalizado.`;
     const notificationOptions = {
       body: notificationBody,
-      icon: '/assets/logo-iqOCGSoa.png'
+      icon: './assets/logo.png'
     };
 
     if (Notification.permission === "granted") {

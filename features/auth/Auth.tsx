@@ -71,7 +71,7 @@ export const AuthScreen: React.FC = () => {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)]">
             <div className="w-full max-w-md mx-auto">
                 <div className="text-center mb-8">
-                    <img src="/assets/logo-iqOCGSoa.png" alt="Logo" className="w-24 h-24 mx-auto mb-4" />
+                    <img src="./assets/logo.png" alt="Logo" className="w-24 h-24 mx-auto mb-4" />
                     <h1 className="text-4xl font-poppins font-bold text-white">El Antimétodo</h1>
                     <p className="text-purple-200 mt-2">Tu comunidad de adquisición de idiomas.</p>
                 </div>

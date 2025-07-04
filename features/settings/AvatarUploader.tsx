@@ -33,6 +33,15 @@ export const AvatarUploader: React.FC = () => {
       }
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', session!.user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
 
       setAvatarUrl(publicUrl);
       updateUserProfile({ avatar_url: publicUrl });

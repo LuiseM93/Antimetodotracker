@@ -31,13 +31,13 @@ if (supabaseUrl && supabaseAnonKey) {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: () => Promise.resolve({ 
-        data: { user: null, session: null }, 
-        error: { name: "AuthError", message: "Supabase no está configurado. No se puede iniciar sesión." } 
+      signInWithPassword: (_credentials) => Promise.resolve({
+        data: { user: null, session: null },
+        error: { name: "AuthError", message: "Supabase no está configurado. No se puede iniciar sesión." }
       }),
-      signUp: () => Promise.resolve({ 
-        data: { user: null, session: null }, 
-        error: { name: "AuthError", message: "Supabase no está configurado. No se puede crear cuenta." } 
+      signUp: (_credentials) => Promise.resolve({
+        data: { user: null, session: null },
+        error: { name: "AuthError", message: "Supabase no está configurado. No se puede crear cuenta." }
       }),
       signInWithOAuth: () => Promise.resolve({ 
         data: { user: null, session: null }, 

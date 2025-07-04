@@ -1048,6 +1048,17 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         if (error) console.error("Error creating feed item for reward:", error);
     });
 
+    // Sync profile changes to Supabase
+    const profileUpdates: Partial<Database['public']['Tables']['profiles']['Update']> = {
+        focus_points: newFocusPoints,
+        profile_flair_id: updates.profileFlairId,
+        theme: updates.theme
+    };
+
+    supabase.from('profiles').update(profileUpdates).eq('id', session.user.id).then(({error}) => {
+        if(error) console.error("Error syncing profile after reward purchase:", error);
+    });
+
     return true;
 }, [userProfile, session, updateUserProfile, setAppTheme]);
 

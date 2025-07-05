@@ -5,7 +5,7 @@ import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/Button.tsx';
 import { Card } from '../../components/Card.tsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
-import { Language, YearInReviewData, ActivityCategory, Skill } from '../../types.ts';
+import { Language, YearInReviewData } from '../../types.ts';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { CATEGORY_COLORS_CHART_HEX, SKILL_COLORS_CHART_HEX, COLORS } from '../../constants.ts';
 import { ShareIcon } from '../../components/icons/ShareIcon.tsx';
@@ -108,7 +108,6 @@ export const YearInReviewReport: React.FC<YearInReviewReportProps> = ({ isOpen, 
   // Chart styling based on theme
   const chartTextColor = appTheme === 'dark' ? COLORS.textLightDark : '#555555';
   const chartGridColor = appTheme === 'dark' ? '#4B5563' : '#e0e0e0';
-  const chartCardBgColor = appTheme === 'dark' ? COLORS.cardBgDark : COLORS.cardBgLight;
 
   const renderCustomizedPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     if (percent * 100 < 5) return null;

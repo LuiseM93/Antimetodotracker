@@ -6,8 +6,10 @@ import { Card } from '../../components/Card';
 import { UserCircleIcon } from '../../components/icons/UserCircleIcon';
 import { TrophyIcon } from '../../components/icons/TrophyIcon';
 import { GiftIcon } from '../../components/icons/GiftIcon';
-import { HeartIcon } from '../../components/icons/HeartIcon';
+import { HeartIcon } from '../../components/icons/HeartIcon.tsx';
+import { ChartBarIcon } from '../../components/icons/ChartBarIcon.tsx';
 import { formatDistanceToNow } from '../../utils/dateUtils'; 
+import { formatDurationFromSeconds } from '../../utils/timeUtils'; // New import
 import { supabase } from '../../services/supabaseClient';
 import { useAppContext } from '../../contexts/AppContext';
 import { Database } from '../../services/database.types';
@@ -32,6 +34,14 @@ const renderMessage = (item: FeedItem) => {
                     {userName} ha desbloqueado una nueva recompensa: <strong className="text-[var(--color-accent)]">{item.content.reward_name}</strong>.
                 </p>
             );
+        case 'activity_logged': // Assuming a new type for regular activity logs
+            const duration = item.content.duration_seconds ? formatDurationFromSeconds(item.content.duration_seconds, 'long') : '';
+            const activityName = item.content.custom_title || item.content.sub_activity || 'una actividad';
+            return (
+                <p>
+                    {userName} ha registrado <strong className="text-[var(--color-accent)]">{duration}</strong> de <strong className="text-[var(--color-accent)]">{activityName}</strong> en <strong className="text-[var(--color-accent)]">{item.content.language}</strong>.
+                </p>
+            );
         default:
             return <p>{userName} ha completado una nueva actividad.</p>;
     }
@@ -43,6 +53,8 @@ const getIconForType = (type: FeedItemType) => {
             return <TrophyIcon className="w-6 h-6 text-yellow-500" />;
         case 'reward_unlocked':
             return <GiftIcon className="w-6 h-6 text-pink-500" />;
+        case 'activity_logged':
+            return <ChartBarIcon className="w-6 h-6 text-blue-500" />;
         default:
             return null;
     }

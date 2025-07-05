@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
-import { UserProfile, AntimethodStage, AppView, AppTheme } from '../../types.ts';
+import { AntimethodStage, AppView, AppTheme } from '../../types.ts';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -217,6 +217,9 @@ export const ProfileScreen: React.FC = () => {
                                 <img src="./assets/language.png" alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
                                 <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learning_languages?.length || 0}</p>
                                 <p className="text-sm text-[var(--color-text-light)]">Idiomas Activos</p>
+                                {profile.learning_languages && profile.learning_languages.length > 0 && (
+                                    <p className="text-xs text-[var(--color-text-light)] mt-1">{profile.learning_languages.join(', ')}</p>
+                                )}
                             </div>
                         </div>
                          {stageDetails && <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">

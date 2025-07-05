@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
-import { Language, ActivityCategory, ActivityLogEntry, AppView, TimerMode, ActivityDetailType, Skill } from '../../types.ts';
+import { Language, ActivityCategory, ActivityLogEntry, AppView, ActivityDetailType, Skill } from '../../types.ts';
 import { AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS } from '../../constants.ts';
 import { Button } from '../../components/Button.tsx';
-import { PlayIcon, PauseIcon, StopIcon, ArrowPathIcon as ResetIcon } from '../../components/icons/TimerIcons.tsx';
+import { PlayIcon, PauseIcon, ArrowPathIcon as ResetIcon } from '../../components/icons/TimerIcons.tsx';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon.tsx';
 import { SelectActivityModal } from './SelectActivityModal.tsx';
 import { PlusCircleIcon } from '../../components/icons/PlusCircleIcon.tsx';
@@ -422,6 +422,7 @@ export const LogActivityScreen: React.FC = () => {
     };
 
     await addActivityLog(logEntryData);
+    alert("Actividad guardada con éxito!");
     navigate(AppView.DASHBOARD);
   };
   
@@ -453,8 +454,10 @@ export const LogActivityScreen: React.FC = () => {
 
     if (isEditing && currentLogEntry.id) {
         await updateActivityLog({ ...currentLogEntry, ...logEntryData, id: currentLogEntry.id } as ActivityLogEntry);
+        alert("Registro actualizado con éxito!");
     } else {
         await addActivityLog(logEntryData);
+        alert("Registro guardado con éxito!");
     }
     setIsManualLogModalOpen(false);
     navigate(AppView.DASHBOARD); 

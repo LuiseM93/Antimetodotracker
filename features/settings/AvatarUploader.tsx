@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAppContext } from '../../contexts/AppContext';
-import { Button } from '../../components/Button';
+
 
 export const AvatarUploader: React.FC = () => {
   const { session, userProfile, updateUserProfile } = useAppContext();

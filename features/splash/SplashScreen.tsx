@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const SPLASH_DURATION = 2000; // Total duration for the splash screen in ms
+const SPLASH_DURATION = 1500; // Total duration for the splash screen in ms
 const FADE_DURATION = 500;   // Duration of fade-in/out animation in ms
 
 interface SplashScreenProps {

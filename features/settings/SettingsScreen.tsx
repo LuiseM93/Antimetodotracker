@@ -9,16 +9,14 @@ import { Button } from '../../components/Button.tsx';
 import { Modal } from '../../components/Modal.tsx';
 import { ArrowDownTrayIcon } from '../../components/icons/ArrowDownTrayIcon.tsx';
 import { ArrowUpTrayIcon } from '../../components/icons/ArrowUpTrayIcon.tsx';
-import { TrashIcon } from '../../components/icons/TrashIcon.tsx';
 import { AvatarUploader } from './AvatarUploader.tsx';
-import { ActivityCategory, ActivityLogEntry, ActivityDetailType, Skill } from '../../types.ts';
-import { ANTIMETHOD_ACTIVITIES_DETAILS } from '../../constants.ts';
+import { ActivityCategory, ActivityLogEntry, ActivityDetailType } from '../../types.ts';
 
 const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
 export const SettingsScreen: React.FC = () => {
     const { 
-        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities
+        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, getCombinedActivities, bulkAddActivityLogs
     } = useAppContext();
     const navigate = useNavigate();
 
@@ -193,8 +191,6 @@ export const SettingsScreen: React.FC = () => {
             const currentDate = new Date(start);
             currentDate.setDate(start.getDate() + i);
             const formattedDate = currentDate.toISOString().split('T')[0];
-
-            let remainingSecondsForDay = secondsPerDay;
 
             for (const activityName in subActivityPercentages) {
                 const percentage = subActivityPercentages[activityName];

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
-import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem } from '../types.ts';
+import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, RewardItem, FeedItemType, Json } from '../types';
 import { storageService } from '../services/storageService.ts';
-import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS, LEARNING_DAY_POINTS_AWARD, HABIT_POINTS_MAP, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE, AVAILABLE_REWARDS, ALL_REWARD_DEFINITIONS, HOUR_MILESTONES } from '../constants.ts';
+import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS, LEARNING_DAY_POINTS_AWARD, HABIT_POINTS_MAP, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE, ALL_REWARD_DEFINITIONS, HOUR_MILESTONES } from '../constants.ts';
 import { supabase } from '../services/supabaseClient.ts';
 import type { Session, User } from '@supabase/supabase-js';
 import { Database } from '../services/database.types.ts';
@@ -95,10 +95,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const activityDetailsMap = new Map<string, ActivityDetailType>(
-  ANTIMETHOD_ACTIVITIES_DETAILS.map(detail => [detail.name, detail])
-);
-
 function loadDataWithMigration<T>(
     currentKey: string,
     oldKeys: string[],
@@ -125,29 +121,6 @@ function loadDataWithMigration<T>(
     }
     return data === null ? defaultValue : data;
 }
-
-const migrateActivityLogs = (data: any[]): ActivityLogEntry[] => {
-  return data.map(log => {
-    let migratedLog = { ...log };
-    if (migratedLog.durationMinutes !== undefined && migratedLog.duration_seconds === undefined) {
-      migratedLog.duration_seconds = migratedLog.durationMinutes * 60;
-      delete migratedLog.durationMinutes;
-    }
-     if (migratedLog.subActivity) {
-      migratedLog.sub_activity = migratedLog.subActivity;
-      delete migratedLog.subActivity;
-    }
-    if (migratedLog.customTitle !== undefined) {
-        migratedLog.custom_title = migratedLog.customTitle;
-        delete migratedLog.customTitle;
-    }
-    if (migratedLog.startTime !== undefined) {
-        migratedLog.start_time = migratedLog.startTime;
-        delete migratedLog.startTime;
-    }
-    return { ...migratedLog, custom_title: migratedLog.custom_title || null };
-  });
-};
 
 const migrateUserProfile = (data: any): UserProfile | null => {
     if (!data) return null;
@@ -392,9 +365,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     try {
       const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
 
-      const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
-          username: profile.username,
-          display_name: profile.display_name,
+      const profileToSync: Database['public']['Tables']['profiles']['Insert'] = {
+          id: session.user.id,
+          username: profile.username || '',
+          display_name: profile.display_name || 'Usuario Antimétodo',
           email: session.user.email!,
           current_stage: profile.currentStage,
           avatar_url: session.user.user_metadata.avatar_url ?? null,
@@ -405,7 +379,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           learning_days_count: profile.learningDaysCount || 0,
       };
 
-      const { error } = await supabase.from('profiles').upsert({ ...profileToSync, id: session.user.id });
+      const { error } = await supabase.from('profiles').upsert(profileToSync, { onConflict: 'id' });
 
       if (error) {
           console.error("Error updating profile in Supabase:", error);

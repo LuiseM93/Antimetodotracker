@@ -3,7 +3,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { DailyActivityGoal, ActivityLogEntry, Language } from '../../types.ts';
-import { COLORS } from '../../constants.ts';
 import { formatDurationFromSeconds } from '../../utils/timeUtils.ts';
 import { CheckCircleIcon } from '../../components/icons/CheckCircleIcon.tsx';
 

@@ -1,13 +1,11 @@
 
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/Button.tsx';
 import { ActivityCategory, ActivityDetailType, Skill } from '../../types.ts';
 import { ANTIMETHOD_ACTIVITIES_DETAILS, ACTIVITY_CATEGORIES_OPTIONS } from '../../constants.ts';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { XMarkIcon } from '../../components/icons/XMarkIcon.tsx';
-import { SearchIcon } from '../../components/icons/SearchIcon.tsx';
 import { StarIcon } from '../../components/icons/StarIcon.tsx';
 import { TrashIcon } from '../../components/icons/TrashIcon.tsx';
 
@@ -330,8 +328,3 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, onSelect, isFavor
   </div>
 );
 
-const SearchIcon: React.FC<{className?: string}> = ({className="w-5 h-5"}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-);

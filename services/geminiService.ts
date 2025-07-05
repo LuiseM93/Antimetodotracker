@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { PlacementTestAnswers, GeminiPlacementResponse, AntimethodStage } from '../types.ts';
-import { STAGE_DETAILS, API_KEY_WARNING, PREDEFINED_TIPS_BY_STAGE } from "../constants.ts";
+import { API_KEY_WARNING, PREDEFINED_TIPS_BY_STAGE } from "../constants.ts";
 
 // Safely access API_KEY
 const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
@@ -75,7 +75,7 @@ export const geminiService = {
         }
       });
       
-      let jsonStr = response.text.trim();
+      let jsonStr = response.text || '';
       const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
       const match = jsonStr.match(fenceRegex);
       if (match && match[2]) {

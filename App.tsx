@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen.tsx';
@@ -15,38 +15,24 @@ import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
 import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
 import { AppView } from './types.ts';
-import { LoadingSpinner } from './components/LoadingSpinner.tsx';
-import { MenuIcon } from './components/icons/MenuIcon.tsx';
-import { Button } from './components/Button.tsx';
+import { SkeletonLoader } from './components/SkeletonLoader.tsx'; // New import
+import { BottomNavbar } from './components/BottomNavbar.tsx';
 import { SplashScreen } from './features/splash/SplashScreen.tsx';
 
 
 // This component renders the main application layout for an authenticated user with a profile.
 const AuthenticatedAppLayout: React.FC = () => {
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const location = useLocation();
 
   const isLogScreenPath = location.pathname.startsWith('/log');
-  const mainContentPadding = !isLogScreenPath ? 'pt-16 md:pt-0' : '';
-
-  useEffect(() => {
-    setIsMobileNavOpen(false); // Close mobile nav on route change
-  }, [location.pathname]);
+  const mainContentPadding = !isLogScreenPath ? 'pb-16 md:pt-0' : ''; // Adjusted padding for bottom nav
 
   return (
     <div className={`flex flex-col md:flex-row min-h-screen bg-[var(--color-app-bg)]`}>
        {!isLogScreenPath && (
         <>
-          <div className={`md:hidden p-3 bg-[var(--color-nav-bg)] text-[var(--color-nav-text)] flex justify-between items-center fixed top-0 left-0 right-0 z-40 shadow-md`}>
-            <Link to={AppView.DASHBOARD} className="flex items-center focus:outline-none focus:ring-2 focus:ring-white rounded-md" aria-label="Ir al Dashboard">
-              <img src="./assets/logo.png" alt="Logo" className="h-8 w-auto mr-2"/>
-              <span className="font-poppins font-semibold whitespace-nowrap">El Antimétodo</span>
-            </Link>
-            <Button variant="ghost" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} className="text-[var(--color-nav-text)] p-2">
-              <MenuIcon className="w-6 h-6" />
-            </Button>
-          </div>
-          <Navbar isMobileNavOpen={isMobileNavOpen} setIsMobileNavOpen={setIsMobileNavOpen} />
+          <Navbar /> {/* Desktop Navbar */}
+          <BottomNavbar /> {/* Mobile Bottom Navbar */}
         </>
        )}
       
@@ -103,8 +89,9 @@ const AppRoutes: React.FC = () => {
 
   if (!isInitialLoadComplete) {
     return (
-      <div className={`flex items-center justify-center min-h-screen bg-[var(--color-app-bg)]`}>
-        <LoadingSpinner size="lg" text="Verificando sesión..." />
+      <div className={`flex flex-col items-center justify-center min-h-screen bg-[var(--color-app-bg)] p-4`}>
+        <SkeletonLoader count={3} height="h-6" className="w-3/4 mb-4" />
+        <SkeletonLoader count={1} height="h-4" className="w-1/2" />
       </div>
     );
   }

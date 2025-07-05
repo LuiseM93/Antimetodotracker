@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './database.types.ts';
 
@@ -31,11 +32,11 @@ if (supabaseUrl && supabaseAnonKey) {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: (_credentials) => Promise.resolve({
+      signInWithPassword: (_credentials: any) => Promise.resolve({
         data: { user: null, session: null },
         error: { name: "AuthError", message: "Supabase no está configurado. No se puede iniciar sesión." }
       }),
-      signUp: (_credentials) => Promise.resolve({
+      signUp: (_credentials: any) => Promise.resolve({
         data: { user: null, session: null },
         error: { name: "AuthError", message: "Supabase no está configurado. No se puede crear cuenta." }
       }),

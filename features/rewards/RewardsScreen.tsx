@@ -7,7 +7,7 @@ import { Card } from '../../components/Card.tsx';
 import { Button } from '../../components/Button.tsx';
 import { LockClosedIcon } from '../../components/icons/LockClosedIcon.tsx';
 import { CheckCircleIcon } from '../../components/icons/CheckCircleIcon.tsx';
-import { StarIcon } from '../../components/icons/StarIcon.tsx'; // For active flair
+ // For active flair
 
 const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -106,11 +106,11 @@ const RewardCard: React.FC<RewardCardProps> = ({
 
 export const RewardsScreen: React.FC = () => {
   const { userProfile, purchaseReward, activateFlair, appTheme, updateAppTheme, unlockRewardById, updateUserProfile, getRewardById } = useAppContext();
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [redeemCodeInput, setRedeemCodeInput] = useState('');
 
   const showFeedback = (message: string, type: 'success' | 'error' = 'success') => {
-    setFeedbackMessage(message);
+    setFeedbackMessage({ message, type });
     setTimeout(() => setFeedbackMessage(null), 3500);
   };
 
@@ -161,12 +161,12 @@ export const RewardsScreen: React.FC = () => {
       let unlockedCount = 0;
       AVAILABLE_REWARDS.forEach(reward => {
         if (!(userProfile.unlockedRewards || []).includes(reward.id)) {
-          if (unlockRewardById(reward.id, true, true)) unlockedCount++; // bypassCost, silent
+          if (unlockRewardById(reward.id)) unlockedCount++; // bypassCost, silent
         }
       });
       ALL_REWARD_DEFINITIONS.filter(r => r.category === 'Secreto').forEach(secretReward => {
          if (!(userProfile.unlockedRewards || []).includes(secretReward.id)) {
-          if (unlockRewardById(secretReward.id, true, true)) unlockedCount++; // bypassCost, silent
+          if (unlockRewardById(secretReward.id)) unlockedCount++; // bypassCost, silent
         }
       });
       showFeedback(unlockedCount > 0 ? `¡Código maestro! ${unlockedCount} recompensas desbloqueadas.` : "¡Código maestro! Todas las recompensas base y secretas disponibles ya estaban desbloqueadas.");
@@ -184,7 +184,7 @@ export const RewardsScreen: React.FC = () => {
         const pointsToAdd = parseInt(reward.value || '0', 10);
         if (pointsToAdd > 0) {
           updateUserProfile({ focusPoints: userProfile.focusPoints + pointsToAdd });
-          unlockRewardById(reward.id, true, true); // Mark as unlocked, bypass cost, silent
+          unlockRewardById(reward.id); // Mark as unlocked, bypass cost, silent
           showFeedback(`¡Has canjeado ${pointsToAdd} Puntos de Enfoque!`);
         } else {
           showFeedback("No se pudo canjear el código de puntos.", "error");
@@ -244,8 +244,8 @@ export const RewardsScreen: React.FC = () => {
       </div>
 
       {feedbackMessage && (
-        <div className={`p-3 rounded-md text-center text-sm ${feedbackMessage.includes("desbloqueada") || feedbackMessage.includes("activado") || feedbackMessage.includes("maestro") ? 'bg-green-100 dark:bg-green-700/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-700/30 text-red-700 dark:text-red-300'}`}>
-          {feedbackMessage}
+        <div className={`p-3 rounded-md text-center text-sm ${feedbackMessage.type === 'success' ? 'bg-green-100 dark:bg-green-700/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-700/30 text-red-700 dark:text-red-300'}`}>
+          {feedbackMessage.message}
         </div>
       )}
 

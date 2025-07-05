@@ -10,8 +10,9 @@ import { TipCard } from './TipCard.tsx';
 import { HabitHealthCard } from './HabitHealthCard.tsx'; 
 import { CombinedStatusCard } from './CombinedStatusCard.tsx';
 import { LearningDaysCard } from './LearningDaysCard.tsx'; // New card for learning days
-import { STAGE_DETAILS, AVAILABLE_LANGUAGES_FOR_LEARNING, HABIT_POINTS_MAP } from '../../constants.ts';
-import { ActivityLogEntry, AntimethodStage, Language, AppView, DailyActivityGoal, DashboardCardDisplayMode, UserProfile } from '../../types.ts';
+import { GoalsCard } from './GoalsCard.tsx'; // New card for goals
+import { STAGE_DETAILS } from '../../constants.ts';
+import { ActivityLogEntry, AntimethodStage, Language, AppView } from '../../types.ts';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { formatDurationFromSeconds, formatTimeHHMMSS } from '../../utils/timeUtils.ts';
 import { PlayIcon as ReLogIcon } from '../../components/icons/TimerIcons.tsx'; 
@@ -364,6 +365,7 @@ export const DashboardScreen: React.FC = () => {
           <p className={`text-[var(--color-text-light)] text-center py-4`}>Aún no has registrado ninguna actividad para {userProfile.primaryLanguage}. ¡Empieza ahora!</p>
         )}
       </Card>
+      <GoalsCard />
     </div>
   );
 };

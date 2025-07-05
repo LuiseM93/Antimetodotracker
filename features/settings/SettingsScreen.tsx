@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { UserProfile, Language, TimerMode, AppTheme, AppDataExport, DashboardCardDisplayMode, AppView } from '../../types.ts';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext.tsx';
 import { Navbar } from './components/Navbar.tsx';

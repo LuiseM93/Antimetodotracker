@@ -1,13 +1,5 @@
 
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
 export enum Language {
   SPANISH = "Español",
   ENGLISH = "English",
@@ -81,7 +73,6 @@ export type DashboardCardDisplayMode =
 export interface UserProfile {
   username: string; // Unique username for profiles/social features
   display_name: string; // User's display name
-  avatar_url?: string | null; // Added avatar_url to UserProfile
   currentStage: AntimethodStage;
   learningLanguages: Language[];
   primaryLanguage?: Language; // For quick logging default
@@ -212,7 +203,7 @@ export interface RewardItem {
   cost: number; // In Focus Points (0 for secret/code-only rewards not meant for purchase)
   value?: string; // e.g., theme class name, flair text, content ID
   icon?: string; // Path or identifier for an icon
-  category: 'Personalización Visual' | 'Perfil' | 'Contenido Exclusivo' | 'Secreto' | 'Canjeo'; // For grouping in store or internal logic
+  category: 'Personalización Visual' | 'Perfil' | 'Contenido Exclusivo' | 'Secreto'; // For grouping in store or internal logic
 }
 
 export interface LeaderboardEntry {
@@ -220,29 +211,22 @@ export interface LeaderboardEntry {
   user_id: string;
   username: string;
   display_name: string;
-  avatar_url: string | null;
+  avatar_url?: string;
   total_seconds: number;
 }
 
 // New types for Activity Feed
-export type FeedItemType = 'milestone_achieved' | 'reward_unlocked' | 'activity_logged' | 'bulk_import';
+export type FeedItemType = 'milestone_achieved' | 'reward_unlocked' | 'bulk_import';
 
 export interface FeedItem {
   id: number;
   user_id: string;
   type: FeedItemType;
   content: {
-    // For milestone_achieved
     hours?: number;
     language?: Language;
-    // For reward_unlocked
     reward_name?: string;
-    reward_type?: 'theme' | 'flair' | 'content' | 'timer_sound' | 'points';
-    // For activity_logged
-    duration_seconds?: number;
-    sub_activity?: string;
-    custom_title?: string;
-    category?: ActivityCategory;
+    reward_type?: 'theme' | 'flair' | 'content';
   };
   created_at: string;
   profiles: {

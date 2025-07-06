@@ -24,13 +24,13 @@ export const Button: React.FC<ButtonProps> = ({
   let variantStyle = '';
   switch (variant) {
     case 'primary':
-      variantStyle = `bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white focus:ring-[var(--color-primary)]`;
+      variantStyle = `bg-[var(--color-primary)] hover:bg-purple-800 text-white focus:ring-[var(--color-primary)]`;
       break;
     case 'secondary':
-      variantStyle = `bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white focus:ring-[var(--color-secondary)]`;
+      variantStyle = `bg-[var(--color-secondary)] hover:bg-purple-700 text-white focus:ring-[var(--color-secondary)]`;
       break;
     case 'accent':
-      variantStyle = `bg-[var(--color-accent)] hover:bg-[var(--color-accent-dark)] text-white focus:ring-[var(--color-accent)]`;
+      variantStyle = `bg-[var(--color-accent)] hover:bg-purple-600 text-white focus:ring-[var(--color-accent)]`;
       break;
     case 'outline':
       variantStyle = `border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-light-purple)] hover:text-[var(--color-primary)] focus:ring-[var(--color-primary)]`;
@@ -39,13 +39,13 @@ export const Button: React.FC<ButtonProps> = ({
       variantStyle = `text-[var(--color-primary)] hover:bg-[var(--color-light-purple)] focus:ring-[var(--color-primary)]`;
       break;
     case 'danger':
-      variantStyle = `bg-[var(--color-error)] hover:bg-[var(--color-error-dark)] text-white focus:ring-[var(--color-error)]`;
+      variantStyle = `bg-[var(--color-error)] hover:bg-red-600 text-white focus:ring-[var(--color-error)]`;
       break;
     case 'warning':
-      variantStyle = `bg-[var(--color-warning)] hover:bg-[var(--color-warning-dark)] text-white focus:ring-[var(--color-warning)]`;
+      variantStyle = `bg-[var(--color-warning)] hover:bg-orange-600 text-white focus:ring-[var(--color-warning)]`;
       break;
     case 'success':
-      variantStyle = `bg-[var(--color-success)] hover:bg-[var(--color-success-dark)] text-white focus:ring-[var(--color-success)]`;
+      variantStyle = `bg-[var(--color-success)] hover:bg-green-600 text-white focus:ring-[var(--color-success)]`;
       break;
   }
 

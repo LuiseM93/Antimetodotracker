@@ -1,4 +1,4 @@
-import { AntimethodStage, DailyActivityGoal, ActivityCategory, Resource, Skill, ActivityDetailType, RewardItem, DashboardCardDisplayMode, Language } from './types';
+import { AntimethodStage, DailyActivityGoal, ActivityCategory, Resource, Skill, ActivityDetailType, RewardItem, DashboardCardDisplayMode, Language, AppTheme } from './types';
 
 export const COLORS = {
   primary: '#4a148c', // Deep Purple (Main App Color)
@@ -6,7 +6,6 @@ export const COLORS = {
   accent: '#9c27b0', // Lighter Purple (Accent, Buttons, Highlights)
   lightPurple: '#d1c4e9', // Very Light Purple (Background Tints, Borders)
   
-  // Core UI Colors
   appBgLight: '#f8f7fa', // Light App Background
   cardBgLight: '#ffffff', // Light Card Background
   textMainLight: '#333333', // Dark Text on Light Background
@@ -17,27 +16,20 @@ export const COLORS = {
   textMainDark: '#E0E0E0', // Light Gray Text on Dark Background
   textLightDark: '#B0B0B0', // Dimmer Text on Dark Background
   
-  // Semantic Colors (for feedback, alerts, etc.)
   error: '#ef4444', // Red-500
   success: '#22c55e', // Green-500
   warning: '#f97316', // Orange-500
-
-  // Input Field Colors (Light Theme)
   inputBorderLight: '#cbd5e1', // approx. gray-300
   inputBgLight: '#ffffff',
   inputTextLight: '#111827', // approx. gray-900
   placeholderTextLight: '#9ca3af', // approx. gray-400
 
-  // Input Field Colors (Dark Theme)
   inputBorderDark: '#4B5563', // Gray-600 for dark theme
   inputBgDark: '#374151',    // Gray-700 for dark theme
   inputTextDark: '#F3F4F6',    // Gray-100 for dark theme
   placeholderTextDark: '#9CA3AF', // Gray-400 (can remain same or be lighter)
 };
 
-// Spacing System: Based on an 8px grid for consistency.
-// Use multiples of 8 (e.g., 8px, 16px, 24px, 32px) for padding, margin, and component sizes.
-// In Tailwind CSS, this often translates to classes like p-2 (8px), p-4 (16px), etc.
 
 // Specific colors for charts, especially for dark backgrounds
 export const CHART_COLORS = {

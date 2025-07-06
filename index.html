@@ -24,7 +24,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16x16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32x32.png">
   <link rel="apple-touch-icon" href="./assets/logo.png">
-  <link rel="preload" href="./assets/logo.png" as="image">
 
   <!-- Theme Color -->
   <meta name="theme-color" content="#4a148c" media="(prefers-color-scheme: light)">
@@ -56,11 +55,8 @@
     /* Light Theme (Default) */
     :root {
       --color-primary: #4a148c;
-      --color-primary-dark: #3a0f6b;
       --color-secondary: #7b1fa2;
-      --color-secondary-dark: #6a1a8f;
       --color-accent: #9c27b0;
-      --color-accent-dark: #8b229e;
       --color-light-purple: #d1c4e9;
       
       --color-app-bg: #f8f7fa;
@@ -75,11 +71,8 @@
       --color-placeholder-text: #9ca3af; /* approx. gray-400 */
       
       --color-error: #ef4444;
-      --color-error-dark: #cc3333;
       --color-success: #22c55e;
-      --color-success-dark: #1a994a;
       --color-warning: #f97316;
-      --color-warning-dark: #d6600f;
       --color-nav-bg: var(--color-primary);
       --color-nav-text: #f3e5f5; /* Lighter purple text for nav */
       --color-nav-hover-bg: var(--color-secondary);
@@ -100,17 +93,14 @@
     /* Dark Theme */
     html.dark {
       --color-primary: #8e44ad; /* Slightly lighter purple for dark mode primary */
-      --color-primary-dark: #7a3a99;
       --color-secondary: #9b59b6; /* Lighter still for secondary */
-      --color-secondary-dark: #8a4f9e;
       --color-accent: #bb86fc; /* Common Material Design dark accent */
-      --color-accent-dark: #a873e0;
       --color-light-purple: #3e2753; /* Darker purple for "light" variant in dark mode */
       
       --color-app-bg: #121212;
-      --color-card-bg: #1a1a1a; /* Slightly lighter for better contrast with text */
+      --color-card-bg: #1e1e1e; /* Material dark surface */
       --color-text-main: #e0e0e0;
-      --color-text-light: #c0c0c0; /* Slightly lighter for better readability */
+      --color-text-light: #b0b0b0;
       --color-text-inverse: #121212; /* Text on light accent bg */
 
       --color-input-border: #4b5563; /* Gray-600 */
@@ -119,11 +109,8 @@
       --color-placeholder-text: #718096; /* Gray-500 */
       
       --color-error: #cf6679; /* Material dark error */
-      --color-error-dark: #b35a6a;
       --color-success: #66bb6a; 
-      --color-success-dark: #55a05a;
       --color-warning: #f59e0b; 
-      --color-warning-dark: #d98c0a;
       --color-nav-bg: #1e1e1e; /* Darker nav bg */
       --color-nav-text: #c7c7c7;
       --color-nav-hover-bg: #2c2c3a;

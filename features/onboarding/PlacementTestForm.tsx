@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { PlacementTestAnswers, Language, AntimethodStage, GeminiPlacementResponse } from '../../types.ts';
-import { PLACEMENT_TEST_QUESTIONS, AVAILABLE_LANGUAGES_FOR_LEARNING } from '../../constants.ts';
+import { PLACEMENT_TEST_QUESTIONS, AVAILABLE_LANGUAGES_FOR_LEARNING, STAGE_DETAILS } from '../../constants.ts';
 import { Button } from '../../components/Button.tsx';
 import { geminiService } from '../../services/geminiService.ts';
-
+import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 import { Card } from '../../components/Card.tsx';
 import { ExternalLinkIcon } from '../../components/icons/ExternalLinkIcon.tsx'; // Import ExternalLinkIcon
 

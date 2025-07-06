@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
-import { Language, ActivityCategory, ActivityLogEntry, AppView, ActivityDetailType, Skill } from '../../types.ts';
+import { Language, ActivityCategory, ActivityLogEntry, AppView, TimerMode, ActivityDetailType, Skill } from '../../types.ts';
 import { AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS } from '../../constants.ts';
 import { Button } from '../../components/Button.tsx';
-import { PlayIcon, PauseIcon, ArrowPathIcon as ResetIcon } from '../../components/icons/TimerIcons.tsx';
+import { PlayIcon, PauseIcon, StopIcon, ArrowPathIcon as ResetIcon } from '../../components/icons/TimerIcons.tsx';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon.tsx';
 import { SelectActivityModal } from './SelectActivityModal.tsx';
 import { PlusCircleIcon } from '../../components/icons/PlusCircleIcon.tsx';
@@ -422,7 +422,6 @@ export const LogActivityScreen: React.FC = () => {
     };
 
     await addActivityLog(logEntryData);
-    alert("Actividad guardada con éxito!");
     navigate(AppView.DASHBOARD);
   };
   
@@ -454,10 +453,8 @@ export const LogActivityScreen: React.FC = () => {
 
     if (isEditing && currentLogEntry.id) {
         await updateActivityLog({ ...currentLogEntry, ...logEntryData, id: currentLogEntry.id } as ActivityLogEntry);
-        alert("Registro actualizado con éxito!");
     } else {
         await addActivityLog(logEntryData);
-        alert("Registro guardado con éxito!");
     }
     setIsManualLogModalOpen(false);
     navigate(AppView.DASHBOARD); 
@@ -478,109 +475,283 @@ export const LogActivityScreen: React.FC = () => {
     }
   };
   
+  const renderTimerControls = () => {
+    if (timerDisplayMode === 'stopwatch') {
+      return (
+        <>
+          <div className={`text-7xl font-mono font-bold text-[var(--color-primary)] my-8`}>{formatTimeHHMMSS(stopwatchSeconds)}</div>
+          <div className="flex justify-center space-x-4">
+            <Button onClick={handleStartStopwatch} variant={isStopwatchRunning ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full">
+              {isStopwatchRunning ? <PauseIcon className="w-8 h-8"/> : <PlayIcon className="w-8 h-8"/>}
+            </Button>
+            <Button onClick={handleResetStopwatch} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={stopwatchSeconds === 0 && !isStopwatchRunning}>
+              <ResetIcon className="w-8 h-8"/>
+            </Button>
+          </div>
+          {capturedDateTime && <p className="text-xs text-center text-[var(--color-text-light)] mt-3">Iniciado: {new Date(capturedDateTime.date + 'T' + capturedDateTime.time).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</p> }
+           <p className="text-xs text-[var(--color-text-light)] mt-2 px-4">Nota: El cronómetro puede pausarse si la aplicación pasa a segundo plano en móviles.</p>
+        </>
+      );
+    }
+    if (timerDisplayMode === 'countdown') {
+        const progressPercent = countdownInitialDurationRef.current > 0 ? ((countdownInitialDurationRef.current - countdownRemainingSeconds) / countdownInitialDurationRef.current) * 100 : 0;
+      return (
+        <>
+          <div className="relative w-60 h-60 sm:w-64 sm:h-64 my-6">
+            <svg className="w-full h-full" viewBox="0 0 120 120">
+              <circle
+                className="text-[var(--color-input-border)] opacity-50"
+                strokeWidth="8"
+                stroke="currentColor"
+                fill="transparent"
+                r="52" 
+                cx="60"
+                cy="60"
+              />
+              <circle
+                className="text-[var(--color-accent)]"
+                strokeWidth="8"
+                strokeDasharray={Math.PI * 2 * 52} 
+                strokeDashoffset={Math.PI * 2 * 52 * (1 - progressPercent/100)}
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="52"
+                cx="60"
+                cy="60"
+                transform="rotate(-90 60 60)"
+              />
+              <text x="50%" y="50%" textAnchor="middle" dy=".3em" className={`text-5xl font-mono font-bold ${countdownComplete ? 'fill-green-500' : 'fill-[var(--color-primary)]'}`}>
+                  {formatTimeHHMMSS(countdownRemainingSeconds)}
+              </text>
+            </svg>
+          </div>
+          <div className="w-full max-w-sm">
+            <label htmlFor="countdown-slider" className="text-sm text-[var(--color-text-light)]">
+              Duración: {countdownSetMinutes} minutos
+            </label>
+            <input
+              id="countdown-slider"
+              type="range"
+              min="1"
+              max="180"
+              step="1"
+              value={countdownSetMinutes}
+              onChange={(e) => setCountdownSetMinutes(parseInt(e.target.value))}
+              disabled={isCountdownRunning}
+              className="w-full h-2 bg-[var(--color-light-purple)] rounded-lg appearance-none cursor-pointer mt-1 disabled:opacity-50"
+            />
+          </div>
+          <div className="flex justify-center space-x-4 mt-4">
+            <Button onClick={handleStartCountdown} variant={isCountdownRunning ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full">
+              {isCountdownRunning ? <PauseIcon className="w-8 h-8"/> : <PlayIcon className="w-8 h-8"/>}
+            </Button>
+            <Button onClick={handleResetCountdown} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={!isCountdownRunning && countdownRemainingSeconds === (countdownSetMinutes * 60)}>
+              <ResetIcon className="w-8 h-8"/>
+            </Button>
+          </div>
+          {capturedDateTime && <p className="text-xs text-center text-[var(--color-text-light)] mt-3">Iniciado: {new Date(capturedDateTime.date + 'T' + capturedDateTime.time).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</p> }
+        </>
+      );
+    }
+  };
+  
   return (
-    <div className="flex h-screen flex-col">
-<header className="bg-white px-4 pt-6 pb-2 shadow-sm">
-<div className="flex items-center justify-between">
-<button onClick={() => navigate(-1)} className="text-gray-600">
-<svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg">
-<path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
-</svg>
-</button>
-<h1 className="text-xl font-semibold text-gray-800">Record Activity</h1>
-<button>
-<img alt="Spanish flag" className="h-7 w-7 rounded-full object-cover" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAYAAACbU/80AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlnkscape.org%5D%2F%3E%3C/svg%3E"/>
-</button>
-</div>
-<nav className="mt-4">
-<div className="flex justify-around border-b border-gray-200">
-<button onClick={() => setTimerDisplayMode('stopwatch')} className={`w-full py-3 text-center text-sm font-semibold border-b-2 ${timerDisplayMode === 'stopwatch' ? 'tab-active' : 'tab-inactive'}`}>Stopwatch</button>
-<button onClick={() => setTimerDisplayMode('countdown')} className={`w-full py-3 text-center text-sm font-semibold border-b-2 ${timerDisplayMode === 'countdown' ? 'tab-active' : 'tab-inactive'}`}>Timer</button>
-<button onClick={() => setTimerDisplayMode('manual')} className={`w-full py-3 text-center text-sm font-semibold border-b-2 ${timerDisplayMode === 'manual' ? 'tab-active' : 'tab-inactive'}`}>Manual</button>
-</div>
-</nav>
-</header>
-<main className="flex flex-1 flex-col items-center justify-center bg-white px-4">
-{timerDisplayMode === 'stopwatch' && (
-<div className="flex flex-1 flex-col items-center justify-center text-center">
-<p className="text-7xl font-light tracking-widest text-gray-800 tabular-nums">{formatTimeHHMMSS(stopwatchSeconds)}</p>
-<button onClick={handleStartStopwatch} className="mt-12 flex h-20 w-20 items-center justify-center rounded-full bg-[#ccbbdc] text-gray-900 shadow-lg">
-{isStopwatchRunning ? <PauseIcon className="w-9 h-9"/> : <PlayIcon className="w-9 h-9"/>}
-</button>
-<button onClick={handleResetStopwatch} className="mt-4 text-gray-500" disabled={stopwatchSeconds === 0 && !isStopwatchRunning}>
-<ResetIcon className="w-6 h-6"/>
-</button>
-</div>
-)}
-{timerDisplayMode === 'countdown' && (
-<div className="flex flex-1 flex-col items-center justify-center text-center">
-<div className="flex justify-center items-center my-8">
-<div className="relative w-64 h-64">
-<svg className="w-full h-full" viewBox="0 0 120 120">
-<circle className="text-gray-200" cx="60" cy="60" fill="transparent" r="56" stroke="currentColor" strokeWidth="8"></circle>
-<circle className="progress-ring__circle text-purple-500" cx="60" cy="60" fill="transparent" r="56" stroke="currentColor" strokeDasharray="351.858" strokeDashoffset={Math.PI * 2 * 56 * (1 - ((countdownInitialDurationRef.current - countdownRemainingSeconds) / countdownInitialDurationRef.current) * 100)} strokeLinecap="round" strokeWidth="8"></circle>
-</svg>
-<div className="absolute inset-0 flex items-center justify-center">
-<span className="text-4xl font-light text-gray-800">{formatTimeHHMMSS(countdownRemainingSeconds)}</span>
-</div>
-</div>
-</div>
-<div className="flex justify-center my-8">
-<button onClick={handleStartCountdown} className="bg-purple-200 rounded-full w-20 h-20 flex items-center justify-center">
-{isCountdownRunning ? <PauseIcon className="w-9 h-9"/> : <PlayIcon className="w-9 h-9"/>}
-</button>
-<button onClick={handleResetCountdown} className="ml-4 bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center" disabled={!isCountdownRunning && countdownRemainingSeconds === (countdownSetMinutes * 60)}>
-<ResetIcon className="w-9 h-9"/>
-</button>
-</div>
-<div className="my-8 px-4">
-<input className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500" max="3600" min="0" type="range" value={countdownSetMinutes * 60} onChange={(e) => setCountdownSetMinutes(parseInt(e.target.value) / 60)} disabled={isCountdownRunning}/>
-</div>
-</div>
-)}
-{timerDisplayMode === 'manual' && (
-<div className="space-y-6 my-12">
-<div>
-<label className="sr-only" htmlFor="duration">Duration</label>
-<input className="w-full p-4 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" id="duration" placeholder="Duration (e.g., '30 min')" type="text" value={manualForm.durationMinutes} onChange={e => setManualForm(p => ({...p, durationMinutes: parseInt(e.target.value)}))}/>
-</div>
-<div>
-<label className="sr-only" htmlFor="date">Date</label>
-<input className="w-full p-4 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 text-gray-500" id="date" type="date" value={manualForm.date} onChange={e => setManualForm(p => ({...p, date: e.target.value}))}/>
-</div>
-<div>
-<label className="sr-only" htmlFor="start-time">Start Time (optional)</label>
-<input className="w-full p-4 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 text-gray-500" id="start-time" type="time" value={manualForm.startTime} onChange={e => setManualForm(p => ({...p, startTime: e.target.value}))}/>
-</div>
-</div>
-)}
-</main>
-<div className="bg-gray-50 p-4">
-<div className="space-y-4">
-<div>
-<label className="sr-only" htmlFor="activity">Activity</label>
-<select className="select-input w-full rounded-xl border-gray-300 bg-white p-4 text-base text-gray-500 shadow-sm focus:border-violet-500 focus:ring-violet-500" id="activity" name="activity" value={selectedActivityName} onChange={e => setSelectedActivityName(e.target.value)}>
-<option>Select Activity</option>
-{(ANTIMETHOD_ACTIVITIES_DETAILS).map(activity => (
-<option key={activity.name} value={activity.name}>{activity.name}</option>
-))}
-</select>
-</div>
-<div>
-<label className="sr-only" htmlFor="custom-title">Custom Title</label>
-<input className="w-full rounded-xl border-gray-300 bg-white p-4 text-base text-gray-700 shadow-sm focus:border-violet-500 focus:ring-violet-500" id="custom-title" name="custom-title" placeholder="Custom Title (e.g., 'Watching S01E02')" type="text" value={customTitle} onChange={e => setCustomTitle(e.target.value)}/>
-</div>
-<div>
-<label className="sr-only" htmlFor="notes">Notes</label>
-<textarea className="w-full rounded-xl border-gray-300 bg-white p-4 text-base text-gray-700 shadow-sm focus:border-violet-500 focus:ring-violet-500" id="notes" name="notes" placeholder="Notes" rows={4} value={notes} onChange={e => setNotes(e.target.value)}></textarea>
-</div>
-</div>
-<div className="mt-6">
-<button onClick={timerDisplayMode === 'manual' ? handleSaveManualLog : handleSaveActivity} className="w-full rounded-full bg-[#ccbbdc] py-4 text-base font-semibold text-gray-900 shadow-sm hover:bg-violet-400">
-                    Save Activity
-                </button>
-</div>
-</div>
-</div>
+    <div className="flex flex-col h-screen bg-[var(--color-app-bg)]">
+      <header className="flex items-center p-4 border-b border-[var(--color-border-light)] sticky top-0 bg-[var(--color-app-bg)] z-10">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mr-2 p-2">
+          <ChevronLeftIcon className="w-6 h-6 text-[var(--color-text-main)]" />
+        </Button>
+        <h1 className="text-xl font-poppins font-semibold text-[var(--color-primary)]">
+          {isEditing ? 'Editar Registro' : 'Registrar Actividad'}
+        </h1>
+      </header>
+
+      <div className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-4 flex flex-col items-center">
+        {/* Language Selection */}
+        <div className="w-full max-w-md">
+            <label htmlFor="language-select" className="block text-sm font-medium text-[var(--color-text-main)]">
+                Idioma
+            </label>
+            <select
+                id="language-select"
+                value={currentLanguageForLog}
+                onChange={(e) => setCurrentLanguageForLog(e.target.value as Language)}
+                className={inputBaseStyle}
+            >
+                {userProfile?.learningLanguages && userProfile.learningLanguages.length > 0
+                    ? userProfile.learningLanguages.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                    ))
+                    : AVAILABLE_LANGUAGES_FOR_LEARNING.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                    ))
+                }
+            </select>
+        </div>
+        
+        {/* Activity Selection */}
+        <div className="w-full max-w-md">
+            <label htmlFor="activity-select-btn" className="block text-sm font-medium text-[var(--color-text-main)]">
+                Actividad
+            </label>
+            <button
+                id="activity-select-btn"
+                onClick={() => setIsActivityModalOpen(true)}
+                className={`${inputBaseStyle} text-left flex justify-between items-center`}
+            >
+                <span className={selectedActivityName === 'Ninguna seleccionada' ? 'text-[var(--color-placeholder-text)]' : ''}>
+                    {selectedActivityName}
+                </span>
+                <PlusCircleIcon className="w-5 h-5 text-gray-400" />
+            </button>
+            {selectedCategory && (
+                <p className="text-xs text-[var(--color-text-light)] mt-1">Categoría: {selectedCategory}</p>
+            )}
+        </div>
+
+        {/* Custom Title */}
+        <div className="w-full max-w-md">
+            <label htmlFor="custom-title" className="block text-sm font-medium text-[var(--color-text-main)]">
+                Título Personalizado (Opcional)
+            </label>
+            <input 
+                type="text" 
+                id="custom-title"
+                value={customTitle}
+                onChange={e => setCustomTitle(e.target.value)}
+                placeholder="Ej: Viendo 'La Casa de Papel' T1 E3"
+                className={inputBaseStyle}
+            />
+        </div>
+
+        {/* Timer Mode Toggle */}
+        <div className="w-full max-w-md flex bg-[var(--color-light-purple)] bg-opacity-30 rounded-lg p-1">
+            <Button
+                variant={timerDisplayMode === 'stopwatch' ? 'secondary' : 'ghost'}
+                onClick={() => setTimerDisplayMode('stopwatch')}
+                className="flex-1"
+                disabled={isStopwatchRunning || isCountdownRunning}
+            >
+                Cronómetro
+            </Button>
+            <Button
+                variant={timerDisplayMode === 'countdown' ? 'secondary' : 'ghost'}
+                onClick={() => setTimerDisplayMode('countdown')}
+                className="flex-1"
+                 disabled={isStopwatchRunning || isCountdownRunning}
+            >
+                Temporizador
+            </Button>
+        </div>
+
+        {/* Timer Display and Controls */}
+        <div className="flex flex-col items-center justify-center w-full max-w-md">
+          {renderTimerControls()}
+        </div>
+
+        {/* Notes */}
+         <div className="w-full max-w-md">
+            <label htmlFor="notes" className="block text-sm font-medium text-[var(--color-text-main)]">
+                Notas (Opcional)
+            </label>
+            <textarea
+                id="notes"
+                rows={2}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Añade detalles sobre la actividad..."
+                className={inputBaseStyle}
+            />
+        </div>
+
+        {isActivityModalOpen && (
+            <SelectActivityModal
+                isOpen={isActivityModalOpen}
+                onClose={() => setIsActivityModalOpen(false)}
+                onActivitySelected={handleActivitySelected}
+            />
+        )}
+      </div>
+
+      <footer className="p-4 border-t border-[var(--color-border-light)] sticky bottom-0 bg-[var(--color-app-bg)] z-10">
+        <div className="max-w-md mx-auto flex gap-3">
+          <Button variant="primary" size="lg" onClick={handleSaveActivity} className="flex-grow">
+            Guardar Actividad
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => setIsManualLogModalOpen(true)} className="flex-grow">
+            Entrada Manual
+          </Button>
+        </div>
+      </footer>
+
+      {isManualLogModalOpen && (
+          <Modal
+            isOpen={isManualLogModalOpen}
+            onClose={closeManualLogModal}
+            title={isEditing ? 'Editar Registro Manual' : 'Añadir Registro Manual'}
+            footerContent={
+              <div className="flex justify-between w-full">
+                {isEditing && (
+                    <Button variant="danger" onClick={handleDeleteLog}>Eliminar</Button>
+                )}
+                <div className={`flex gap-2 ${isEditing ? '' : 'ml-auto'}`}>
+                    <Button variant="ghost" onClick={closeManualLogModal}>Cancelar</Button>
+                    <Button variant="primary" onClick={handleSaveManualLog}>
+                        {isEditing ? 'Guardar Cambios' : 'Guardar Registro'}
+                    </Button>
+                </div>
+              </div>
+            }
+          >
+            <div className="space-y-4">
+                {/* Manual form fields */}
+                <div>
+                    <label htmlFor="manual-lang" className="block text-sm font-medium text-[var(--color-text-main)]">Idioma</label>
+                    <select id="manual-lang" value={manualForm.language} onChange={e => setManualForm(p => ({...p, language: e.target.value as Language}))} className={inputBaseStyle}>
+                        {(userProfile?.learningLanguages || AVAILABLE_LANGUAGES_FOR_LEARNING).map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-[var(--color-text-main)]">Actividad</label>
+                    <button onClick={() => setIsSelectActivityModalOpenForManualLog(true)} className={`${inputBaseStyle} text-left`}>
+                        {manualForm.sub_activity || 'Seleccionar actividad...'}
+                    </button>
+                    {manualForm.category && <p className="text-xs text-[var(--color-text-light)] mt-1">Categoría: {manualForm.category}</p>}
+                </div>
+                <div>
+                    <label htmlFor="manual-title" className="block text-sm font-medium text-[var(--color-text-main)]">Título (Opcional)</label>
+                    <input type="text" id="manual-title" value={manualForm.customTitle} onChange={e => setManualForm(p => ({...p, customTitle: e.target.value}))} className={inputBaseStyle}/>
+                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="manual-date" className="block text-sm font-medium text-[var(--color-text-main)]">Fecha</label>
+                        <input type="date" id="manual-date" value={manualForm.date} onChange={e => setManualForm(p => ({...p, date: e.target.value}))} className={inputBaseStyle}/>
+                    </div>
+                     <div>
+                        <label htmlFor="manual-time" className="block text-sm font-medium text-[var(--color-text-main)]">Hora de Inicio (Opcional)</label>
+                        <input type="time" id="manual-time" value={manualForm.startTime} onChange={e => setManualForm(p => ({...p, startTime: e.target.value}))} className={inputBaseStyle}/>
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="manual-duration" className="block text-sm font-medium text-[var(--color-text-main)]">Duración (minutos)</label>
+                    <input type="number" id="manual-duration" min="1" value={manualForm.durationMinutes} onChange={e => setManualForm(p => ({...p, durationMinutes: Number(e.target.value)}))} className={inputBaseStyle}/>
+                </div>
+                <div>
+                    <label htmlFor="manual-notes" className="block text-sm font-medium text-[var(--color-text-main)]">Notas (Opcional)</label>
+                    <textarea id="manual-notes" rows={2} value={manualForm.notes} onChange={e => setManualForm(p => ({...p, notes: e.target.value}))} className={inputBaseStyle}/>
+                </div>
+
+                 {isSelectActivityModalOpenForManualLog && (
+                    <SelectActivityModal
+                        isOpen={isSelectActivityModalOpenForManualLog}
+                        onClose={() => setIsSelectActivityModalOpenForManualLog(false)}
+                        onActivitySelected={handleManualLogActivitySelected}
+                    />
+                )}
+            </div>
+          </Modal>
+      )}
+    </div>
   );
 };

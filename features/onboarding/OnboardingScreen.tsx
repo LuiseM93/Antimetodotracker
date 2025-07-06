@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { AntimethodStage, PlacementTestAnswers, UserProfile, AppView, Language } from '../../types.ts';
-import { ONBOARDING_SCREENS, STAGE_DETAILS, AVAILABLE_LANGUAGES_FOR_LEARNING } from '../../constants.ts';
+import { ONBOARDING_SCREENS, STAGE_DETAILS, AVAILABLE_LANGUAGES_FOR_LEARNING, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE } from '../../constants.ts';
 import { Button } from '../../components/Button.tsx';
 import { PlacementTestForm } from './PlacementTestForm.tsx';
 import { ChevronLeftIcon } from '../../components/icons/ChevronLeftIcon.tsx';
@@ -172,7 +172,7 @@ export const OnboardingScreen: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Único, sin espacios, 3-20 caracteres (a-z, 0-9, _).</p>
                 </div>
               <div>
-                <label htmlFor="quickSetupLanguage" className={`block text-sm font-medium text-[var(--color-text-main)] mb-1`}>Idioma que estás aprendiendo:</label>
+                <label htmlFor="quickSetupLanguage" className={`block text-sm font-medium text-[var(--color-text-main)] mb-1`}>Idioma Meta:</label>
                 <select id="quickSetupLanguage" value={quickSetupLanguage} onChange={(e) => setQuickSetupLanguage(e.target.value as Language)} className={inputBaseStyle}>
                   {AVAILABLE_LANGUAGES_FOR_LEARNING.map(lang => <option key={lang} value={lang}>{lang}</option>)}
                 </select>

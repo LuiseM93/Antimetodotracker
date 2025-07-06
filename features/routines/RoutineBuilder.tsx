@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DailyActivityGoal, ActivityCategory, ActivityComponent } from '../../types.ts';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { Card } from '../../components/Card.tsx';

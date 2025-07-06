@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
@@ -30,7 +28,7 @@ interface PublicProfileData {
 
 type ModalView = 'followers' | 'following' | null;
 
-export const ProfileScreen: React.FC = () => {
+const ProfileScreen: React.FC = () => {
     const { username } = useParams<{ username: string }>();
     const { session, appTheme: loggedInUserTheme, getProfileFollowCounts } = useAppContext(); 
 
@@ -42,7 +40,7 @@ export const ProfileScreen: React.FC = () => {
     const [followerCount, setFollowerCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
     const [modalView, setModalView] = useState<ModalView>(null);
-
+    const [activeTab, setActiveTab] = useState('profile'); // State for active tab
 
     const fetchProfileData = useCallback(async () => {
         if (!username) {
@@ -159,91 +157,143 @@ export const ProfileScreen: React.FC = () => {
     const isOwnProfile = session?.user?.id === profile.id;
 
     return (
-        <div className="min-h-screen bg-[var(--color-app-bg)] bg-cover bg-center bg-fixed" style={{ backgroundImage: `var(--theme-background-image-url-light)` }}>
-           <div className="min-h-screen backdrop-blur-sm bg-black/10">
-                <div className="max-w-4xl mx-auto p-4 sm:p-8">
-                    {/* Profile Header */}
-                    <div className="relative text-center mb-8">
-                        <div className="relative inline-block">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Avatar" className="w-32 h-32 rounded-full mx-auto ring-4 ring-[var(--color-accent)] ring-offset-4 ring-offset-[var(--color-app-bg)] shadow-lg" />
-                            ) : (
-                                <UserCircleIcon className="w-32 h-32 text-[var(--color-primary)] mx-auto" />
-                            )}
-                        </div>
-                        <h1 className="text-4xl font-poppins font-bold mt-4 text-[var(--color-primary)]">{profile.display_name}</h1>
-                        <p className="text-lg text-[var(--color-text-light)]">@{profile.username}</p>
-                        {activeFlair && (
-                             <span className="mt-2 inline-block text-sm font-semibold px-3 py-1 rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverse)] shadow-sm">
-                                {activeFlair.value}
-                            </span>
-                        )}
-                         <div className="mt-3 flex items-center justify-center space-x-2">
-                            <img src="./assets/money.png" alt="Puntos de Enfoque" className="w-6 h-6" />
-                            <span className={`text-lg font-medium text-[var(--color-primary)]`}>
-                                {profile.focus_points || 0} Puntos de Enfoque
-                            </span>
-                        </div>
-                        {session && !isOwnProfile && (
-                            <div className="mt-4">
-                                <Button 
-                                    onClick={handleFollowToggle}
-                                    variant={isFollowing ? 'outline' : 'primary'}
-                                    isLoading={isFollowLoading}
-                                >
-                                    {isFollowing ? 'Dejar de seguir' : 'Seguir'}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Stats Section */}
-                    <Card title="Resumen" className="shadow-xl">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center divide-x divide-gray-200 dark:divide-gray-700">
-                             <button onClick={() => setModalView('followers')} className="p-3 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
-                                <p className="text-3xl font-bold text-[var(--color-primary)]">{followerCount}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Seguidores</p>
-                            </button>
-                             <button onClick={() => setModalView('following')} className="p-3 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
-                                <p className="text-3xl font-bold text-[var(--color-primary)]">{followingCount}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Siguiendo</p>
-                            </button>
-                            <div className="p-3">
-                                <CalendarDaysIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learning_days_count || 0}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Días Adquiriendo</p>
-                            </div>
-                            <div className="p-3">
-                                <img src="./assets/language.png" alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learning_languages?.length || 0}</p>
-                                <p className="text-sm text-[var(--color-text-light)]">Idiomas Activos</p>
-                                {profile.learning_languages && profile.learning_languages.length > 0 && (
-                                    <p className="text-xs text-[var(--color-text-light)] mt-1">{profile.learning_languages.join(', ')}</p>
-                                )}
-                            </div>
-                        </div>
-                         {stageDetails && <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-                              <BookOpenIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
-                              <p className="text-lg font-bold text-[var(--color-primary)]">{stageDetails.name}</p>
-                              <p className="text-sm text-[var(--color-text-light)]">Etapa Actual</p>
-                          </div>}
-                    </Card>
-
-                    <footer className="text-center mt-12">
-                        <Link to={AppView.DASHBOARD} className="text-[var(--color-accent)] hover:underline text-sm">
-                            Volver al Dashboard
-                        </Link>
-                    </footer>
-                </div>
-           </div>
-           {modalView && (
-                <FollowListModal
-                    isOpen={!!modalView}
-                    onClose={() => setModalView(null)}
-                    view={modalView}
-                    profileId={profile.id}
-                />
-           )}
+    <div className="min-h-screen">
+      <header className="bg-[#4a148c] p-4 shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold text-white">Comunidad</h1>
+          <button className="text-white">
+            <span className="material-icons">notifications</span>
+          </button>
         </div>
-    );
+      </header>
+      <main className="p-4 container mx-auto">
+        <div className="w-full">
+          <div className="mb-4 border-b border-gray-200">
+            <nav aria-label="Tabs" className="-mb-px flex space-x-8">
+              <a 
+                className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'feed' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                onClick={() => setActiveTab('feed')}
+                href="#"
+              >
+                Feed
+              </a>
+              <a 
+                className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'leaderboard' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                onClick={() => setActiveTab('leaderboard')}
+                href="#"
+              >
+                Clasificación
+              </a>
+              <a 
+                className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                onClick={() => setActiveTab('profile')}
+                href="#"
+              >
+                Mi Perfil
+              </a>
+            </nav>
+          </div>
+          {activeTab === 'profile' && (
+            <div className="bg-white rounded-xl shadow p-6">
+              <div className="flex items-center space-x-4">
+                <img alt="Avatar de Alex" className="h-20 w-20 rounded-full" src={profile.avatar_url || 'https://via.placeholder.com/150'}/>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">{profile.display_name} {isOwnProfile && '(Tú)'}</h2>
+                    <button className="text-gray-500 hover:text-gray-700">
+                      <span className="material-icons">edit</span>
+                    </button>
+                  </div>
+                  <p className="text-gray-500">@{profile.username}</p>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <p className="text-lg font-bold text-purple-600">{profile.focus_points}</p>
+                  <p className="text-sm text-gray-500">Puntos de Enfoque</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-purple-600">{profile.learning_days_count}</p>
+                  <p className="text-sm text-gray-500">Días Adquiriendo</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-purple-600">{profile.learning_languages?.length}</p>
+                  <p className="text-sm text-gray-500">Idiomas Activos</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'feed' && (
+            <div className="space-y-6">
+              {/* Feed content goes here */}
+              <p>Feed Content</p>
+            </div>
+          )}
+          {activeTab === 'leaderboard' && (
+            <div>
+              {/* Leaderboard content goes here */}
+              <p>Leaderboard Content</p>
+            </div>
+          )}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Mi Actividad Reciente</h3>
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-xl shadow flex items-center space-x-4">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <span className="material-icons">task_alt</span>
+                </div>
+                <div>
+                  <p className="font-semibold">Completaste una lección de Francés</p>
+                  <p className="text-sm text-gray-500">Hace 2 horas</p>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow flex items-center space-x-4">
+                <div className="bg-orange-100 p-2 rounded-full">
+                  <span className="material-icons">local_fire_department</span>
+                </div>
+                <div>
+                  <p className="font-semibold">¡Racha de 50 días!</p>
+                  <p className="text-sm text-gray-500">Ayer</p>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow flex items-center space-x-4">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <span className="material-icons">mic</span>
+                </div>
+                <div>
+                  <p className="font-semibold">Practicaste pronunciación en Alemán</p>
+                  <p className="text-sm text-gray-500">Hace 3 días</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <div className="pb-20"></div>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white shadow-t-md flex justify-around py-2 border-t border-gray-200">
+        <a className="text-center text-gray-500 hover:text-purple-600" href="#">
+          <span className="material-icons">dashboard</span>
+          <span className="text-xs block">Dashboard</span>
+        </a>
+        <a className="text-center text-gray-500 hover:text-purple-600" href="#">
+          <span className="material-icons">track_changes</span>
+          <span className="text-xs block">Tracker</span>
+        </a>
+        <a className="text-center text-gray-500 hover:text-purple-600" href="#">
+          <span className="material-icons">article</span>
+          <span className="text-xs block">Routines</span>
+        </a>
+        <a className="text-center text-purple-600 font-bold" href="#">
+          <span className="material-icons">people</span>
+          <span className="text-xs block">Social</span>
+        </a>
+        <a className="text-center text-gray-500 hover:text-purple-600" href="#">
+          <span className="material-icons">store</span>
+          <span className="text-xs block">Store</span>
+        </a>
+      </nav>
+    </div>
+  );
 };
+
+export default ProfileScreen;

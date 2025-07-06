@@ -3,17 +3,15 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { useAppContext } from './contexts/AppContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen.tsx';
-import { DashboardScreen } from './features/dashboard/DashboardScreen.tsx';
-import { TrackerScreen } from './features/tracker/TrackerScreen.tsx';
-import { RoutinesScreen } from './features/routines/RoutinesScreen.tsx';
+import DashboardScreen from './features/dashboard/DashboardScreen.tsx';
+import TrackerScreen from './features/tracker/TrackerScreen.tsx';
+import RoutinesScreen from './features/routines/RoutinesScreen.tsx';
 import { GuidesScreen } from './features/guides/GuidesScreen.tsx';
 import { LogActivityScreen } from './features/tracker/LogActivityScreen.tsx'; 
 import { SettingsScreen } from './features/settings/SettingsScreen.tsx'; 
 import { RewardsScreen } from './features/rewards/RewardsScreen.tsx';
-import { LeaderboardScreen } from './features/leaderboard/LeaderboardScreen.tsx'; // New
-import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
-import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
+import SocialScreen from './features/social/SocialScreen.tsx';
 import { AppView } from './types.ts';
 import { SkeletonLoader } from './components/SkeletonLoader.tsx'; // New import
 import { BottomNavbar } from './components/BottomNavbar.tsx';
@@ -42,8 +40,7 @@ const AuthenticatedAppLayout: React.FC = () => {
           <Route path={AppView.TRACKER} element={<TrackerScreen />} />
           <Route path={AppView.ROUTINES} element={<RoutinesScreen />} />
           <Route path={AppView.REWARDS} element={<RewardsScreen />} />
-          <Route path={AppView.LEADERBOARD} element={<LeaderboardScreen />} />
-          <Route path={AppView.FEED} element={<FeedScreen />} />
+          <Route path={AppView.SOCIAL} element={<SocialScreen />} />
           <Route path={AppView.GUIDES} element={<GuidesScreen />} />
           <Route path={AppView.SETTINGS} element={<SettingsScreen />} />
           <Route path="/log" element={<LogActivityScreen />} />
@@ -110,7 +107,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Publicly accessible routes first */}
-      <Route path="/profile/:username" element={<ProfileScreen />} />
+      
       
       {/* Catch-all for the main app logic (auth, onboarding, or the main app) */}
       <Route path="/*" element={<ProtectedOrAuthRoutes />} />

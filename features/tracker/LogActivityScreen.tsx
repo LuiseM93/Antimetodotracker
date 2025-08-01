@@ -313,9 +313,6 @@ export const LogActivityScreen: React.FC = () => {
 
 
   const handleStartStopwatch = () => {
-
-
-  const handleStartStopwatch = () => {
     if (!isStopwatchRunning) {
       const now = Date.now();
       const startTime = now - (stopwatchSeconds * 1000);

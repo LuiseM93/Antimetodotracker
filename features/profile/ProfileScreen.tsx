@@ -13,6 +13,7 @@ import { STAGE_DETAILS, ALL_REWARD_DEFINITIONS } from '../../constants.ts';
 import { CalendarDaysIcon } from '../../components/icons/CalendarDaysIcon.tsx';
 import { BookOpenIcon } from '../../components/icons/BookOpenIcon.tsx';
 import { FollowListModal } from '../../components/profile/FollowListModal.tsx';
+import { ActivityHistory } from './ActivityHistory.tsx';
 import { Database } from '../../services/database.types.ts';
 
 interface PublicProfileData {
@@ -225,6 +226,11 @@ export const ProfileScreen: React.FC = () => {
                               <p className="text-sm text-[var(--color-text-light)]">Etapa Actual</p>
                           </div>}
                     </Card>
+
+                    {/* Activity History Section */}
+                    <div className="mt-8">
+                        <ActivityHistory userId={profile.id} />
+                    </div>
 
                     <footer className="text-center mt-12">
                         <Link to={AppView.DASHBOARD} className="text-[var(--color-accent)] hover:underline text-sm">

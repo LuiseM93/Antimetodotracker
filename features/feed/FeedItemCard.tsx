@@ -7,6 +7,8 @@ import { UserCircleIcon } from '../../components/icons/UserCircleIcon';
 import { TrophyIcon } from '../../components/icons/TrophyIcon';
 import { GiftIcon } from '../../components/icons/GiftIcon';
 import { HeartIcon } from '../../components/icons/HeartIcon';
+import { ClockIcon } from '../../components/icons/ClockIcon';
+import { formatDurationFromSeconds } from '../../utils/timeUtils';
 import { formatDistanceToNow } from '../../utils/dateUtils'; 
 import { supabase } from '../../services/supabaseClient';
 import { useAppContext } from '../../contexts/AppContext';
@@ -31,6 +33,23 @@ const renderMessage = (item: FeedItem) => {
                  <p>
                     {userName} ha desbloqueado una nueva recompensa: <strong className="text-[var(--color-accent)]">{item.content.reward_name}</strong>.
                 </p>
+            );
+        case 'activity_logged':
+            const { custom_title, sub_activity, duration_seconds, language } = item.content;
+            return (
+                <div>
+                    <p>
+                        {userName} ha registrado una nueva actividad en <strong className="text-[var(--color-accent)]">{language}</strong>.
+                    </p>
+                    <div className="mt-2 p-3 bg-[var(--color-app-bg)] rounded-lg border border-[var(--color-border-light)]">
+                        <p className="font-semibold text-md text-[var(--color-primary)]">{custom_title || sub_activity}</p>
+                        {custom_title && <p className="text-sm text-[var(--color-text-light)]">{sub_activity}</p>}
+                        <div className="flex items-center gap-2 text-sm text-[var(--color-secondary)] mt-1">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>{formatDurationFromSeconds(duration_seconds, 'hhmmss')}</span>
+                        </div>
+                    </div>
+                </div>
             );
         default:
             return <p>{userName} ha completado una nueva actividad.</p>;

@@ -289,6 +289,31 @@ export const LogActivityScreen: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
+  // Effect to update persistent state when form fields change during an active timer
+  useEffect(() => {
+    const isTimerActive = isStopwatchRunning || isCountdownRunning;
+    if (isTimerActive) {
+      const savedTimerStateJSON = localStorage.getItem('persistentTimerState');
+      if (savedTimerStateJSON) {
+        const savedState = JSON.parse(savedTimerStateJSON);
+        
+        const updatedState = {
+          ...savedState,
+          activityName: selectedActivityName,
+          category: selectedCategory,
+          customTitle: customTitle,
+          language: currentLanguageForLog,
+          notes: notes,
+        };
+
+        localStorage.setItem('persistentTimerState', JSON.stringify(updatedState));
+      }
+    }
+  }, [selectedActivityName, selectedCategory, customTitle, currentLanguageForLog, notes, isStopwatchRunning, isCountdownRunning]);
+
+
+  const handleStartStopwatch = () => {
+
 
   const handleStartStopwatch = () => {
     if (!isStopwatchRunning) {
@@ -512,7 +537,7 @@ export const LogActivityScreen: React.FC = () => {
             </Button>
           </div>
           {capturedDateTime && <p className="text-xs text-center text-[var(--color-text-light)] mt-3">Iniciado: {new Date(capturedDateTime.date + 'T' + capturedDateTime.time).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</p> }
-           <p className="text-xs text-[var(--color-text-light)] mt-2 px-4">Nota: El cronómetro puede pausarse si la aplicación pasa a segundo plano en móviles.</p>
+           
         </>
       );
     }

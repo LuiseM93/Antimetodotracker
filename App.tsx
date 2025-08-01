@@ -14,6 +14,7 @@ import { LeaderboardScreen } from './features/leaderboard/LeaderboardScreen.tsx'
 import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
 import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
+import { SearchScreen } from './features/search/SearchScreen.tsx'; // New
 import { AppView } from './types.ts';
 import { LoadingSpinner } from './components/LoadingSpinner.tsx';
 import { MenuIcon } from './components/icons/MenuIcon.tsx';
@@ -62,6 +63,7 @@ const AuthenticatedAppLayout: React.FC = () => {
           <Route path={AppView.SETTINGS} element={<SettingsScreen />} />
           <Route path="/log" element={<LogActivityScreen />} />
           <Route path="/log/:logId" element={<LogActivityScreen />} />
+          <Route path="/search" element={<SearchScreen />} />
           <Route path="*" element={<Navigate to={AppView.DASHBOARD} replace />} />
         </Routes>
       </main>

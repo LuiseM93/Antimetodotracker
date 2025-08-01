@@ -15,6 +15,7 @@ import { ShoppingBagIcon } from './icons/ShoppingBagIcon.tsx';
 import { UserIcon } from './icons/UserIcon.tsx';
 import { TrophyIcon } from './icons/TrophyIcon.tsx';
 import { NewspaperIcon } from './icons/NewspaperIcon.tsx'; // New icon
+import { SearchIcon } from './icons/SearchIcon.tsx'; // New icon
 import { useAppContext } from '../contexts/AppContext.tsx';
 import { Button } from './Button.tsx';
 
@@ -36,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
     { to: AppView.ROUTINES, label: 'Rutinas', icon: <CalendarDaysIcon /> },
     { to: AppView.LEADERBOARD, label: 'Leaderboard', icon: <TrophyIcon /> },
     { to: AppView.FEED, label: 'Feed', icon: <NewspaperIcon /> },
+    { to: '/search', label: 'Buscar', icon: <SearchIcon /> },
     { to: AppView.REWARDS, label: 'Tienda', icon: <ShoppingBagIcon /> },
     { to: AppView.GUIDES, label: 'Guías', icon: <BookOpenIcon /> },
     { to: `/profile/${userProfile?.username}`, label: 'Mi Perfil', icon: <UserIcon /> },

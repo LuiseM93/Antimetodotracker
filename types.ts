@@ -92,6 +92,9 @@ export interface UserProfile {
   lastActivityDateByLanguage: Record<string, string>; // Tracks last log date for each language for learning day increment
   lastHabitPointsAwardDate: string | null; // Tracks if habit points were awarded for today (overall)
   lastRedeemAttemptTimestamp?: number; // For basic rate limiting on redeem attempts
+
+  // Social features
+  isFollowing?: boolean; // NEW: Indicates if the current user is following this profile
 }
 
 export interface UserGoal {

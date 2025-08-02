@@ -90,3 +90,39 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 export { supabase };
+
+export async function followUser(followerId: string, followingId: string) {
+  const { data, error } = await supabase.from('relationships').insert([
+    { follower_id: followerId, following_id: followingId }
+  ]);
+  if (error) throw error;
+  return data;
+}
+
+export async function unfollowUser(followerId: string, followingId: string) {
+  const { error } = await supabase.from('relationships').delete().match({
+    follower_id: followerId,
+    following_id: followingId
+  });
+  if (error) throw error;
+}
+
+export async function checkFollowingStatus(followerId: string, followingId: string) {
+  const { data, error } = await supabase.from('relationships')
+    .select('id')
+    .eq('follower_id', followerId)
+    .eq('following_id', followingId)
+    .single();
+  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+    throw error;
+  }
+  return data !== null;
+}
+
+export async function getMutualFollowingStatus(userId1: string, userId2: string) {
+  const [user1FollowsUser2, user2FollowsUser1] = await Promise.all([
+    checkFollowingStatus(userId1, userId2),
+    checkFollowingStatus(userId2, userId1)
+  ]);
+  return { user1FollowsUser2, user2FollowsUser1 };
+}

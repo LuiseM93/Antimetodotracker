@@ -74,37 +74,16 @@ const AuthenticatedAppLayout: React.FC = () => {
   );
 };
 
+
+// ... (imports)
+
+// ... (AuthenticatedAppLayout)
+
 // This component determines which part of the application to render based on auth state.
 const AppRoutes: React.FC = () => {
-  const { session, userProfile, isInitialLoadComplete, appTheme } = useAppContext();
+  const { session, userProfile, isInitialLoadComplete, isProfileLoaded, appTheme } = useAppContext(); // <--- AÑADIR isProfileLoaded
 
-  useEffect(() => {
-    // Only set the theme if a user profile doesn't override it (e.g., on a public profile page)
-    const isProfilePage = window.location.hash.startsWith('#/profile/');
-    if (!isProfilePage) {
-        document.documentElement.className = appTheme;
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', appTheme === 'dark' ? '#121212' : '#4a148c');
-        }
-    }
-  }, [appTheme]);
-
-  // Handle OAuth redirect
-  useEffect(() => {
-    const handleOAuthRedirect = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Check if this is an OAuth redirect
-      if (urlParams.has('code') || hashParams.has('access_token')) {
-        // Clear the URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-
-    handleOAuthRedirect();
-  }, []);
+  // ... (useEffect de tema y redirección de OAuth)
 
   if (!isInitialLoadComplete) {
     return (
@@ -119,6 +98,16 @@ const AppRoutes: React.FC = () => {
     if (!session) {
       return <AuthScreen />;
     }
+    
+    // ESPERAR a que el perfil se cargue si hay una sesión
+    if (!isProfileLoaded) {
+        return (
+            <div className={`flex items-center justify-center min-h-screen bg-[var(--color-app-bg)]`}>
+                <LoadingSpinner size="lg" text="Cargando perfil..." />
+            </div>
+        );
+    }
+
     if (!userProfile) {
       return <OnboardingScreen />;
     }
@@ -135,6 +124,9 @@ const AppRoutes: React.FC = () => {
     </Routes>
   );
 }
+
+// ... (App)
+
 
 const App: React.FC = () => {
   const [splashScreenDone, setSplashScreenDone] = useState(false);

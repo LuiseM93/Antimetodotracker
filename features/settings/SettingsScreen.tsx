@@ -18,7 +18,7 @@ const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[v
 
 export const SettingsScreen: React.FC = () => {
     const { 
-        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities
+        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities, bulkAddActivityLogs
     } = useAppContext();
     const navigate = useNavigate();
 

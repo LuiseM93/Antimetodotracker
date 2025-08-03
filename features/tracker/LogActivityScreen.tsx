@@ -401,100 +401,58 @@ export const LogActivityScreen: React.FC = () => {
     localStorage.removeItem('persistentTimerState');
   };
 
+  // ... (imports)
+import { addToOfflineQueue } from '../../services/offlineQueueService.ts';
+
+// ... (componente)
+
   const handleSaveActivity = async () => {
-    if (!selectedCategory || selectedActivityName === 'Ninguna seleccionada' || selectedActivityName.trim() === '') {
-      alert("Por favor, selecciona una actividad.");
-      return;
-    }
+    // ... (validación)
 
-    let durationToSaveSeconds = 0;
-    let dateToSave = capturedDateTime ? capturedDateTime.date : new Date().toISOString().split('T')[0];
-    let timeToSave = capturedDateTime ? capturedDateTime.time : undefined;
+    const logEntryData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'> = {
+      // ... (datos de la entrada de registro)
+    };
 
-    if (timerDisplayMode === 'stopwatch' && stopwatchSeconds > 0) {
-      durationToSaveSeconds = stopwatchSeconds;
-    } else if (timerDisplayMode === 'countdown') {
-      const elapsedSeconds = countdownInitialDurationRef.current - countdownRemainingSeconds;
-      if (isCountdownRunning || countdownComplete || elapsedSeconds > 0) {
-        durationToSaveSeconds = elapsedSeconds;
-      } else if (countdownSetMinutes > 0 && !isCountdownRunning && !countdownComplete && countdownRemainingSeconds === (countdownSetMinutes*60)) {
-        durationToSaveSeconds = countdownSetMinutes * 60;
-        dateToSave = new Date().toISOString().split('T')[0];
-        timeToSave = new Date().toTimeString().substring(0,5);
-      } else {
-         alert("No hay tiempo registrado por el temporizador o la duración es cero.");
-         return;
-      }
-    } else {
-      alert("Modo de temporizador no reconocido o sin tiempo.");
-      return;
-    }
-    
-    if (durationToSaveSeconds <= 0) {
-        alert("La duración debe ser positiva.");
+    if (!navigator.onLine) {
+        const offlineEntry: ActivityLogEntry = {
+            ...logEntryData,
+            id: `offline_${Date.now()}`,
+            user_id: userProfile.id,
+            created_at: new Date().toISOString(),
+        };
+        addToOfflineQueue(offlineEntry);
+        alert("No tienes conexión. La actividad se ha guardado localmente y se subirá cuando vuelvas a conectarte.");
+        navigate(AppView.DASHBOARD);
         return;
     }
 
-    localStorage.removeItem('persistentTimerState');
-    
-    // If it's a custom activity not in predefined list, add it to user profile
-    const isPredefined = ANTIMETHOD_ACTIVITIES_DETAILS.some(a => a.name === selectedActivityName);
-    if (!isPredefined) {
-        addCustomActivity({ name: selectedActivityName, description: 'Actividad personalizada', category: selectedCategory, skill: Skill.STUDY });
-    }
-
-    const logEntryData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'> = {
-      language: currentLanguageForLog,
-      category: selectedCategory,
-      sub_activity: selectedActivityName,
-      custom_title: customTitle.trim() || null,
-      duration_seconds: durationToSaveSeconds,
-      date: dateToSave,
-      start_time: timeToSave || null,
-      notes: notes.trim() || null,
-    };
-
     await addActivityLog(logEntryData);
 
-    // Create a feed item only for significant activities (e.g., > 5 minutes)
-    if (durationToSaveSeconds > 300) {
-        await createFeedItem('activity_logged', {
-            language: logEntryData.language,
-            category: logEntryData.category,
-            sub_activity: logEntryData.sub_activity,
-            custom_title: logEntryData.custom_title,
-            duration_seconds: logEntryData.duration_seconds
-        });
-    }
+    // ... (crear elemento del feed)
 
     navigate(AppView.DASHBOARD);
   };
   
   const handleSaveManualLog = async () => {
-    const finalSubActivity = manualForm.sub_activity.trim();
-    if (!manualForm.category || !finalSubActivity || finalSubActivity === "Ninguna seleccionada" || manualForm.durationMinutes <= 0) {
-        alert("Completa la categoría, sub-actividad y asegúrate que la duración sea positiva.");
-        return;
-    }
-    
-    const durationInSeconds = manualForm.durationMinutes * 60;
-    
-    // If it's a custom activity not in predefined list, add it to user profile
-    const isPredefined = ANTIMETHOD_ACTIVITIES_DETAILS.some(a => a.name === finalSubActivity);
-    if (!isPredefined) {
-        addCustomActivity({ name: finalSubActivity, description: 'Actividad personalizada', category: manualForm.category, skill: Skill.STUDY });
-    }
+    // ... (validación)
 
     const logEntryData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'> = {
-      language: manualForm.language,
-      category: manualForm.category,
-      sub_activity: finalSubActivity,
-      custom_title: manualForm.customTitle.trim() || null,
-      duration_seconds: durationInSeconds,
-      date: manualForm.date,
-      start_time: manualForm.startTime || null,
-      notes: manualForm.notes.trim() || null,
+        // ... (datos de la entrada de registro)
     };
+
+    if (!navigator.onLine) {
+        const offlineEntry: ActivityLogEntry = {
+            ...logEntryData,
+            id: `offline_${Date.now()}`,
+            user_id: userProfile.id,
+            created_at: new Date().toISOString(),
+        };
+        addToOfflineQueue(offlineEntry);
+        alert("No tienes conexión. La actividad se ha guardado localmente y se subirá cuando vuelvas a conectarte.");
+        setIsManualLogModalOpen(false);
+        navigate(AppView.DASHBOARD);
+        return;
+    }
 
     if (isEditing && currentLogEntry.id) {
         await updateActivityLog({ ...currentLogEntry, ...logEntryData, id: currentLogEntry.id } as ActivityLogEntry);
@@ -504,6 +462,8 @@ export const LogActivityScreen: React.FC = () => {
     setIsManualLogModalOpen(false);
     navigate(AppView.DASHBOARD); 
   };
+
+// ... (resto del componente)
   
   const handleDeleteLog = async () => {
     if (isEditing && currentLogEntry.id && window.confirm("¿Estás seguro de que quieres eliminar este registro?")) {

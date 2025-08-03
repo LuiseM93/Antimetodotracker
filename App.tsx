@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext.tsx';
@@ -13,6 +14,7 @@ import { RewardsScreen } from './features/rewards/RewardsScreen.tsx';
 import { LeaderboardScreen } from './features/leaderboard/LeaderboardScreen.tsx'; // New
 import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
+import { initializeOfflineSync } from './services/offlineQueueService.ts';
 
 import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
 import { SearchScreen } from './features/search/SearchScreen.tsx'; // New
@@ -136,6 +138,10 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   const [splashScreenDone, setSplashScreenDone] = useState(false);
+
+  useEffect(() => {
+    initializeOfflineSync();
+  }, []);
 
   if (!splashScreenDone) {
     return <SplashScreen onComplete={() => setSplashScreenDone(true)} />;

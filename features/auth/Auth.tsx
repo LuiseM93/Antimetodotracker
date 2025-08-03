@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '../../components/Button.tsx';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { GoogleIcon } from '../../components/icons/GoogleIcon.tsx';
-import { Link } from 'react-router-dom';
 
 
 const inputBaseStyle = "w-full px-4 py-3 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-lg shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
@@ -170,15 +169,15 @@ export const AuthScreen: React.FC = () => {
                     <div className="mt-6 text-center text-xs text-[var(--color-text-light)]">
                         <p>
                             Al registrarte, aceptas nuestros{' '}
-                            <Link to="/terms" className="underline hover:text-[var(--color-accent)]">
+                            <a href="/terminos.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
                                 Términos de Servicio
-                            </Link>
+                            </a>
                             {' '}
                             y
                             {' '}
-                            <Link to="/privacy" className="underline hover:text-[var(--color-accent)]">
+                            <a href="/privacidad.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
                                 Política de Privacidad
-                            </Link>
+                            </a>
                             .
                         </p>
                     </div>

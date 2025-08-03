@@ -13,8 +13,7 @@ import { RewardsScreen } from './features/rewards/RewardsScreen.tsx';
 import { LeaderboardScreen } from './features/leaderboard/LeaderboardScreen.tsx'; // New
 import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
-import PrivacyPolicy from './features/auth/PrivacyPolicy.tsx';
-import TermsOfService from './features/auth/TermsOfService.tsx';
+
 import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
 import { SearchScreen } from './features/search/SearchScreen.tsx'; // New
 import { AppView } from './types.ts';
@@ -127,8 +126,6 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Publicly accessible routes first */}
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/terms" element={<TermsOfService />} />
       <Route path="/profile/:username" element={<ProfileScreen />} />
       
       {/* Catch-all for the main app logic (auth, onboarding, or the main app) */}

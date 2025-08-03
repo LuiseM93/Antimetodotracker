@@ -14,7 +14,7 @@ import { formatDistanceToNow } from '../../utils/dateUtils';
 import { supabase } from '../../services/supabaseClient';
 import { useAppContext } from '../../contexts/AppContext';
 import { Database } from '../../services/database.types';
-import { LoadingSpinner } from '../LoadingSpinner';
+import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 
 const renderMessage = (item: FeedItem) => {
     const userName = (

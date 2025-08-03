@@ -126,8 +126,6 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Publicly accessible routes first */}
       <Route path="/profile/:username" element={<ProfileScreen />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/terms" element={<TermsOfService />} />
       
       {/* Catch-all for the main app logic (auth, onboarding, or the main app) */}
       <Route path="/*" element={<ProtectedOrAuthRoutes />} />

@@ -164,6 +164,10 @@ export const AuthScreen: React.FC = () => {
                             {isLoginView ? 'Regístrate' : 'Inicia Sesión'}
                         </button>
                     </p>
+
+                    <p className="mt-4 text-center text-xs text-[var(--color-text-light)]">
+                        Al continuar, aceptas nuestra <Link to="/privacy" className="text-[var(--color-accent)] hover:underline">Política de Privacidad</Link> y nuestros <Link to="/terms" className="text-[var(--color-accent)] hover:underline">Términos de Servicio</Link>.
+                    </p>
                 </div>
             </div>
         </div>

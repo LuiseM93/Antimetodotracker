@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
-import { UserProfile, AntimethodStage, AppView, AppTheme, DetailedActivityStats } from '../../types.ts';
+import { UserProfile, AntimethodStage, AppView, AppTheme, DetailedActivityStats, Language, ActivityCategory } from '../../types.ts';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -32,6 +32,8 @@ interface PublicProfileData {
     learning_days_count: number;
     about_me: string | null;
     social_links: any | null;
+    // We need custom activities to resolve names for detailed stats
+    custom_activities: any | null; 
 }
 
 type ModalView = 'followers' | 'following' | null;
@@ -62,7 +64,7 @@ export const ProfileScreen: React.FC = () => {
         try {
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count, about_me, social_links')
+                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count, about_me, social_links, custom_activities')
                 .eq('username', username)
                 .single();
 
@@ -77,7 +79,8 @@ export const ProfileScreen: React.FC = () => {
             setFollowerCount(counts.followers);
             setFollowingCount(counts.following);
 
-            const stats = await getDetailedActivityStats(profileData.id);
+            // Pass custom activities from the fetched profile to the stats function
+            const stats = await getDetailedActivityStats(profileData.id, profileData.custom_activities || []);
             setDetailedStats(stats);
 
             if (session?.user) {
@@ -280,29 +283,35 @@ export const ProfileScreen: React.FC = () => {
 
                     {detailedStats && (
                         <Card title="Estadísticas Detalladas" className="shadow-xl mt-8">
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Idioma:</h3>
-                            <ul className="list-disc list-inside mb-4 text-[var(--color-text-main)]">
-                                {Object.entries(detailedStats.totalHoursByLanguage).map(([lang, hours]) => (
-                                    <li key={lang}>{lang}: {hours} horas</li>
-                                ))}
-                                {Object.keys(detailedStats.totalHoursByLanguage).length === 0 && <li>No hay datos de horas por idioma.</li>}
-                            </ul>
-
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Categoría:</h3>
-                            <ul className="list-disc list-inside mb-4 text-[var(--color-text-main)]">
-                                {Object.entries(detailedStats.totalHoursByCategory).map(([cat, hours]) => (
-                                    <li key={cat}>{cat}: {hours} horas</li>
-                                ))}
-                                {Object.keys(detailedStats.totalHoursByCategory).length === 0 && <li>No hay datos de horas por categoría.</li>}
-                            </ul>
-
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Principales Sub-Actividades:</h3>
-                            <ul className="list-disc list-inside text-[var(--color-text-main)]">
-                                {detailedStats.topSubActivities.map((activity, index) => (
-                                    <li key={activity.name || index}>{activity.name}: {activity.hours} horas</li>
-                                ))}
-                                {detailedStats.topSubActivities.length === 0 && <li>No hay datos de sub-actividades.</li>}
-                            </ul>
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Idioma:</h3>
+                                    <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
+                                        {Object.entries(detailedStats.totalHoursByLanguage).map(([lang, hours]) => (
+                                            <li key={lang}>{lang as Language}: {hours} horas</li>
+                                        ))}
+                                        {Object.keys(detailedStats.totalHoursByLanguage).length === 0 && <li className="text-gray-500">No hay datos de horas por idioma.</li>}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Categoría:</h3>
+                                    <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
+                                        {Object.entries(detailedStats.totalHoursByCategory).map(([cat, hours]) => (
+                                            <li key={cat}>{cat as ActivityCategory}: {hours} horas</li>
+                                        ))}
+                                        {Object.keys(detailedStats.totalHoursByCategory).length === 0 && <li className="text-gray-500">No hay datos de horas por categoría.</li>}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Principales Sub-Actividades:</h3>
+                                    <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
+                                        {detailedStats.topSubActivities.map((activity, index) => (
+                                            <li key={activity.name || index}>{activity.name}: {activity.hours} horas</li>
+                                        ))}
+                                        {detailedStats.topSubActivities.length === 0 && <li className="text-gray-500">No hay datos de sub-actividades.</li>}
+                                    </ul>
+                                </div>
+                            </div>
                         </Card>
                     )}
 

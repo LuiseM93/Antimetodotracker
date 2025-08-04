@@ -48,21 +48,8 @@ export const TrackerScreen: React.FC = () => {
   const [isYearInReviewModalOpen, setIsYearInReviewModalOpen] = useState(false);
   const availableReportYears = useMemo(() => getAvailableReportYears(), [activityLogs, getAvailableReportYears]);
   
-  useEffect(() => {
-    if (userProfile?.primaryLanguage) {
-      if (selectedLanguage !== userProfile.primaryLanguage) {
-        if (userProfile.learningLanguages.includes(userProfile.primaryLanguage)) {
-          setSelectedLanguage(userProfile.primaryLanguage);
-        } else if (userProfile.learningLanguages.length > 0) {
-          setSelectedLanguage(userProfile.learningLanguages[0]);
-        } else {
-          setSelectedLanguage('Total');
-        }
-      }
-    } else if (userProfile && !userProfile.primaryLanguage && selectedLanguage !== 'Total') {
-      setSelectedLanguage('Total');
-    }
-  }, [userProfile?.primaryLanguage, userProfile?.learningLanguages, selectedLanguage]);
+  // This useEffect was removed as it prevented users from selecting a language other than their primary one.
+  // The initial state is set via useState, and manual selection is now fully enabled.
 
   const openAddGoalModal = () => {
     setEditingGoal(null);

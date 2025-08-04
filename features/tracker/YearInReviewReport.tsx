@@ -43,13 +43,12 @@ export const YearInReviewReport: React.FC<YearInReviewReportProps> = ({ isOpen, 
   }, [activityLogs, selectedYear, userProfile]);
 
   useEffect(() => {
-    // Auto-select primary language if available in the new year's data, else 'Total'
-    if (userProfile?.primaryLanguage && languagesInSelectedYear.includes(userProfile.primaryLanguage)) {
-        setSelectedLanguage(userProfile.primaryLanguage);
-    } else if (!languagesInSelectedYear.includes(selectedLanguage as Language) && selectedLanguage !== 'Total') {
-        setSelectedLanguage('Total');
+    // When the year changes, if the currently selected language is not available in the new year's logs,
+    // reset the language filter to 'Total' to avoid an inconsistent state.
+    if (!languagesInSelectedYear.includes(selectedLanguage as Language) && selectedLanguage !== 'Total') {
+      setSelectedLanguage('Total');
     }
-  }, [selectedYear, languagesInSelectedYear, userProfile?.primaryLanguage, selectedLanguage]);
+  }, [selectedYear, languagesInSelectedYear, selectedLanguage]);
 
 
   useEffect(() => {

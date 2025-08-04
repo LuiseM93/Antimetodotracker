@@ -1030,7 +1030,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               start_time: log.start_time || null
           }));
           
-          const { error } = await supabase.from('activity_logs').insert(logsToUpload);
+          const { error } = await supabase.from('activity_logs').upsert(logsToUpload);
 
           if (error) {
               console.error("Error batch inserting logs:", error);
@@ -1170,7 +1170,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [activityLogs, userProfile?.customActivities]);
 
   const getOverallHabitConsistency = useCallback((): number => {
-    if (dailyTargets.length === 0) return 0;
+    if (dailyTargets.length === 0 || !userProfile?.primaryLanguage) return 0;
 
     const habitCreationDate = new Date(dailyTargets.reduce((oldest, current) => 
         new Date(current.creationDate) < new Date(oldest) ? current.creationDate : oldest, 
@@ -1185,7 +1185,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         date.setDate(habitCreationDate.getDate() + i);
         const dateString = date.toISOString().split('T')[0];
 
-        const logsOnThisDay = activityLogs.filter(log => log.date === dateString && userProfile?.learningLanguages.includes(log.language));
+        const logsOnThisDay = activityLogs.filter(log => log.date === dateString && log.language === userProfile.primaryLanguage);
 
         let dayMinTarget = 0;
         let dayAchieved = 0;
@@ -1208,7 +1208,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
     
     return daySpan > 0 ? (totalScore / daySpan) * 100 : 0;
-  }, [dailyTargets, activityLogs, userProfile?.learningLanguages]);
+  }, [dailyTargets, activityLogs, userProfile?.primaryLanguage]);
 
   const getProfileFollowCounts = useCallback(async (profileId: string): Promise<{ followers: number; following: number }> => {
     try {

@@ -56,6 +56,16 @@ export const DashboardScreen: React.FC = () => {
     return activityLogs.filter(log => log.date === today && log.language === userProfile.primaryLanguage);
   }, [activityLogs, today, userProfile?.primaryLanguage]);
 
+  const learningDaysForPrimaryLang = useMemo(() => {
+    if (!userProfile?.primaryLanguage) return 0;
+    const uniqueDays = new Set(
+      activityLogs
+        .filter(log => log.language === userProfile.primaryLanguage)
+        .map(log => log.date)
+    );
+    return uniqueDays.size;
+  }, [activityLogs, userProfile?.primaryLanguage]);
+
   const dailyTargetsForPrimaryLang = useMemo(() => {
     // For Dashboard display purposes, we might still want to show daily targets specific to a language,
     // but the overall consistency (getOverallHabitConsistency) will be based on all habits defined for primary lang.
@@ -275,13 +285,13 @@ export const DashboardScreen: React.FC = () => {
         <div className="md:col-span-1 space-y-6">
           {dashboardCardMode === 'learning_days_and_health' && (
             <>
-              <LearningDaysCard learningDays={userProfile.learningDaysCount} />
+              <LearningDaysCard learningDays={learningDaysForPrimaryLang} />
               <HabitHealthCard healthPercentage={overallHabitConsistency} />
             </>
           )}
-          {dashboardCardMode === 'learning_days_only' && <LearningDaysCard learningDays={userProfile.learningDaysCount} />}
+          {dashboardCardMode === 'learning_days_only' && <LearningDaysCard learningDays={learningDaysForPrimaryLang} />}
           {dashboardCardMode === 'health_only' && <HabitHealthCard healthPercentage={overallHabitConsistency} />}
-          {dashboardCardMode === 'combined' && <CombinedStatusCard learningDays={userProfile.learningDaysCount} habitHealthPercentage={overallHabitConsistency} />}
+          {dashboardCardMode === 'combined' && <CombinedStatusCard learningDays={learningDaysForPrimaryLang} habitHealthPercentage={overallHabitConsistency} />}
           {/* If 'none', nothing is rendered here by these conditions */}
         </div>
         

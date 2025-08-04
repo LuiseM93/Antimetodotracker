@@ -27,6 +27,7 @@ export const SettingsScreen: React.FC = () => {
     const [isBulkImporting, setIsBulkImporting] = useState(false);
     const [bulkImportFeedback, setBulkImportFeedback] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const importFileRef = useRef<HTMLInputElement>(null);
+    const [isFormInitialized, setIsFormInitialized] = useState(false);
 
     const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
     const [bulkImportState, setBulkImportState] = useState({
@@ -38,22 +39,28 @@ export const SettingsScreen: React.FC = () => {
     });
 
     useEffect(() => {
-        if (userProfile && !isFormInitialized) {
-            setProfileForm({
-                ...userProfile,
-                defaultLogDurationSeconds: userProfile.defaultLogDurationSeconds || 30 * 60,
-                defaultLogTimerMode: userProfile.defaultLogTimerMode || 'manual',
-                dashboardCardDisplayMode: userProfile.dashboardCardDisplayMode || DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-                aboutMe: userProfile.aboutMe || '',
-                socialLinks: userProfile.socialLinks || {},
+        if (userProfile) {
+            setProfileForm(prevProfileForm => {
+                // Solo inicializa el formulario si aún no se ha llenado
+                if (Object.keys(prevProfileForm).length === 0) {
+                    return {
+                        ...userProfile,
+                        defaultLogDurationSeconds: userProfile.defaultLogDurationSeconds || 30 * 60,
+                        defaultLogTimerMode: userProfile.defaultLogTimerMode || 'manual',
+                        dashboardCardDisplayMode: userProfile.dashboardCardDisplayMode || DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+                        aboutMe: userProfile.aboutMe || '',
+                        socialLinks: userProfile.socialLinks || {},
+                    };
+                }
+                return prevProfileForm;
             });
+
             setBulkImportState(prev => ({
                 ...prev,
                 language: userProfile.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
             }));
-            setIsFormInitialized(true);
         }
-    }, [userProfile, isFormInitialized]);
+    }, [userProfile]);
 
     const handleFormChange = (field: keyof UserProfile, value: any) => {
         setProfileForm(prev => ({ ...prev, [field]: value }));

@@ -351,6 +351,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               profileFlairId: supabaseProfileData.profile_flair_id || null,
               learningLanguages: supabaseProfileData.learning_languages || [],
               learningDaysCount: supabaseProfileData.learning_days_count || 0,
+              customActivities: supabaseProfileData.custom_activities || [], // Added custom_activities
               // These fields are not directly in Supabase 'profiles' table, so they come from local storage or defaults
               lastActivityDateByLanguage: profileFromLocalStorage?.lastActivityDateByLanguage || {},
               lastHabitPointsAwardDate: profileFromLocalStorage?.lastHabitPointsAwardDate || null,
@@ -374,6 +375,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       const finalProfile = profileFromSupabase || profileFromLocalStorage;
 
+      let calculatedLearningDaysCount = 0;
       if (session?.user) { // Fetch activity logs only if user is logged in
         try {
           const { data: logs, error } = await supabase
@@ -388,6 +390,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
             setActivityLogs([]);
           } else {
             setActivityLogs(logs as ActivityLogEntry[] || []);
+            // Calculate learningDaysCount dynamically
+            const uniqueDates = new Set(logs.map(log => log.date));
+            calculatedLearningDaysCount = uniqueDates.size;
           }
         } catch (error) {
           console.error("Error fetching activity logs:", error);
@@ -400,7 +405,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       if (finalProfile) {
          const profileWithDefaults: UserProfile = {
           ...finalProfile,
-          learningDaysCount: finalProfile.learningDaysCount || 0,
+          learningDaysCount: calculatedLearningDaysCount, // Set calculated value
           focusPoints: finalProfile.focusPoints || 0,
           unlockedRewards: finalProfile.unlockedRewards || [],
           profileFlairId: finalProfile.profileFlairId || null,
@@ -417,6 +422,13 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         };
         setUserProfile(profileWithDefaults);
         setAppTheme(profileWithDefaults.theme!);
+        // Also update Supabase with the calculated learningDaysCount if it's different
+        if (session?.user && calculatedLearningDaysCount !== finalProfile.learningDaysCount) {
+          supabase.from('profiles').update({ learning_days_count: calculatedLearningDaysCount }).eq('id', session.user.id)
+            .then(({ error }) => {
+              if (error) console.error("Error syncing calculated learning_days_count to Supabase:", error);
+            });
+        }
       } else {
         setAppTheme(DEFAULT_APP_THEME);
       }
@@ -690,7 +702,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         if (logData.date > lastDateForLang) {
           updatedProfile = {
             ...updatedProfile,
-            learningDaysCount: (prevProfile.learningDaysCount || 0) + 1,
             focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
             lastActivityDateByLanguage: {
               ...prevProfile.lastActivityDateByLanguage,
@@ -762,7 +773,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
         updatedProfile = {
           ...updatedProfile,
-          learningDaysCount: newLearningDaysCount,
+          // learningDaysCount: newLearningDaysCount, // Eliminado: se calculará dinámicamente
           focusPoints: newFocusPoints,
           lastActivityDateByLanguage: newLastActivityDateByLanguage,
         };

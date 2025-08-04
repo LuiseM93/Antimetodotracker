@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
     shadow-lg 
     flex flex-col
     transform transition-transform duration-300 ease-in-out
-    md:translate-x-0 md:static md:w-64 md:min-h-screen md:p-4 
+    md:translate-x-0 md:static md:w-64 md:min-h-screen md:p-4 md:overflow-y-auto 
     fixed top-0 left-0 h-full w-64 z-50 p-4 pt-20 md:pt-4 
     ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
   `;

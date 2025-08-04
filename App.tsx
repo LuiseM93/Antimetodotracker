@@ -54,7 +54,7 @@ const AuthenticatedAppLayout: React.FC = () => {
         </>
        )}
       
-      <main className={`flex-1 overflow-y-auto text-[var(--color-text-main)] ${mainContentPadding}`}>
+      <main className={`flex-1 overflow-y-auto text-[var(--color-text-main)] md:ml-64 ${mainContentPadding}`}>
         <Routes>
           <Route path={AppView.DASHBOARD} element={<DashboardScreen />} />
           <Route path={AppView.TRACKER} element={<TrackerScreen />} />

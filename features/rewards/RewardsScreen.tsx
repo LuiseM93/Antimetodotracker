@@ -218,7 +218,7 @@ export const RewardsScreen: React.FC = () => {
   const rewardsByCategory = AVAILABLE_REWARDS.reduce((acc, reward) => {
     const category = reward.category;
     // Exclude 'Secreto' category from main store display
-    if (category === 'Secreto') return acc;
+    if (category === 'Secreto' || reward.type === 'points') return acc;
     
     if (!acc[category]) {
       acc[category] = [];

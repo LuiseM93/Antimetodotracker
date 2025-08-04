@@ -81,6 +81,7 @@ interface AppContextType {
   getOverallHabitConsistency: () => number;
   getProfileFollowCounts: (profileId: string) => Promise<{ followers: number; following: number }>;
   getDetailedActivityStats: (userId: string) => Promise<DetailedActivityStats>;
+  getLearningDaysByLanguage: (userId: string) => Promise<Record<Language, number>>; // NEW: Get learning days by language
 
   toggleFavoriteActivity: (activityName: string) => void;
 
@@ -258,8 +259,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               focusPoints: 0,
               profileFlairId: null,
               learningLanguages: [],
-              learningDaysCount: 0,
-              lastActivityDateByLanguage: {},
+              learningDaysByLanguage: {},
               lastHabitPointsAwardDate: null,
               lastRedeemAttemptTimestamp: undefined,
               defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
@@ -322,12 +322,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               focusPoints: supabaseProfileData.focus_points || 0,
               profileFlairId: supabaseProfileData.profile_flair_id || null,
               learningLanguages: supabaseProfileData.learning_languages || [],
-              learningDaysCount: supabaseProfileData.learning_days_count || 0,
-              customActivities: supabaseProfileData.custom_activities || [], // Added custom_activities
-              aboutMe: supabaseProfileData.about_me || null, // NEW
-              socialLinks: supabaseProfileData.social_links as Json || null, // NEW
-              // These fields are not directly in Supabase 'profiles' table, so they come from local storage or defaults
-              lastActivityDateByLanguage: profileFromLocalStorage?.lastActivityDateByLanguage || {},
+              learningDaysByLanguage: {}, // Will be calculated from activity logs
+              customActivities: supabaseProfileData.custom_activities || [],
+              aboutMe: supabaseProfileData.about_me || null,
+              socialLinks: supabaseProfileData.social_links as Json || null,
               lastHabitPointsAwardDate: profileFromLocalStorage?.lastHabitPointsAwardDate || null,
               lastRedeemAttemptTimestamp: profileFromLocalStorage?.lastRedeemAttemptTimestamp || undefined,
               defaultLogDurationSeconds: profileFromLocalStorage?.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
@@ -349,7 +347,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       const finalProfile = profileFromSupabase || profileFromLocalStorage;
 
-      let calculatedLearningDaysCount = 0;
       if (session?.user) { // Fetch activity logs only if user is logged in
         try {
           const { data: logs, error } = await supabase
@@ -364,9 +361,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
             setActivityLogs([]);
           } else {
             setActivityLogs(logs as ActivityLogEntry[] || []);
-            // Calculate learningDaysCount dynamically
-            const uniqueDates = new Set(logs.map(log => log.date));
-            calculatedLearningDaysCount = uniqueDates.size;
           }
         } catch (error) {
           console.error("Error fetching activity logs:", error);
@@ -379,11 +373,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       if (finalProfile) {
          const profileWithDefaults: UserProfile = {
           ...finalProfile,
-          learningDaysCount: calculatedLearningDaysCount, // Set calculated value
           focusPoints: finalProfile.focusPoints || 0,
           unlockedRewards: finalProfile.unlockedRewards || [],
           profileFlairId: finalProfile.profileFlairId || null,
-          lastActivityDateByLanguage: finalProfile.lastActivityDateByLanguage || {},
           lastHabitPointsAwardDate: finalProfile.lastHabitPointsAwardDate || null,
           lastRedeemAttemptTimestamp: finalProfile.lastRedeemAttemptTimestamp || undefined,
           defaultLogDurationSeconds: finalProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
@@ -393,16 +385,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           favoriteActivities: finalProfile.favoriteActivities || [],
           dashboardCardDisplayMode: finalProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
           customActivities: finalProfile.customActivities || [],
+          learningDaysByLanguage: {}, // Will be calculated after activityLogs are loaded
         };
         setUserProfile(profileWithDefaults);
         setAppTheme(profileWithDefaults.theme!);
-        // Also update Supabase with the calculated learningDaysCount if it's different
-        if (session?.user && calculatedLearningDaysCount !== finalProfile.learningDaysCount) {
-          supabase.from('profiles').update({ learning_days_count: calculatedLearningDaysCount }).eq('id', session.user.id)
-            .then(({ error }) => {
-              if (error) console.error("Error syncing calculated learning_days_count to Supabase:", error);
-            });
-        }
       } else {
         setAppTheme(DEFAULT_APP_THEME);
       }
@@ -527,11 +513,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           favoriteActivities: profile.favoriteActivities || [],
           dashboardCardDisplayMode: profile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
           goals: (profile.goals || []).map(g => ({ ...g, currentValue: g.currentValue ?? 0, targetValue: g.targetValue ?? 0, unit: g.unit ?? '' })),
-          learningDaysCount: profile.learningDaysCount || 0,
+          learningDaysByLanguage: profile.learningDaysByLanguage || {},
           focusPoints: profile.focusPoints || 0,
           unlockedRewards: profile.unlockedRewards || [],
           profileFlairId: profile.profileFlairId || null,
-          lastActivityDateByLanguage: profile.lastActivityDateByLanguage || {},
           lastHabitPointsAwardDate: profile.lastHabitPointsAwardDate || null,
           lastRedeemAttemptTimestamp: profile.lastRedeemAttemptTimestamp || undefined,
           customActivities: profile.customActivities || [],
@@ -673,20 +658,30 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           await createFeedItem('milestone_achieved', { hours: milestoneHoursCrossed, language: newLog.language });
       }
 
+      // Update learningDaysByLanguage
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
-        let updatedProfile = { ...prevProfile };
-        const lastDateForLang = prevProfile.lastActivityDateByLanguage[logData.language] || '';
-        if (logData.date > lastDateForLang) {
-          updatedProfile = {
-            ...updatedProfile,
-            focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
-            lastActivityDateByLanguage: {
-              ...prevProfile.lastActivityDateByLanguage,
-              [logData.language]: logData.date,
-            }
-          };
+        const updatedLearningDaysByLanguage = { ...prevProfile.learningDaysByLanguage };
+        const currentLearningDays = updatedLearningDaysByLanguage[logData.language] || 0;
+        const lastLogDate = prevProfile.lastActivityDateByLanguage?.[logData.language];
+
+        // Only increment if this is a new day for the language
+        if (!lastLogDate || logData.date > lastLogDate) {
+          updatedLearningDaysByLanguage[logData.language] = currentLearningDays + 1;
         }
+
+        const updatedProfile = {
+          ...prevProfile,
+          focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
+          learningDaysByLanguage: updatedLearningDaysByLanguage,
+          // Keep lastActivityDateByLanguage for internal tracking if needed, but it's not part of UserProfile anymore
+          // This is a temporary solution, ideally this would be handled by a separate mechanism
+          // or derived from activityLogs directly.
+          lastActivityDateByLanguage: {
+            ...(prevProfile.lastActivityDateByLanguage || {}),
+            [logData.language]: logData.date,
+          }
+        };
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
         return updatedProfile;
       });
@@ -736,24 +731,24 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
         let updatedProfile = { ...prevProfile };
-        let newLearningDaysCount = prevProfile.learningDaysCount || 0;
         let newFocusPoints = prevProfile.focusPoints || 0;
-        let newLastActivityDateByLanguage = { ...prevProfile.lastActivityDateByLanguage };
+        const newLearningDaysByLanguage = { ...prevProfile.learningDaysByLanguage };
+        const lastActivityDateByLanguage = { ...prevProfile.lastActivityDateByLanguage }; // Temporary for migration
 
         logsData.forEach(log => {
-          const lastDateForLang = newLastActivityDateByLanguage[log.language] || '';
+          const lastDateForLang = lastActivityDateByLanguage[log.language] || '';
           if (log.date > lastDateForLang) {
-            newLearningDaysCount += 1;
             newFocusPoints += LEARNING_DAY_POINTS_AWARD;
-            newLastActivityDateByLanguage[log.language] = log.date;
+            newLearningDaysByLanguage[log.language] = (newLearningDaysByLanguage[log.language] || 0) + 1;
+            lastActivityDateByLanguage[log.language] = log.date; // Update temporary last activity date
           }
         });
 
         updatedProfile = {
           ...updatedProfile,
-          // learningDaysCount: newLearningDaysCount, // Eliminado: se calculará dinámicamente
           focusPoints: newFocusPoints,
-          lastActivityDateByLanguage: newLastActivityDateByLanguage,
+          learningDaysByLanguage: newLearningDaysByLanguage,
+          // lastActivityDateByLanguage is no longer part of UserProfile, but we keep it for internal logic if needed
         };
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
         return updatedProfile;
@@ -1145,7 +1140,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     const categorySeconds: Record<ActivityCategory, number> = { [ActivityCategory.ACTIVE_IMMERSION]: 0, [ActivityCategory.PASSIVE_IMMERSION]: 0, [ActivityCategory.ACTIVE_STUDY]: 0, [ActivityCategory.PRODUCTION]: 0 };
     const skillSeconds: Record<Skill, number> = { [Skill.LISTENING]: 0, [Skill.READING]: 0, [Skill.SPEAKING]: 0, [Skill.WRITING]: 0, [Skill.STUDY]: 0 };
 
-    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
+    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...customActivities];
     const detailsMap = new Map(combinedActivities.map(detail => [detail.name, detail]));
 
     logsForYear.forEach(log => {
@@ -1337,7 +1332,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [userProfile, updateUserProfile]);
   
   const getCombinedActivities = useCallback((): ActivityDetailType[] => {
-    return [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
+    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...customActivities];
   }, [userProfile?.customActivities]);
 
   const getDetailedActivityStats = useCallback(async (userId: string): Promise<DetailedActivityStats> => {

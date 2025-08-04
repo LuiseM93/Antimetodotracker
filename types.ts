@@ -93,11 +93,7 @@ export interface UserProfile {
   customActivities?: ActivityDetailType[]; // NEW: To store user-created activities
 
   // Gamification fields
-  learningDaysCount: number; // Total days with any activity for any learning language
-  focusPoints: number;       // Currency for rewards
-  unlockedRewards: string[]; // Array of reward IDs (includes themes, flairs, secret flairs)
-  profileFlairId: string | null;  // ID of the active flair reward
-  lastActivityDateByLanguage: Record<string, string>; // Tracks last log date for each language for learning day increment
+  learningDaysCountByLanguage: Record<Language, number>;
   lastHabitPointsAwardDate: string | null; // Tracks if habit points were awarded for today (overall)
   lastRedeemAttemptTimestamp?: number; // For basic rate limiting on redeem attempts
 

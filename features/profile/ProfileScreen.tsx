@@ -28,8 +28,9 @@ interface PublicProfileData {
     theme: AppTheme | null;
     focus_points: number;
     profile_flair_id: string | null;
-    learning_languages: string[];
-    learning_days_count: number;
+    learning_languages: Language[];
+    learning_days_count: number; // Still present in Supabase, but we'll calculate from logs
+    learning_days_by_language: Record<Language, number>; // NEW: From AppContext
     about_me: string | null;
     social_links: any | null;
     // We need custom activities to resolve names for detailed stats
@@ -40,7 +41,7 @@ type ModalView = 'followers' | 'following' | null;
 
 export const ProfileScreen: React.FC = () => {
     const { username } = useParams<{ username: string }>();
-    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts, getDetailedActivityStats } = useAppContext(); 
+    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage } = useAppContext(); 
 
     const [profile, setProfile] = useState<PublicProfileData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -51,6 +52,7 @@ export const ProfileScreen: React.FC = () => {
     const [followingCount, setFollowingCount] = useState(0);
     const [modalView, setModalView] = useState<ModalView>(null);
     const [detailedStats, setDetailedStats] = useState<DetailedActivityStats | null>(null);
+    const [learningDaysByLanguage, setLearningDaysByLanguage] = useState<Record<Language, number>>({});
 
 
     const fetchProfileData = useCallback(async () => {
@@ -73,14 +75,18 @@ export const ProfileScreen: React.FC = () => {
               throw new Error("Perfil no encontrado.");
             }
             
-            setProfile(profileData as PublicProfileData);
+            // Fetch learning days by language from AppContext
+            const daysByLang = await getLearningDaysByLanguage(profileData.id);
+            setLearningDaysByLanguage(daysByLang);
+
+            setProfile({ ...profileData, learning_days_by_language: daysByLang } as PublicProfileData);
 
             const counts = await getProfileFollowCounts(profileData.id);
             setFollowerCount(counts.followers);
             setFollowingCount(counts.following);
 
             // Pass custom activities from the fetched profile to the stats function
-            const stats = await getDetailedActivityStats(profileData.id, profileData.custom_activities || []);
+            const stats = await getDetailedActivityStats(profileData.id);
             setDetailedStats(stats);
 
             if (session?.user) {
@@ -101,7 +107,7 @@ export const ProfileScreen: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [username, session, getProfileFollowCounts, getDetailedActivityStats]);
+    }, [username, session, getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage]);
 
     useEffect(() => {
         fetchProfileData();
@@ -224,8 +230,16 @@ export const ProfileScreen: React.FC = () => {
                             </button>
                             <div className="p-3">
                                 <CalendarDaysIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learning_days_count || 0}</p>
                                 <p className="text-sm text-[var(--color-text-light)]">Días Adquiriendo</p>
+                                {Object.keys(learningDaysByLanguage).length > 0 ? (
+                                    <ul className="text-sm font-bold text-[var(--color-primary)]">
+                                        {Object.entries(learningDaysByLanguage).map(([lang, days]) => (
+                                            <li key={lang}>{lang}: {days} días</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-[var(--color-text-light)]">0 días</p>
+                                )}
                             </div>
                             <div className="p-3">
                                 <ChatBubbleLeftRightIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
@@ -286,21 +300,35 @@ export const ProfileScreen: React.FC = () => {
                             <div className="space-y-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Idioma:</h3>
-                                    <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
-                                        {Object.entries(detailedStats.totalHoursByLanguage).map(([lang, hours]) => (
-                                            <li key={lang}>{lang as Language}: {hours} horas</li>
-                                        ))}
-                                        {Object.keys(detailedStats.totalHoursByLanguage).length === 0 && <li className="text-gray-500">No hay datos de horas por idioma.</li>}
-                                    </ul>
+                                    {Object.keys(detailedStats.totalHoursByLanguage).length > 0 ? (
+                                        <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
+                                            {Object.entries(detailedStats.totalHoursByLanguage).map(([lang, hours]) => {
+                                                const totalHours = Object.values(detailedStats.totalHoursByLanguage).reduce((sum, h) => sum + h, 0);
+                                                const percentage = totalHours > 0 ? ((hours / totalHours) * 100).toFixed(1) : 0;
+                                                return (
+                                                    <li key={lang}>{lang as Language}: {hours} horas ({percentage}%)</li>
+                                                );
+                                            })}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-500">No hay datos de horas por idioma.</p>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Categoría:</h3>
-                                    <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
-                                        {Object.entries(detailedStats.totalHoursByCategory).map(([cat, hours]) => (
-                                            <li key={cat}>{cat as ActivityCategory}: {hours} horas</li>
-                                        ))}
-                                        {Object.keys(detailedStats.totalHoursByCategory).length === 0 && <li className="text-gray-500">No hay datos de horas por categoría.</li>}
-                                    </ul>
+                                    {Object.keys(detailedStats.totalHoursByCategory).length > 0 ? (
+                                        <ul className="list-disc list-inside text-[var(--color-text-main)] pl-4">
+                                            {Object.entries(detailedStats.totalHoursByCategory).map(([cat, hours]) => {
+                                                const totalHours = Object.values(detailedStats.totalHoursByCategory).reduce((sum, h) => sum + h, 0);
+                                                const percentage = totalHours > 0 ? ((hours / totalHours) * 100).toFixed(1) : 0;
+                                                return (
+                                                    <li key={cat}>{cat as ActivityCategory}: {hours} horas ({percentage}%)</li>
+                                                );
+                                            })}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-500">No hay datos de horas por categoría.</p>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Principales Sub-Actividades:</h3>

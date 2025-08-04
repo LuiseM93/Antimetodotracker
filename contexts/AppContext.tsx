@@ -1459,7 +1459,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         getCurrentStageDetails,
         exportAppData, importAppData, resetAllData,
         getAvailableReportYears, getYearInReviewData, getOverallHabitConsistency,
-        getProfileFollowCounts, getDetailedActivityStats,
+        getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage,
         toggleFavoriteActivity,
         awardHabitPoints, purchaseReward, activateFlair, getRewardById, unlockRewardById,
         addCustomActivity, deleteCustomActivity, getCombinedActivities,

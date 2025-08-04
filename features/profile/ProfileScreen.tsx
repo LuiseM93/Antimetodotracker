@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
@@ -29,10 +28,9 @@ interface PublicProfileData {
     focus_points: number;
     profile_flair_id: string | null;
     learning_languages: Language[];
-    learning_days_by_language: Record<Language, number>; // NEW: From AppContext
+    learning_days_by_language: Record<Language, number>;
     about_me: string | null;
     social_links: any | null;
-    // We need custom activities to resolve names for detailed stats
     custom_activities: any | null; 
 }
 
@@ -40,7 +38,7 @@ type ModalView = 'followers' | 'following' | null;
 
 export const ProfileScreen: React.FC = () => {
     const { username } = useParams<{ username: string }>();
-    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage } = useAppContext(); 
+    const { session, getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage } = useAppContext(); 
 
     const [profile, setProfile] = useState<PublicProfileData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -52,7 +50,6 @@ export const ProfileScreen: React.FC = () => {
     const [modalView, setModalView] = useState<ModalView>(null);
     const [detailedStats, setDetailedStats] = useState<DetailedActivityStats | null>(null);
     const [learningDaysByLanguage, setLearningDaysByLanguage] = useState<Record<Language, number>>({});
-
 
     const fetchProfileData = useCallback(async () => {
         if (!username) {
@@ -74,7 +71,6 @@ export const ProfileScreen: React.FC = () => {
               throw new Error("Perfil no encontrado.");
             }
             
-            // Fetch learning days by language from AppContext
             const daysByLang = await getLearningDaysByLanguage(profileData.id);
             setLearningDaysByLanguage(daysByLang);
 
@@ -84,7 +80,6 @@ export const ProfileScreen: React.FC = () => {
             setFollowerCount(counts.followers);
             setFollowingCount(counts.following);
 
-            // Pass custom activities from the fetched profile to the stats function
             const stats = await getDetailedActivityStats(profileData.id);
             setDetailedStats(stats);
 
@@ -96,7 +91,7 @@ export const ProfileScreen: React.FC = () => {
                     .eq('following_id', profileData.id)
                     .maybeSingle();
                 
-                if (followError && followError.code !== 'PGRST116') throw followError; // PGRST116 means no rows found, which is fine
+                if (followError && followError.code !== 'PGRST116') throw followError;
                 setIsFollowing(!!followData);
             }
 
@@ -127,7 +122,6 @@ export const ProfileScreen: React.FC = () => {
 
       setIsFollowLoading(true);
       if (isFollowing) {
-        // Unfollow
         const { error } = await supabase
           .from('relationships')
           .delete()
@@ -137,7 +131,6 @@ export const ProfileScreen: React.FC = () => {
           setFollowerCount(c => c - 1);
         }
       } else {
-        // Follow
         const payload: Database['public']['Tables']['relationships']['Insert'] = {
            follower_id: session.user.id, 
            following_id: profile.id 
@@ -152,7 +145,6 @@ export const ProfileScreen: React.FC = () => {
       }
       setIsFollowLoading(false);
     };
-
 
     if (loading) {
         return (
@@ -181,7 +173,6 @@ export const ProfileScreen: React.FC = () => {
         <div className="min-h-screen bg-[var(--color-app-bg)] bg-cover bg-center bg-fixed" style={{ backgroundImage: `var(--theme-background-image-url-light)` }}>
            <div className="min-h-screen backdrop-blur-sm bg-black/10">
                 <div className="max-w-4xl mx-auto p-4 sm:p-8">
-                    {/* Profile Header */}
                     <div className="relative text-center mb-8">
                         <div className="relative inline-block">
                             {profile.avatar_url ? (
@@ -216,7 +207,6 @@ export const ProfileScreen: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Stats Section */}
                     <Card title="Resumen" className="shadow-xl">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center divide-x divide-gray-200 dark:divide-gray-700">
                              <button onClick={() => setModalView('followers')} className="p-3 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
@@ -342,7 +332,6 @@ export const ProfileScreen: React.FC = () => {
                         </Card>
                     )}
 
-                    {/* Activity History Section */}
                     <div className="mt-8">
                         <ActivityHistory userId={profile.id} />
                     </div>

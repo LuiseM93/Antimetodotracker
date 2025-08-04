@@ -255,6 +255,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   useEffect(() => {
     const loadData = async () => {
+      if (!session) {
+        setIsLoading(false);
+        setIsProfileLoaded(true); // Consider profile loaded if no session
+        return;
+      }
       setIsLoading(true);
       setIsProfileLoaded(false);
       

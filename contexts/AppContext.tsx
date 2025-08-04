@@ -377,28 +377,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
             }
           }
         } catch (error) {
-          console.error("Error fetching user profile from Supabase:", error);
-        }
-      }
-
-      const finalProfile = profileFromSupabase || profileFromLocalStorage;
-
-      if (session?.user) { // Fetch activity logs only if user is logged in
-        try {
-          const { data: logs, error } = await supabase
-            .from('activity_logs')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('date', { ascending: false })
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error("Error fetching activity logs:", error);
-            setActivityLogs([]);
-          } else {
-            setActivityLogs(logs as ActivityLogEntry[] || []);
-          }
-        } catch (error) {
           console.error("Error fetching activity logs:", error);
           setActivityLogs([]);
         }

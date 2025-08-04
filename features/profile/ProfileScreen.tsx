@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
-import { UserProfile, AntimethodStage, AppView, AppTheme, DetailedActivityStats } from '../../types.ts';
+import { UserProfile, AntimethodStage, AppView, AppTheme } from '../../types.ts';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -27,15 +27,13 @@ interface PublicProfileData {
     profile_flair_id: string | null;
     learning_languages: string[];
     learning_days_count: number;
-    about_me: string | null;
-    social_links: Json | null;
 }
 
 type ModalView = 'followers' | 'following' | null;
 
 export const ProfileScreen: React.FC = () => {
     const { username } = useParams<{ username: string }>();
-    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts, getDetailedActivityStats } = useAppContext(); 
+    const { session, appTheme: loggedInUserTheme, getProfileFollowCounts } = useAppContext(); 
 
     const [profile, setProfile] = useState<PublicProfileData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -45,7 +43,6 @@ export const ProfileScreen: React.FC = () => {
     const [followerCount, setFollowerCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
     const [modalView, setModalView] = useState<ModalView>(null);
-    const [detailedStats, setDetailedStats] = useState<DetailedActivityStats | null>(null);
 
 
     const fetchProfileData = useCallback(async () => {
@@ -59,7 +56,7 @@ export const ProfileScreen: React.FC = () => {
         try {
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count, about_me, social_links')
+                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count')
                 .eq('username', username)
                 .single();
 
@@ -73,9 +70,6 @@ export const ProfileScreen: React.FC = () => {
             const counts = await getProfileFollowCounts(profileData.id);
             setFollowerCount(counts.followers);
             setFollowingCount(counts.following);
-
-            const stats = await getDetailedActivityStats(profileData.id);
-            setDetailedStats(stats);
 
             if (session?.user) {
                 const { data: followData, error: followError } = await supabase
@@ -95,7 +89,7 @@ export const ProfileScreen: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [username, session, getProfileFollowCounts, getDetailedActivityStats]);
+    }, [username, session, getProfileFollowCounts]);
 
     useEffect(() => {
         fetchProfileData();
@@ -222,12 +216,8 @@ export const ProfileScreen: React.FC = () => {
                             </div>
                             <div className="p-3">
                                 <img src="./assets/language.png" alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
-                                <p className="text-xl font-bold text-[var(--color-primary)]">Idiomas</p>
-                                <p className="text-sm text-[var(--color-text-light)]">
-                                    {profile.learning_languages && profile.learning_languages.length > 0
-                                        ? profile.learning_languages.join(', ')
-                                        : 'Ninguno'}
-                                </p>
+                                <p className="text-xl font-bold text-[var(--color-primary)]">{profile.learning_languages?.length || 0}</p>
+                                <p className="text-sm text-[var(--color-text-light)]">Idiomas Activos</p>
                             </div>
                         </div>
                          {stageDetails && <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
@@ -236,133 +226,6 @@ export const ProfileScreen: React.FC = () => {
                               <p className="text-sm text-[var(--color-text-light)]">Etapa Actual</p>
                           </div>}
                     </Card>
-
-                    {profile.about_me && (
-                        <Card title="Acerca de Mí" className="shadow-xl mt-8">
-                            <p className="text-[var(--color-text-main)] whitespace-pre-wrap">{profile.about_me}</p>
-                        </Card>
-                    )}
-
-                    {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                        <Card title="Enlaces Sociales" className="shadow-xl mt-8">
-                            <div className="flex flex-wrap justify-center gap-4">
-                                {profile.social_links.twitter && (
-                                    <a href={profile.social_links.twitter} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Twitter</span>
-                                    </a>
-                                )}
-                                {profile.social_links.youtube && (
-                                    <a href={profile.social_links.youtube} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>YouTube</span>
-                                    </a>
-                                )}
-                                {profile.social_links.instagram && (
-                                    <a href={profile.social_links.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Instagram</span>
-                                    </a>
-                                )}
-                                {profile.social_links.website && (
-                                    <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <GlobeAltIcon className="w-6 h-6" />
-                                        <span>Sitio Web</span>
-                                    </a>
-                                )}
-                            </div>
-                        </Card>
-                    )}
-
-                    {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                        <Card title="Enlaces Sociales" className="shadow-xl mt-8">
-                            <div className="flex flex-wrap justify-center gap-4">
-                                {profile.social_links.twitter && (
-                                    <a href={profile.social_links.twitter} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Twitter</span>
-                                    </a>
-                                )}
-                                {profile.social_links.youtube && (
-                                    <a href={profile.social_links.youtube} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>YouTube</span>
-                                    </a>
-                                )}
-                                {profile.social_links.instagram && (
-                                    <a href={profile.social_links.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Instagram</span>
-                                    </a>
-                                )}
-                                {profile.social_links.website && (
-                                    <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <GlobeAltIcon className="w-6 h-6" />
-                                        <span>Sitio Web</span>
-                                    </a>
-                                )}
-                            </div>
-                        </Card>
-                    )}
-
-                    {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                        <Card title="Enlaces Sociales" className="shadow-xl mt-8">
-                            <div className="flex flex-wrap justify-center gap-4">
-                                {profile.social_links.twitter && (
-                                    <a href={profile.social_links.twitter} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Twitter</span>
-                                    </a>
-                                )}
-                                {profile.social_links.youtube && (
-                                    <a href={profile.social_links.youtube} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>YouTube</span>
-                                    </a>
-                                )}
-                                {profile.social_links.instagram && (
-                                    <a href={profile.social_links.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
-                                        <span>Instagram</span>
-                                    </a>
-                                )}
-                                {profile.social_links.website && (
-                                    <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <GlobeAltIcon className="w-6 h-6" />
-                                        <span>Sitio Web</span>
-                                    </a>
-                                )}
-                            </div>
-                        </Card>
-                    )}
-
-                    {detailedStats && (
-                        <Card title="Estadísticas Detalladas" className="shadow-xl mt-8">
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Idioma:</h3>
-                            <ul className="list-disc list-inside mb-4 text-[var(--color-text-main)]">
-                                {Object.entries(detailedStats.totalHoursByLanguage).map(([lang, hours]) => (
-                                    <li key={lang}>{lang}: {hours} horas</li>
-                                ))}
-                                {Object.keys(detailedStats.totalHoursByLanguage).length === 0 && <li>No hay datos de horas por idioma.</li>}
-                            </ul>
-
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Horas por Categoría:</h3>
-                            <ul className="list-disc list-inside mb-4 text-[var(--color-text-main)]">
-                                {Object.entries(detailedStats.totalHoursByCategory).map(([cat, hours]) => (
-                                    <li key={cat}>{cat}: {hours} horas</li>
-                                ))}
-                                {Object.keys(detailedStats.totalHoursByCategory).length === 0 && <li>No hay datos de horas por categoría.</li>}
-                            </ul>
-
-                            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-2">Principales Sub-Actividades:</h3>
-                            <ul className="list-disc list-inside text-[var(--color-text-main)]">
-                                {detailedStats.topSubActivities.map((activity, index) => (
-                                    <li key={activity.name || index}>{activity.name}: {activity.hours} horas</li>
-                                ))}
-                                {detailedStats.topSubActivities.length === 0 && <li>No hay datos de sub-actividades.</li>}
-                            </ul>
-                        </Card>
-                    )}
 
                     {/* Activity History Section */}
                     <div className="mt-8">

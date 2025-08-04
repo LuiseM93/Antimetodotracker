@@ -80,7 +80,6 @@ interface AppContextType {
   getYearInReviewData: (year: number, language: Language | 'Total') => YearInReviewData;
   getOverallHabitConsistency: () => number;
   getProfileFollowCounts: (profileId: string) => Promise<{ followers: number; following: number }>;
-  getDetailedActivityStats: (userId: string) => Promise<DetailedActivityStats>;
 
   toggleFavoriteActivity: (activityName: string) => void;
 
@@ -270,8 +269,37 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
               goals: [],
               unlockedRewards: [],
-              aboutMe: '',
-              socialLinks: {},
+            };
+            initializeUserProfile(defaultProfile);
+          }
+          // Check if userProfile exists after sign-in. If not, initialize it.
+          // This handles cases where a user signs in for the first time or their profile wasn't created yet.
+          if (!userProfile) {
+            console.log("User signed in but profile not loaded/found, attempting to initialize profile.");
+            // Create a basic default profile to initialize
+            const defaultProfile: UserProfile = {
+              id: session.user.id,
+              username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
+              display_name: session.user.user_metadata.full_name || session.user.email || '',
+              email: session.user.email || '',
+              currentStage: 'stage_1',
+              avatar_url: session.user.user_metadata.avatar_url || null,
+              theme: DEFAULT_APP_THEME,
+              focusPoints: 0,
+              profileFlairId: null,
+              learningLanguages: [],
+              learningDaysCount: 0,
+              lastActivityDateByLanguage: {},
+              lastHabitPointsAwardDate: null,
+              lastRedeemAttemptTimestamp: undefined,
+              defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: [],
+              dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              customActivities: [],
+              primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: [],
+              unlockedRewards: [],
             };
             initializeUserProfile(defaultProfile);
           }
@@ -324,8 +352,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               learningLanguages: supabaseProfileData.learning_languages || [],
               learningDaysCount: supabaseProfileData.learning_days_count || 0,
               customActivities: supabaseProfileData.custom_activities || [], // Added custom_activities
-              aboutMe: supabaseProfileData.about_me || null, // NEW
-              socialLinks: supabaseProfileData.social_links as Json || null, // NEW
               // These fields are not directly in Supabase 'profiles' table, so they come from local storage or defaults
               lastActivityDateByLanguage: profileFromLocalStorage?.lastActivityDateByLanguage || {},
               lastHabitPointsAwardDate: profileFromLocalStorage?.lastHabitPointsAwardDate || null,
@@ -497,8 +523,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           profile_flair_id: profile.profileFlairId || null,
           learning_languages: profile.learningLanguages || [],
           learning_days_count: profile.learningDaysCount || 0,
-          about_me: profile.aboutMe || null,
-          social_links: profile.socialLinks || null,
       };
 
       const { error } = await supabase.from('profiles').upsert({ ...profileToSync, id: session.user.id });
@@ -607,8 +631,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         if (updates.profileFlairId !== undefined) profileUpdatesToSync.profile_flair_id = updates.profileFlairId;
         if (updates.learningLanguages !== undefined) profileUpdatesToSync.learning_languages = updates.learningLanguages;
         if (updates.learningDaysCount !== undefined) profileUpdatesToSync.learning_days_count = updates.learningDaysCount;
-        if (updates.aboutMe !== undefined) profileUpdatesToSync.about_me = updates.aboutMe;
-        if (updates.socialLinks !== undefined) profileUpdatesToSync.social_links = updates.socialLinks;
 
         if (Object.keys(profileUpdatesToSync).length > 0) {
           supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
@@ -1340,63 +1362,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     return [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
   }, [userProfile?.customActivities]);
 
-  const getDetailedActivityStats = useCallback(async (userId: string): Promise<DetailedActivityStats> => {
-    try {
-      const { data: logs, error } = await supabase
-        .from('activity_logs')
-        .select('language, category, sub_activity, duration_seconds')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error("Error fetching activity logs for detailed stats:", error);
-        return {
-          totalHoursByLanguage: {},
-          totalHoursByCategory: {},
-          topSubActivities: [],
-        };
-      }
-
-      const totalHoursByLanguage: Record<Language, number> = {};
-      const totalHoursByCategory: Record<ActivityCategory, number> = {};
-      const subActivityDurations: Record<string, number> = {};
-
-      logs.forEach(log => {
-        const hours = log.duration_seconds / 3600;
-
-        // Total hours by language
-        totalHoursByLanguage[log.language] = (totalHoursByLanguage[log.language] || 0) + hours;
-
-        // Total hours by category
-        totalHoursByCategory[log.category] = (totalHoursByCategory[log.category] || 0) + hours;
-
-        // Sub-activity durations
-        subActivityDurations[log.sub_activity] = (subActivityDurations[log.sub_activity] || 0) + hours;
-      });
-
-      const topSubActivities = Object.entries(subActivityDurations)
-        .sort(([, hoursA], [, hoursB]) => hoursB - hoursA)
-        .slice(0, 5) // Get top 5
-        .map(([name, hours]) => ({ name, hours: parseFloat(hours.toFixed(1)) }));
-
-      return {
-        totalHoursByLanguage: Object.fromEntries(
-          Object.entries(totalHoursByLanguage).map(([lang, hours]) => [lang, parseFloat(hours.toFixed(1))])
-        ) as Record<Language, number>,
-        totalHoursByCategory: Object.fromEntries(
-          Object.entries(totalHoursByCategory).map(([cat, hours]) => [cat, parseFloat(hours.toFixed(1))])
-        ) as Record<ActivityCategory, number>,
-        topSubActivities,
-      };
-    } catch (error) {
-      console.error("Error calculating detailed activity stats:", error);
-      return {
-        totalHoursByLanguage: {},
-        totalHoursByCategory: {},
-        topSubActivities: [],
-      };
-    }
-  }, []);
-
   return (
     <AppContext.Provider value={{ 
         session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
@@ -1414,7 +1379,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         getCurrentStageDetails,
         exportAppData, importAppData, resetAllData,
         getAvailableReportYears, getYearInReviewData, getOverallHabitConsistency,
-        getProfileFollowCounts, getDetailedActivityStats,
+        getProfileFollowCounts,
         toggleFavoriteActivity,
         awardHabitPoints, purchaseReward, activateFlair, getRewardById, unlockRewardById,
         addCustomActivity, deleteCustomActivity, getCombinedActivities,

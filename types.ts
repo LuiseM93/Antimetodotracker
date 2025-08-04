@@ -70,6 +70,14 @@ export type DashboardCardDisplayMode =
   | 'combined'
   | 'none';
 
+export interface SocialLinks {
+  twitter?: string;
+  youtube?: string;
+  instagram?: string;
+  website?: string;
+  // Add more social links as needed
+}
+
 export interface UserProfile {
   username: string; // Unique username for profiles/social features
   display_name: string; // User's display name
@@ -95,6 +103,8 @@ export interface UserProfile {
 
   // Social features
   isFollowing?: boolean; // NEW: Indicates if the current user is following this profile
+  aboutMe?: string; // NEW: About me section for the profile
+  socialLinks?: SocialLinks; // NEW: Social media links
 }
 
 export interface UserGoal {
@@ -195,6 +205,12 @@ export interface YearInReviewData {
   topSubActivity: { name: string; hours: number } | null;
   categoryBreakdown: { name: ActivityCategory; value: number }[]; // value in seconds
   skillBreakdown: { name: Skill; value: number }[]; // value in seconds
+}
+
+export interface DetailedActivityStats {
+  totalHoursByLanguage: Record<Language, number>;
+  totalHoursByCategory: Record<ActivityCategory, number>;
+  topSubActivities: { name: string; hours: number }[];
 }
 
 // New type for Reward Items

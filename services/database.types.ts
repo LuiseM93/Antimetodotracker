@@ -135,6 +135,8 @@ export interface Database {
           profile_flair_id: string | null
           theme: AppTheme | null
           username: string
+          about_me: string | null
+          social_links: Json | null
         }
         Insert: {
           avatar_url?: string | null
@@ -148,6 +150,8 @@ export interface Database {
           profile_flair_id?: string | null
           theme?: AppTheme | null
           username: string
+          about_me?: string | null
+          social_links?: Json | null
         }
         Update: {
           avatar_url?: string | null
@@ -161,6 +165,8 @@ export interface Database {
           profile_flair_id?: string | null
           theme?: AppTheme | null
           username?: string
+          about_me?: string | null
+          social_links?: Json | null
         }
         Relationships: [
           {

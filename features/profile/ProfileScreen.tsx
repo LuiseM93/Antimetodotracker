@@ -104,13 +104,14 @@ export const ProfileScreen: React.FC = () => {
     }, [fetchProfileData]);
     
     useEffect(() => {
+        const originalTheme = document.documentElement.className;
         if (profile?.theme) {
             document.documentElement.className = profile.theme;
         }
         return () => {
-            document.documentElement.className = loggedInUserTheme;
+            document.documentElement.className = originalTheme;
         };
-    }, [profile, loggedInUserTheme]);
+    }, [profile]);
 
     const handleFollowToggle = async () => {
       if (!session?.user || !profile || isFollowLoading) return;

@@ -130,6 +130,10 @@ export const FeedItemCard: React.FC<{ item: FeedItem, onDelete: (itemId: string)
 
         setIsDeleting(true);
         try {
+            // Primero, eliminar los likes asociados para evitar problemas de foreign key.
+            await supabase.from('feed_item_likes').delete().match({ feed_item_id: item.id });
+
+            // Luego, eliminar la publicación principal.
             const { error } = await supabase
                 .from('feed_items')
                 .delete()

@@ -1071,12 +1071,61 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [session, setAppTheme]);
   
-  const resetAllData = useCallback(() => {
+  const resetAllData = useCallback(async () => {
       const keysToRemove = [
         USER_PROFILE_KEY, ACTIVITY_LOGS_KEY, USER_GOALS_KEY, DAILY_TARGETS_KEY, APP_RESOURCES_KEY, SAVED_DAILY_ROUTINES_KEY,
         ...OLD_USER_PROFILE_KEYS, ...OLD_ACTIVITY_LOGS_KEYS, ...OLD_USER_GOALS_KEYS, ...OLD_DAILY_TARGETS_KEYS, ...OLD_SAVED_ROUTINES_KEYS
       ];
       keysToRemove.forEach(key => storageService.removeItem(key));
+
+      // Delete user data from Supabase
+      if (session?.user?.id) {
+        try {
+          // Delete activity logs
+          const { error: logsError } = await supabase
+            .from('activity_logs')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (logsError) console.error("Error deleting activity logs from Supabase:", logsError);
+
+          // Delete feed item likes
+          const { error: likesError } = await supabase
+            .from('feed_item_likes')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (likesError) console.error("Error deleting feed item likes from Supabase:", likesError);
+
+          // Delete feed items
+          const { error: feedItemsError } = await supabase
+            .from('feed_items')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (feedItemsError) console.error("Error deleting feed items from Supabase:", feedItemsError);
+
+          // Delete relationships (where user is follower or following)
+          const { error: relationshipsFollowerError } = await supabase
+            .from('relationships')
+            .delete()
+            .eq('follower_id', session.user.id);
+          if (relationshipsFollowerError) console.error("Error deleting relationships (follower) from Supabase:", relationshipsFollowerError);
+
+          const { error: relationshipsFollowingError } = await supabase
+            .from('relationships')
+            .delete()
+            .eq('following_id', session.user.id);
+          if (relationshipsFollowingError) console.error("Error deleting relationships (following) from Supabase:", relationshipsFollowingError);
+
+          // Finally, delete the user's profile
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', session.user.id);
+          if (profileError) console.error("Error deleting user profile from Supabase:", profileError);
+
+        } catch (error) {
+          console.error("Error during Supabase data deletion:", error);
+        }
+      }
       
       setUserProfile(null);
       setActivityLogs([]);
@@ -1085,7 +1134,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setSavedDailyRoutines([]);
       setResources(INITIAL_RESOURCES);
       signOut();
-  }, [signOut]);
+  }, [signOut, session]);
 
   const getAvailableReportYears = useCallback(() => {
     if (activityLogs.length === 0) return [];

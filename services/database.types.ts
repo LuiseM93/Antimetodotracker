@@ -130,7 +130,7 @@ export interface Database {
           focus_points: number
           id: string
           email: string
-          learning_days_count: number
+          
           learning_languages: string[]
           profile_flair_id: string | null
           theme: AppTheme | null
@@ -145,7 +145,7 @@ export interface Database {
           email: string
           focus_points?: number
           id: string
-          learning_days_count?: number
+
           learning_languages?: string[]
           profile_flair_id?: string | null
           theme?: AppTheme | null
@@ -160,7 +160,7 @@ export interface Database {
           email?: string
           focus_points?: number
           id?: string
-          learning_days_count?: number
+
           learning_languages?: string[]
           profile_flair_id?: string | null
           theme?: AppTheme | null

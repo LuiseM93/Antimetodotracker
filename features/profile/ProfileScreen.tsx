@@ -29,7 +29,6 @@ interface PublicProfileData {
     focus_points: number;
     profile_flair_id: string | null;
     learning_languages: Language[];
-    learning_days_count: number; // Still present in Supabase, but we'll calculate from logs
     learning_days_by_language: Record<Language, number>; // NEW: From AppContext
     about_me: string | null;
     social_links: any | null;
@@ -66,7 +65,7 @@ export const ProfileScreen: React.FC = () => {
         try {
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_count, about_me, social_links, custom_activities')
+                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, about_me, social_links, custom_activities')
                 .eq('username', username)
                 .single();
 

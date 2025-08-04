@@ -468,16 +468,14 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
-  const updateAppTheme = useCallback((theme: AppTheme) => {
+  const updateAppTheme = useCallback((theme: AppTheme, fromRewardOrCode: boolean = false) => {
     setAppTheme(theme);
-    document.documentElement.className = theme; // Apply theme to HTML element
-  }, []);
-
-  const updateProfileTheme = useCallback((theme: AppTheme) => {
-    if (userProfile) {
-      updateUserProfile({ theme: theme });
+    if (userProfile && !fromRewardOrCode) {
+      const updatedProfile = { ...userProfile, theme };
+      setUserProfile(updatedProfile);
+      storageService.setItem(USER_PROFILE_KEY, updatedProfile);
     }
-  }, [userProfile, updateUserProfile]);
+  }, [userProfile]);
 
   const initializeUserProfile = useCallback(async (profile: UserProfile): Promise<{ success: boolean; error?: any }> => {
     if (!session?.user) {

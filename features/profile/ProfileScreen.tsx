@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
@@ -15,8 +13,10 @@ import { BookOpenIcon } from '../../components/icons/BookOpenIcon.tsx';
 import { FollowListModal } from '../../components/profile/FollowListModal.tsx';
 import { ActivityHistory } from './ActivityHistory.tsx';
 import { Database } from '../../services/database.types.ts';
-import { GlobeAltIcon } from '../../components/icons/GlobeAltIcon.tsx';
 import { ExternalLinkIcon } from '../../components/icons/ExternalLinkIcon.tsx';
+import { ChatBubbleLeftRightIcon } from '../../components/icons/ChatBubbleLeftRightIcon.tsx';
+import { InstagramIcon } from '../../components/icons/InstagramIcon.tsx';
+import { LinkIcon } from '../../components/icons/LinkIcon.tsx';
 
 interface PublicProfileData {
     id: string;
@@ -30,7 +30,7 @@ interface PublicProfileData {
     learning_languages: string[];
     learning_days_count: number;
     about_me: string | null;
-    social_links: Json | null;
+    social_links: any | null;
 }
 
 type ModalView = 'followers' | 'following' | null;
@@ -267,12 +267,6 @@ export const ProfileScreen: React.FC = () => {
                                         <span>Instagram</span>
                                     </a>
                                 )}
-                                import { InstagramIcon } from '../../components/icons/InstagramIcon.tsx';
-import { LinkIcon } from '../../components/icons/LinkIcon.tsx';
-import { ChatBubbleLeftRightIcon } from '../../components/icons/ChatBubbleLeftRightIcon.tsx';
-
-//(...)
-
                                 {profile.social_links.website && (
                                     <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
                                         <LinkIcon className="w-6 h-6" />

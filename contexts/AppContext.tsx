@@ -245,7 +245,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           }
           // Check if userProfile exists after sign-in. If not, initialize it.
           // This handles cases where a user signs in for the first time or their profile wasn't created yet.
-          if (!userProfile) {
+          if (!userProfile && session?.user) {
             console.log("User signed in but profile not loaded/found, attempting to initialize profile.");
             // Create a basic default profile to initialize
             const defaultProfile: UserProfile = {
@@ -308,6 +308,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
           if (supabaseProfileError && supabaseProfileError.code !== 'PGRST116') { // PGRST116 means no rows found
             console.error("Error fetching user profile from Supabase:", supabaseProfileError);
+            profileFromSupabase = null; // Ensure it's null on error
           }
 
           if (supabaseProfileData) {
@@ -322,7 +323,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               focusPoints: supabaseProfileData.focus_points || 0,
               profileFlairId: supabaseProfileData.profile_flair_id || null,
               learningLanguages: supabaseProfileData.learning_languages || [],
-              learningDaysByLanguage: {}, // Will be calculated from activity logs
+              learningDaysByLanguage: {}, // Placeholder, will be calculated below
               customActivities: supabaseProfileData.custom_activities || [],
               aboutMe: supabaseProfileData.about_me || null,
               socialLinks: supabaseProfileData.social_links as Json || null,
@@ -332,13 +333,48 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               defaultLogTimerMode: profileFromLocalStorage?.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
               favoriteActivities: profileFromLocalStorage?.favoriteActivities || [],
               dashboardCardDisplayMode: profileFromLocalStorage?.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-              customActivities: profileFromLocalStorage?.customActivities || [],
+              
               primaryLanguage: profileFromLocalStorage?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
               goals: profileFromLocalStorage?.goals || [], // Goals are managed separately, but can be part of profile for initial load
               unlockedRewards: profileFromLocalStorage?.unlockedRewards || [], // Unlocked rewards are synced via purchaseReward, but also stored locally
             };
             // Update local storage with the Supabase profile (and merged local-only fields)
             storageService.setItem(USER_PROFILE_KEY, profileFromSupabase);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile from Supabase:", error);
+        }
+      }
+
+      if (session?.user) { // Fetch activity logs only if user is logged in
+        try {
+          const { data: logs, error } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error("Error fetching activity logs:", error);
+            setActivityLogs([]);
+          } else {
+            setActivityLogs(logs as ActivityLogEntry[] || []);
+            // Calculate learningDaysByLanguage from fetched logs
+            const daysByLanguage: Record<Language, Set<string>> = {};
+            (logs as ActivityLogEntry[] || []).forEach(log => {
+                if (!daysByLanguage[log.language]) {
+                    daysByLanguage[log.language] = new Set();
+                }
+                daysByLanguage[log.language].add(log.date);
+            });
+            const calculatedLearningDays: Record<Language, number> = {};
+            for (const lang in daysByLanguage) {
+                calculatedLearningDays[lang as Language] = daysByLanguage[lang as Language].size;
+            }
+            if (finalProfile) {
+                finalProfile.learningDaysByLanguage = calculatedLearningDays;
+            }
           }
         } catch (error) {
           console.error("Error fetching user profile from Supabase:", error);
@@ -482,7 +518,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           focus_points: profile.focusPoints || 0,
           profile_flair_id: profile.profileFlairId || null,
           learning_languages: profile.learningLanguages || [],
-          learning_days_count: profile.learningDaysCount || 0,
+          
           about_me: profile.aboutMe || null,
           social_links: profile.socialLinks || null,
       };
@@ -563,7 +599,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         learningDaysCount: profileInProgress.learningDaysCount ?? 0,
         focusPoints: profileInProgress.focusPoints ?? 0,
         profileFlairId: profileInProgress.profileFlairId !== undefined ? profileInProgress.profileFlairId : prev.profileFlairId,
-        lastActivityDateByLanguage: profileInProgress.lastActivityDateByLanguage ?? {},
+        
         lastHabitPointsAwardDate: profileInProgress.lastHabitPointsAwardDate !== undefined ? profileInProgress.lastHabitPointsAwardDate : prev.lastHabitPointsAwardDate,
         lastRedeemAttemptTimestamp: profileInProgress.lastRedeemAttemptTimestamp !== undefined ? profileInProgress.lastRedeemAttemptTimestamp : prev.lastRedeemAttemptTimestamp,
       };
@@ -658,29 +694,12 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           await createFeedItem('milestone_achieved', { hours: milestoneHoursCrossed, language: newLog.language });
       }
 
-      // Update learningDaysByLanguage
+      // Award points for activity
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
-        const updatedLearningDaysByLanguage = { ...prevProfile.learningDaysByLanguage };
-        const currentLearningDays = updatedLearningDaysByLanguage[logData.language] || 0;
-        const lastLogDate = prevProfile.lastActivityDateByLanguage?.[logData.language];
-
-        // Only increment if this is a new day for the language
-        if (!lastLogDate || logData.date > lastLogDate) {
-          updatedLearningDaysByLanguage[logData.language] = currentLearningDays + 1;
-        }
-
         const updatedProfile = {
           ...prevProfile,
           focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
-          learningDaysByLanguage: updatedLearningDaysByLanguage,
-          // Keep lastActivityDateByLanguage for internal tracking if needed, but it's not part of UserProfile anymore
-          // This is a temporary solution, ideally this would be handled by a separate mechanism
-          // or derived from activityLogs directly.
-          lastActivityDateByLanguage: {
-            ...(prevProfile.lastActivityDateByLanguage || {}),
-            [logData.language]: logData.date,
-          }
         };
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
         return updatedProfile;
@@ -728,27 +747,12 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
       }
 
+      // Award points for activity
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
-        let updatedProfile = { ...prevProfile };
-        let newFocusPoints = prevProfile.focusPoints || 0;
-        const newLearningDaysByLanguage = { ...prevProfile.learningDaysByLanguage };
-        const lastActivityDateByLanguage = { ...prevProfile.lastActivityDateByLanguage }; // Temporary for migration
-
-        logsData.forEach(log => {
-          const lastDateForLang = lastActivityDateByLanguage[log.language] || '';
-          if (log.date > lastDateForLang) {
-            newFocusPoints += LEARNING_DAY_POINTS_AWARD;
-            newLearningDaysByLanguage[log.language] = (newLearningDaysByLanguage[log.language] || 0) + 1;
-            lastActivityDateByLanguage[log.language] = log.date; // Update temporary last activity date
-          }
-        });
-
-        updatedProfile = {
-          ...updatedProfile,
-          focusPoints: newFocusPoints,
-          learningDaysByLanguage: newLearningDaysByLanguage,
-          // lastActivityDateByLanguage is no longer part of UserProfile, but we keep it for internal logic if needed
+        const updatedProfile = {
+          ...prevProfile,
+          focusPoints: (prevProfile.focusPoints || 0) + logsData.length * LEARNING_DAY_POINTS_AWARD, // Award points for each log
         };
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
         return updatedProfile;
@@ -1140,7 +1144,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     const categorySeconds: Record<ActivityCategory, number> = { [ActivityCategory.ACTIVE_IMMERSION]: 0, [ActivityCategory.PASSIVE_IMMERSION]: 0, [ActivityCategory.ACTIVE_STUDY]: 0, [ActivityCategory.PRODUCTION]: 0 };
     const skillSeconds: Record<Skill, number> = { [Skill.LISTENING]: 0, [Skill.READING]: 0, [Skill.SPEAKING]: 0, [Skill.WRITING]: 0, [Skill.STUDY]: 0 };
 
-    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...customActivities];
+    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
     const detailsMap = new Map(combinedActivities.map(detail => [detail.name, detail]));
 
     logsForYear.forEach(log => {
@@ -1332,10 +1336,42 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [userProfile, updateUserProfile]);
   
   const getCombinedActivities = useCallback((): ActivityDetailType[] => {
-    const combinedActivities = [...ANTIMETHOD_ACTIVITIES_DETAILS, ...customActivities];
+    return [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
   }, [userProfile?.customActivities]);
 
-  const getDetailedActivityStats = useCallback(async (userId: string): Promise<DetailedActivityStats> => {
+  const getLearningDaysByLanguage = useCallback(async (userId: string): Promise<Record<Language, number>> => {
+    try {
+        const { data: logs, error } = await supabase
+            .from('activity_logs')
+            .select('language, date')
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error("Error fetching activity logs for learning days by language:", error);
+            return {};
+        }
+
+        const daysByLanguage: Record<Language, Set<string>> = {};
+        logs.forEach(log => {
+            if (!daysByLanguage[log.language]) {
+                daysByLanguage[log.language] = new Set();
+            }
+            daysByLanguage[log.language].add(log.date);
+        });
+
+        const result: Record<Language, number> = {};
+        for (const lang in daysByLanguage) {
+            result[lang as Language] = daysByLanguage[lang as Language].size;
+        }
+        return result;
+    } catch (error) {
+        console.error("Error calculating learning days by language:", error);
+        return {};
+    }
+  }, []);
+
+  const getDetailedActivityStats = useCallback(async (userId: string) => {
+    const customActivities = userProfile?.customActivities || [];
     try {
       const { data: logs, error } = await supabase
         .from('activity_logs')

@@ -244,38 +244,36 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           }
           // Check if userProfile exists after sign-in. If not, initialize it.
           // This handles cases where a user signs in for the first time or their profile wasn't created yet.
-          if (event === 'SIGNED_IN' && session && !userProfile) {
-            console.log("User signed in, attempting to initialize profile...");
-            const { data: existingProfile } = await supabase.from('profiles').select('id').eq('id', session.user.id).single();
-            if (!existingProfile) {
-                const defaultProfile: UserProfile = {
-                  id: session.user.id,
-                  username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
-                  display_name: session.user.user_metadata.full_name || session.user.email || '',
-                  email: session.user.email || '',
-                  currentStage: 'stage_1',
-                  avatar_url: session.user.user_metadata.avatar_url || null,
-                  theme: DEFAULT_APP_THEME,
-                  focusPoints: 0,
-                  profileFlairId: null,
-                  learningLanguages: [],
-                  learningDaysCount: 0,
-                  lastActivityDateByLanguage: {},
-                  lastHabitPointsAwardDate: null,
-                  lastRedeemAttemptTimestamp: undefined,
-                  defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
-                  defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
-                  favoriteActivities: [],
-                  dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-                  customActivities: [],
-                  primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
-                  goals: [],
-                  unlockedRewards: [],
-                  aboutMe: '',
-                  socialLinks: {},
-                };
-                await initializeUserProfile(defaultProfile);
-            }
+          if (!userProfile) {
+            console.log("User signed in but profile not loaded/found, attempting to initialize profile.");
+            // Create a basic default profile to initialize
+            const defaultProfile: UserProfile = {
+              id: session.user.id,
+              username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
+              display_name: session.user.user_metadata.full_name || session.user.email || '',
+              email: session.user.email || '',
+              currentStage: 'stage_1',
+              avatar_url: session.user.user_metadata.avatar_url || null,
+              theme: DEFAULT_APP_THEME,
+              focusPoints: 0,
+              profileFlairId: null,
+              learningLanguages: [],
+              learningDaysCount: 0,
+              lastActivityDateByLanguage: {},
+              lastHabitPointsAwardDate: null,
+              lastRedeemAttemptTimestamp: undefined,
+              defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: [],
+              dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              customActivities: [],
+              primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: [],
+              unlockedRewards: [],
+              aboutMe: '',
+              socialLinks: {},
+            };
+            initializeUserProfile(defaultProfile);
           }
         }
       }

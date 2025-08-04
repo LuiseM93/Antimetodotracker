@@ -224,7 +224,7 @@ export const ProfileScreen: React.FC = () => {
                                 <p className="text-sm text-[var(--color-text-light)]">Días Adquiriendo</p>
                             </div>
                             <div className="p-3">
-                                <img src="./assets/language.png" alt="Idiomas" className="w-8 h-8 mx-auto mb-1 filter dark:invert" />
+                                <ChatBubbleLeftRightIcon className="w-8 h-8 mx-auto text-[var(--color-secondary)] mb-1" />
                                 <p className="text-xl font-bold text-[var(--color-primary)]">Idiomas</p>
                                 <p className="text-sm text-[var(--color-text-light)]">
                                     {profile.learning_languages && profile.learning_languages.length > 0
@@ -263,13 +263,19 @@ export const ProfileScreen: React.FC = () => {
                                 )}
                                 {profile.social_links.instagram && (
                                     <a href={profile.social_links.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <ExternalLinkIcon className="w-6 h-6" />
+                                        <InstagramIcon className="w-6 h-6" />
                                         <span>Instagram</span>
                                     </a>
                                 )}
+                                import { InstagramIcon } from '../../components/icons/InstagramIcon.tsx';
+import { LinkIcon } from '../../components/icons/LinkIcon.tsx';
+import { ChatBubbleLeftRightIcon } from '../../components/icons/ChatBubbleLeftRightIcon.tsx';
+
+//(...)
+
                                 {profile.social_links.website && (
                                     <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-[var(--color-text-main)] hover:text-[var(--color-accent)] transition-colors flex items-center space-x-2">
-                                        <GlobeAltIcon className="w-6 h-6" />
+                                        <LinkIcon className="w-6 h-6" />
                                         <span>Sitio Web</span>
                                     </a>
                                 )}

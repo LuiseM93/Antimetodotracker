@@ -38,7 +38,7 @@ export const SettingsScreen: React.FC = () => {
     });
 
     useEffect(() => {
-        if (userProfile) {
+        if (userProfile && !isFormInitialized) {
             setProfileForm({
                 ...userProfile,
                 defaultLogDurationSeconds: userProfile.defaultLogDurationSeconds || 30 * 60,
@@ -51,8 +51,9 @@ export const SettingsScreen: React.FC = () => {
                 ...prev,
                 language: userProfile.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
             }));
+            setIsFormInitialized(true);
         }
-    }, [userProfile]);
+    }, [userProfile, isFormInitialized]);
 
     const handleFormChange = (field: keyof UserProfile, value: any) => {
         setProfileForm(prev => ({ ...prev, [field]: value }));

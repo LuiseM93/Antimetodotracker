@@ -241,6 +241,68 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
             window.history.replaceState({}, document.title, window.location.pathname);
             window.location.reload();
           }
+          // Check if userProfile exists after sign-in. If not, initialize it.
+          // This handles cases where a user signs in for the first time or their profile wasn't created yet.
+          if (!userProfile) {
+            console.log("User signed in but profile not loaded/found, attempting to initialize profile.");
+            // Create a basic default profile to initialize
+            const defaultProfile: UserProfile = {
+              id: session.user.id,
+              username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
+              display_name: session.user.user_metadata.full_name || session.user.email || '',
+              email: session.user.email || '',
+              currentStage: 'stage_1',
+              avatar_url: session.user.user_metadata.avatar_url || null,
+              theme: DEFAULT_APP_THEME,
+              focusPoints: 0,
+              profileFlairId: null,
+              learningLanguages: [],
+              learningDaysCount: 0,
+              lastActivityDateByLanguage: {},
+              lastHabitPointsAwardDate: null,
+              lastRedeemAttemptTimestamp: undefined,
+              defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: [],
+              dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              customActivities: [],
+              primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: [],
+              unlockedRewards: [],
+            };
+            initializeUserProfile(defaultProfile);
+          }
+          // Check if userProfile exists after sign-in. If not, initialize it.
+          // This handles cases where a user signs in for the first time or their profile wasn't created yet.
+          if (!userProfile) {
+            console.log("User signed in but profile not loaded/found, attempting to initialize profile.");
+            // Create a basic default profile to initialize
+            const defaultProfile: UserProfile = {
+              id: session.user.id,
+              username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
+              display_name: session.user.user_metadata.full_name || session.user.email || '',
+              email: session.user.email || '',
+              currentStage: 'stage_1',
+              avatar_url: session.user.user_metadata.avatar_url || null,
+              theme: DEFAULT_APP_THEME,
+              focusPoints: 0,
+              profileFlairId: null,
+              learningLanguages: [],
+              learningDaysCount: 0,
+              lastActivityDateByLanguage: {},
+              lastHabitPointsAwardDate: null,
+              lastRedeemAttemptTimestamp: undefined,
+              defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: [],
+              dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              customActivities: [],
+              primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: [],
+              unlockedRewards: [],
+            };
+            initializeUserProfile(defaultProfile);
+          }
         }
       }
     });
@@ -256,13 +318,63 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setIsLoading(true);
       setIsProfileLoaded(false);
       
-      const storedProfile = loadDataWithMigration<UserProfile | null>(USER_PROFILE_KEY, OLD_USER_PROFILE_KEYS, null, migrateUserProfile);
       const storedGoals = loadDataWithMigration<UserGoal[]>(USER_GOALS_KEY, OLD_USER_GOALS_KEYS, []);
       const storedTargets = loadDataWithMigration<DailyActivityGoal[]>(DAILY_TARGETS_KEY, OLD_DAILY_TARGETS_KEYS, DEFAULT_DAILY_GOALS, migrateDailyTargets);
       const storedSavedRoutines = loadDataWithMigration<SavedDailyRoutine[]>(SAVED_DAILY_ROUTINES_KEY, OLD_SAVED_ROUTINES_KEYS, [], migrateSavedRoutines);
       const storedResources = storageService.getItem<Resource[]>(APP_RESOURCES_KEY, INITIAL_RESOURCES);
 
+      let profileFromSupabase: UserProfile | null = null;
+      let profileFromLocalStorage: UserProfile | null = loadDataWithMigration<UserProfile | null>(USER_PROFILE_KEY, OLD_USER_PROFILE_KEYS, null, migrateUserProfile);
+
       if (session?.user) {
+        try {
+          const { data: supabaseProfileData, error: supabaseProfileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (supabaseProfileError && supabaseProfileError.code !== 'PGRST116') { // PGRST116 means no rows found
+            console.error("Error fetching user profile from Supabase:", supabaseProfileError);
+          }
+
+          if (supabaseProfileData) {
+            profileFromSupabase = {
+              id: supabaseProfileData.id,
+              username: supabaseProfileData.username || '',
+              display_name: supabaseProfileData.display_name || '',
+              email: supabaseProfileData.email || '',
+              currentStage: supabaseProfileData.current_stage || 'stage_1',
+              avatar_url: supabaseProfileData.avatar_url || null,
+              theme: supabaseProfileData.theme as AppTheme || DEFAULT_APP_THEME,
+              focusPoints: supabaseProfileData.focus_points || 0,
+              profileFlairId: supabaseProfileData.profile_flair_id || null,
+              learningLanguages: supabaseProfileData.learning_languages || [],
+              learningDaysCount: supabaseProfileData.learning_days_count || 0,
+              // These fields are not directly in Supabase 'profiles' table, so they come from local storage or defaults
+              lastActivityDateByLanguage: profileFromLocalStorage?.lastActivityDateByLanguage || {},
+              lastHabitPointsAwardDate: profileFromLocalStorage?.lastHabitPointsAwardDate || null,
+              lastRedeemAttemptTimestamp: profileFromLocalStorage?.lastRedeemAttemptTimestamp || undefined,
+              defaultLogDurationSeconds: profileFromLocalStorage?.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: profileFromLocalStorage?.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: profileFromLocalStorage?.favoriteActivities || [],
+              dashboardCardDisplayMode: profileFromLocalStorage?.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              customActivities: profileFromLocalStorage?.customActivities || [],
+              primaryLanguage: profileFromLocalStorage?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: profileFromLocalStorage?.goals || [], // Goals are managed separately, but can be part of profile for initial load
+              unlockedRewards: profileFromLocalStorage?.unlockedRewards || [], // Unlocked rewards are synced via purchaseReward, but also stored locally
+            };
+            // Update local storage with the Supabase profile (and merged local-only fields)
+            storageService.setItem(USER_PROFILE_KEY, profileFromSupabase);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile from Supabase:", error);
+        }
+      }
+
+      const finalProfile = profileFromSupabase || profileFromLocalStorage;
+
+      if (session?.user) { // Fetch activity logs only if user is logged in
         try {
           const { data: logs, error } = await supabase
             .from('activity_logs')
@@ -285,23 +397,23 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         setActivityLogs([]);
       }
 
-      if (storedProfile) {
+      if (finalProfile) {
          const profileWithDefaults: UserProfile = {
-          ...storedProfile,
-          learningDaysCount: storedProfile.learningDaysCount || 0,
-          focusPoints: storedProfile.focusPoints || 0,
-          unlockedRewards: storedProfile.unlockedRewards || [],
-          profileFlairId: storedProfile.profileFlairId || null,
-          lastActivityDateByLanguage: storedProfile.lastActivityDateByLanguage || {},
-          lastHabitPointsAwardDate: storedProfile.lastHabitPointsAwardDate || null,
-          lastRedeemAttemptTimestamp: storedProfile.lastRedeemAttemptTimestamp || undefined,
-          defaultLogDurationSeconds: storedProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
-          defaultLogTimerMode: storedProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
-          theme: storedProfile.theme ?? DEFAULT_APP_THEME,
-          learningLanguages: storedProfile.learningLanguages || [],
-          favoriteActivities: storedProfile.favoriteActivities || [],
-          dashboardCardDisplayMode: storedProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-          customActivities: storedProfile.customActivities || [],
+          ...finalProfile,
+          learningDaysCount: finalProfile.learningDaysCount || 0,
+          focusPoints: finalProfile.focusPoints || 0,
+          unlockedRewards: finalProfile.unlockedRewards || [],
+          profileFlairId: finalProfile.profileFlairId || null,
+          lastActivityDateByLanguage: finalProfile.lastActivityDateByLanguage || {},
+          lastHabitPointsAwardDate: finalProfile.lastHabitPointsAwardDate || null,
+          lastRedeemAttemptTimestamp: finalProfile.lastRedeemAttemptTimestamp || undefined,
+          defaultLogDurationSeconds: finalProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
+          defaultLogTimerMode: finalProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+          theme: finalProfile.theme ?? DEFAULT_APP_THEME,
+          learningLanguages: finalProfile.learningLanguages || [],
+          favoriteActivities: finalProfile.favoriteActivities || [],
+          dashboardCardDisplayMode: finalProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+          customActivities: finalProfile.customActivities || [],
         };
         setUserProfile(profileWithDefaults);
         setAppTheme(profileWithDefaults.theme!);
@@ -494,9 +606,31 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       }
   
       storageService.setItem(USER_PROFILE_KEY, newProfile);
+
+      // Sync relevant profile updates to Supabase
+      if (session?.user) {
+        const profileUpdatesToSync: Partial<Database['public']['Tables']['profiles']['Update']> = {};
+        if (updates.username !== undefined) profileUpdatesToSync.username = updates.username;
+        if (updates.display_name !== undefined) profileUpdatesToSync.display_name = updates.display_name;
+        if (updates.currentStage !== undefined) profileUpdatesToSync.current_stage = updates.currentStage;
+        if (updates.avatar_url !== undefined) profileUpdatesToSync.avatar_url = updates.avatar_url;
+        if (updates.theme !== undefined) profileUpdatesToSync.theme = updates.theme;
+        if (updates.focusPoints !== undefined) profileUpdatesToSync.focus_points = updates.focusPoints;
+        if (updates.profileFlairId !== undefined) profileUpdatesToSync.profile_flair_id = updates.profileFlairId;
+        if (updates.learningLanguages !== undefined) profileUpdatesToSync.learning_languages = updates.learningLanguages;
+        if (updates.learningDaysCount !== undefined) profileUpdatesToSync.learning_days_count = updates.learningDaysCount;
+
+        if (Object.keys(profileUpdatesToSync).length > 0) {
+          supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
+            .then(({ error }) => {
+              if (error) console.error("Error syncing profile updates to Supabase:", error);
+            });
+        }
+      }
+
       return newProfile;
     });
-  }, [setAppTheme, setUserGoals]);
+  }, [setAppTheme, setUserGoals, session]);
 
   const addActivityLog = useCallback(async (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => {
     if (!session?.user) {

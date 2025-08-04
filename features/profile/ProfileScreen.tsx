@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient.ts';
@@ -14,6 +15,9 @@ import { FollowListModal } from '../../components/profile/FollowListModal.tsx';
 import { ActivityHistory } from './ActivityHistory.tsx';
 import { Database } from '../../services/database.types.ts';
 import { ExternalLinkIcon } from '../../components/icons/ExternalLinkIcon.tsx';
+import { ChatBubbleLeftRightIcon } from '../../components/icons/ChatBubbleLeftRightIcon.tsx';
+import { InstagramIcon } from '../../components/icons/InstagramIcon.tsx';
+import { LinkIcon } from '../../components/icons/LinkIcon.tsx';
 
 interface PublicProfileData {
     id: string;

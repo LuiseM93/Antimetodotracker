@@ -365,7 +365,7 @@ export const LogActivityScreen: React.FC = () => {
                 value={language}
                 onChange={(e) => updateActivityDetails({ language: e.target.value as Language })}
                 className={inputBaseStyle}
-                disabled={isTimerActive}
+                
             >
                 {(userProfile?.learningLanguages?.length > 0 ? userProfile.learningLanguages : AVAILABLE_LANGUAGES_FOR_LEARNING).map(lang => (
                     <option key={lang} value={lang}>{lang}</option>
@@ -379,7 +379,7 @@ export const LogActivityScreen: React.FC = () => {
                 id="activity-select-btn"
                 onClick={() => !isTimerActive && setIsActivityModalOpen(true)}
                 className={`${inputBaseStyle} text-left flex justify-between items-center`}
-                disabled={isTimerActive}
+                
             >
                 <span className={activityName === 'Ninguna seleccionada' ? 'text-[var(--color-placeholder-text)]' : ''}>
                     {activityName}
@@ -400,7 +400,7 @@ export const LogActivityScreen: React.FC = () => {
                 onChange={e => updateActivityDetails({ customTitle: e.target.value })}
                 placeholder="Ej: Viendo 'La Casa de Papel' T1 E3"
                 className={inputBaseStyle}
-                disabled={isTimerActive}
+                
             />
         </div>
 
@@ -436,7 +436,7 @@ export const LogActivityScreen: React.FC = () => {
                 onChange={e => updateActivityDetails({ notes: e.target.value })}
                 placeholder="Añade detalles sobre la actividad..."
                 className={inputBaseStyle}
-                disabled={isTimerActive}
+                
             />
         </div>
 

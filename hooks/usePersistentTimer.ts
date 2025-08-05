@@ -48,7 +48,13 @@ export const usePersistentTimer = (defaultState: {
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    storageService.setItem(TIMER_STATE_KEY, timerState);
+    // Save state only if there's progress or it's actively running/paused
+    if (timerState.status === 'running' || timerState.status === 'paused' || timerState.accumulatedTime > 0) {
+      storageService.setItem(TIMER_STATE_KEY, timerState);
+    } else {
+      // If the timer is idle and has no accumulated time, remove it from storage
+      storageService.removeItem(TIMER_STATE_KEY);
+    }
   }, [timerState]);
 
   const calculateDisplay = useCallback(() => {

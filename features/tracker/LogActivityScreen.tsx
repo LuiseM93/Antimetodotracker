@@ -90,7 +90,7 @@ export const LogActivityScreen: React.FC = () => {
     if (logId) {
         const logToEdit = activityLogs.find(log => log.id === logId);
         if (logToEdit) {
-            clear(); // Clear any running timer
+            
             setIsEditing(true);
             setCurrentLogEntry(logToEdit);
             setManualForm({

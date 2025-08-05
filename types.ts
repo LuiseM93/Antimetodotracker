@@ -252,3 +252,18 @@ export interface FeedItem {
   like_count: number;
   user_has_liked: boolean;
 }
+
+export interface TimerState {
+  status: 'idle' | 'running' | 'paused' | 'completed';
+  mode: TimerMode;
+  startTime: number; // Timestamp
+  pauseTime: number; // Timestamp
+  accumulatedTime: number; // Seconds
+  initialDuration: number; // Seconds
+  activityName: string;
+  category: ActivityCategory | null;
+  customTitle: string;
+  notes: string;
+  language: Language;
+  capturedDateTime: { date: string; time: string } | null;
+}

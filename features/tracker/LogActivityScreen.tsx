@@ -328,7 +328,7 @@ export const LogActivityScreen: React.FC = () => {
               type="range" min="1" max="180" step="1"
               value={countdownSetMinutes}
               onChange={(e) => setCountdownDuration(parseInt(e.target.value))}
-              disabled={isTimerActive}
+              disabled={status === 'running'}
               className="w-full h-2 bg-[var(--color-light-purple)] rounded-lg appearance-none cursor-pointer mt-1 disabled:opacity-50"
             />
           </div>
@@ -417,7 +417,7 @@ export const LogActivityScreen: React.FC = () => {
                 variant={mode === 'countdown' ? 'secondary' : 'ghost'}
                 onClick={() => setTimerMode('countdown')}
                 className="flex-1"
-                 disabled={isTimerActive}
+                 disabled={status === 'running'}
             >
                 Temporizador
             </Button>

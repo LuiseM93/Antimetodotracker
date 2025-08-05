@@ -36,6 +36,7 @@ export const usePersistentTimer = (defaultState: {
       if (savedState.status === 'running') {
         const elapsed = (Date.now() - savedState.startTime) / 1000;
         savedState.accumulatedTime += elapsed;
+        savedState.startTime = Date.now(); // Reset startTime to now for accurate subsequent calculations
         // Keep status as 'running' to simulate continuous operation
       }
       return savedState;

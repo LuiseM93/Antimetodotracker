@@ -426,9 +426,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   
   const signInWithGoogle = async () => {
     try {
-      const isProduction = window.location.hostname === 'antimetodo.vercel.app';
+      const isProduction = window.location.hostname === 'app.elantimetodo.com';
       const redirectUrl = isProduction 
-        ? 'https://antimetodo.vercel.app/'
+        ? 'https://app.elantimetodo.com/'
         : window.location.origin + '/';
         
       const { data, error } = await supabase.auth.signInWithOAuth({

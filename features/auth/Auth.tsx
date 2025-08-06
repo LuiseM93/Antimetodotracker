@@ -169,13 +169,13 @@ export const AuthScreen: React.FC = () => {
                     <div className="mt-6 text-center text-xs text-[var(--color-text-light)]">
                         <p>
                             Al registrarte, aceptas nuestros{' '}
-                            <a href="/terminos.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
+                            <a href="https://elantimetodo.com/terminos.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
                                 Términos de Servicio
                             </a>
                             {' '}
                             y
                             {' '}
-                            <a href="/privacidad.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
+                            <a href="https://elantimetodo.com/privacidad.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-accent)]">
                                 Política de Privacidad
                             </a>
                             .

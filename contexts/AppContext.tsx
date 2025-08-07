@@ -1316,7 +1316,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     const profileUpdates: Partial<Database['public']['Tables']['profiles']['Update']> = {
         focus_points: newFocusPoints,
         profile_flair_id: updates.profileFlairId,
-        theme: updates.theme
+        theme: updates.theme,
+        unlocked_rewards: newUnlockedRewards
     };
 
     supabase.from('profiles').update(profileUpdates).eq('id', session.user.id).then(({error}) => {
@@ -1447,11 +1448,84 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, []);
 
+    const signInWithPassword = async (credentials: Parameters<typeof supabase.auth.signInWithPassword>[0]) => {
+    if (import.meta.env.DEV && credentials.email === 'dev@local.com' && credentials.password === 'password') {
+      console.log("DEV MODE: Bypassing Supabase auth with mock user.");
+      const MOCK_USER_ID = 'mock-user-id-12345';
+      const MOCK_USER: User = {
+        id: MOCK_USER_ID,
+        app_metadata: { provider: 'email', providers: ['email'] },
+        user_metadata: { full_name: 'Usuario de Prueba' },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        email: 'dev@local.com',
+        email_confirmed_at: new Date().toISOString(),
+        phone: '',
+        last_sign_in_at: new Date().toISOString(),
+        role: 'authenticated',
+        updated_at: new Date().toISOString(),
+      };
+
+      const MOCK_USER_PROFILE: UserProfile = {
+  id: MOCK_USER_ID,
+  username: 'testuser',
+  display_name: 'Usuario de Prueba',
+  email: 'dev@local.com',
+  currentStage: AntimethodStage.TWO,
+  learningLanguages: [Language.JAPANESE, Language.ENGLISH],
+  primaryLanguage: Language.JAPANESE,
+  goals: [],
+  defaultLogDurationSeconds: 1800,
+  defaultLogTimerMode: 'stopwatch',
+  theme: 'dark',
+  favoriteActivities: [],
+  dashboardCardDisplayMode: 'combined',
+  customActivities: [],
+  learningDaysCountByLanguage: {
+    [Language.JAPANESE]: 10,
+    [Language.ENGLISH]: 5,
+  },
+  lastHabitPointsAwardDate: null,
+  focusPoints: 99999, // "Dinero infinito" para pruebas
+  unlockedRewards: [],
+  profileFlairId: null,
+  aboutMe: 'Este es un perfil de prueba para desarrollo local.',
+  socialLinks: {},
+  avatar_url: '/assets/default-avatar.png',
+};
+
+      const MOCK_SESSION: Session = {
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        user: MOCK_USER,
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600 * 1000,
+      };
+      
+      setSession(MOCK_SESSION);
+      setUser(MOCK_USER);
+      setUserProfile(MOCK_USER_PROFILE);
+      setActivityLogs([]);
+      setUserGoals([]);
+      setDailyTargets(DEFAULT_DAILY_GOALS);
+      setResources(INITIAL_RESOURCES);
+      setSavedDailyRoutines([]);
+      setAppTheme(MOCK_USER_PROFILE.theme || DEFAULT_APP_THEME);
+      setIsLoading(false);
+      setIsInitialLoadComplete(true);
+      setIsProfileLoaded(true);
+
+      return { data: { session: MOCK_SESSION, user: MOCK_USER }, error: null };
+    }
+    return supabase.auth.signInWithPassword(credentials);
+  };
+
   return (
     <AppContext.Provider value={{ 
         session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
         isLoading, isInitialLoadComplete, isProfileLoaded, appTheme,
-        signInWithPassword: (credentials) => supabase.auth.signInWithPassword(credentials),
+        signInWithPassword,
         signUp: (credentials) => supabase.auth.signUp(credentials),
         signInWithGoogle,
         signOut,

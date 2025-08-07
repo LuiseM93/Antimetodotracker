@@ -377,7 +377,7 @@ export const LogActivityScreen: React.FC = () => {
             <label htmlFor="activity-select-btn" className="block text-sm font-medium text-[var(--color-text-main)]">Actividad</label>
             <button
                 id="activity-select-btn"
-                onClick={() => !isTimerActive && setIsActivityModalOpen(true)}
+                onClick={() => setIsActivityModalOpen(true)}
                 className={`${inputBaseStyle} text-left flex justify-between items-center`}
                 
             >

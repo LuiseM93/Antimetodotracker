@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -14,6 +12,7 @@ import { STAGE_DETAILS, AVAILABLE_LANGUAGES_FOR_LEARNING, HABIT_POINTS_MAP } fro
 import { ActivityLogEntry, AntimethodStage, Language, AppView, DailyActivityGoal, DashboardCardDisplayMode, UserProfile } from '../../types.ts';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { formatDurationFromSeconds, formatTimeHHMMSS } from '../../utils/timeUtils.ts';
+import { getLocalDateISOString } from '../../utils/dateUtils.ts';
 import { PlayIcon as ReLogIcon } from '../../components/icons/TimerIcons.tsx'; 
 import { PencilIcon } from '../../components/icons/PencilIcon.tsx';
 // StreakCard is removed
@@ -49,7 +48,7 @@ export const DashboardScreen: React.FC = () => {
 
 
   const currentStageDetailsObject = getCurrentStageDetails();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateISOString();
   
   const todaysLogsForPrimaryLang = useMemo(() => {
     if (!userProfile?.primaryLanguage) return [];

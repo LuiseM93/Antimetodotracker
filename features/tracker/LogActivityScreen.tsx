@@ -12,6 +12,7 @@ import { Modal } from '../../components/Modal.tsx';
 import { formatTimeHHMMSS } from '../../utils/timeUtils.ts';
 import { addToOfflineQueue } from '../../services/offlineQueueService.ts';
 import { usePersistentTimer } from '../../hooks/usePersistentTimer.ts';
+import { getLocalDateISOString } from '../../utils/dateUtils.ts';
 
 const inputBaseStyle = "mt-1 block w-full p-2.5 bg-[var(--color-input-bg)] border border-[var(--color-input-border)] rounded-md shadow-sm text-[var(--color-input-text)] placeholder-[var(--color-placeholder-text)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] sm:text-sm";
 
@@ -63,7 +64,7 @@ export const LogActivityScreen: React.FC = () => {
     category: null,
     sub_activity: '',
     customTitle: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateISOString(),
     startTime: new Date().toTimeString().substring(0,5),
     durationMinutes: Math.round((userProfile?.defaultLogDurationSeconds || 1800) / 60),
     notes: ''
@@ -174,7 +175,7 @@ export const LogActivityScreen: React.FC = () => {
       sub_activity: timerState.activityName,
       custom_title: timerState.customTitle.trim() || null,
       duration_seconds: durationToSaveSeconds,
-      date: timerState.capturedDateTime?.date || new Date().toISOString().split('T')[0],
+      date: timerState.capturedDateTime?.date || getLocalDateISOString(),
       start_time: timerState.capturedDateTime?.time || null,
       notes: timerState.notes.trim() || null,
     };
@@ -206,7 +207,7 @@ export const LogActivityScreen: React.FC = () => {
         }
     }
     
-    clear();
+    setTimerMode(defaultTimerState.mode);
     navigate(AppView.DASHBOARD);
   };
   

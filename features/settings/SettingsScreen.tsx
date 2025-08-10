@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
@@ -371,6 +370,11 @@ export const SettingsScreen: React.FC = () => {
                         >
                             <option value="light">Claro (Predeterminado)</option>
                             <option value="dark">Oscuro (Predeterminado)</option>
+                            {availableThemes.map(theme => (
+                                 <option key={theme.id} value={theme.value} disabled={!userProfile.unlockedRewards.includes(theme.id)}>
+                                    {theme.name.replace("Tema: ", "")} {!userProfile.unlockedRewards.includes(theme.id) ? '(Bloqueado)' : ''}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <div>

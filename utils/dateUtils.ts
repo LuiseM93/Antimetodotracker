@@ -1,4 +1,5 @@
 
+
 export function formatDistanceToNow(date: Date): string {
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -33,3 +34,12 @@ export function formatDistanceToNow(date: Date): string {
   }
   return `hace ${Math.floor(seconds)} segundos`;
 }
+
+export const getLocalDateISOString = (): string => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+

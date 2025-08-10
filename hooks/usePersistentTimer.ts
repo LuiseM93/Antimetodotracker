@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { TimerState, TimerMode, Language, ActivityCategory } from '../types';
 import { storageService } from '../services/storageService';
+import { getLocalDateISOString } from '../utils/dateUtils.ts';
 
 const TIMER_STATE_KEY = 'ANTIMETODO_TIMER_STATE_V3';
 
@@ -118,7 +119,7 @@ export const usePersistentTimer = (defaultState: {
         status: 'running',
         startTime: Date.now(),
         capturedDateTime: prev.capturedDateTime || {
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalDateISOString(),
           time: new Date().toTimeString().substring(0, 5),
         },
       };

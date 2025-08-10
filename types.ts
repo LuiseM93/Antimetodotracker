@@ -1,5 +1,8 @@
 
 
+
+import { Json } from "./services/database.types";
+
 export enum Language {
   SPANISH = "Español",
   ENGLISH = "English",
@@ -79,21 +82,27 @@ export interface SocialLinks {
 }
 
 export interface UserProfile {
+  id: string;
   username: string; // Unique username for profiles/social features
   display_name: string; // User's display name
+  email: string;
   currentStage: AntimethodStage;
   learningLanguages: Language[];
   primaryLanguage?: Language; // For quick logging default
   goals: UserGoal[]; // Personalized goals
   defaultLogDurationSeconds?: number;
   defaultLogTimerMode?: TimerMode;
-  theme?: AppTheme; // Added theme preference
+  theme?: AppTheme; // Public theme for profile
+  appTheme?: AppTheme; // Private theme for the app itself
   favoriteActivities?: string[]; // NEW: Array of activity names (using the unique 'name' from ActivityDetailType)
   dashboardCardDisplayMode?: DashboardCardDisplayMode; 
   customActivities?: ActivityDetailType[]; // NEW: To store user-created activities
 
   // Gamification fields
-  learningDaysCountByLanguage: Record<Language, number>;
+  focusPoints: number;
+  unlockedRewards: string[];
+  profileFlairId: string | null;
+  learningDaysByLanguage: Record<Language, number>;
   lastHabitPointsAwardDate: string | null; // Tracks if habit points were awarded for today (overall)
   lastRedeemAttemptTimestamp?: number; // For basic rate limiting on redeem attempts
 
@@ -101,6 +110,7 @@ export interface UserProfile {
   isFollowing?: boolean; // NEW: Indicates if the current user is following this profile
   aboutMe?: string; // NEW: About me section for the profile
   socialLinks?: SocialLinks; // NEW: Social media links
+  avatar_url?: string | null;
 }
 
 export interface UserGoal {
@@ -237,12 +247,7 @@ export interface FeedItem {
   id: number;
   user_id: string;
   type: FeedItemType;
-  content: {
-    hours?: number;
-    language?: Language;
-    reward_name?: string;
-    reward_type?: 'theme' | 'flair' | 'content';
-  };
+  content: Json;
   created_at: string;
   profiles: {
     username: string;

@@ -46,7 +46,7 @@ interface AppContextType {
 
   initializeUserProfile: (profile: UserProfile) => Promise<{ success: boolean; error?: any }>;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
-  updateAppTheme: (theme: AppTheme, fromRewardOrCode?: boolean) => void;
+  updateAppTheme: (theme: AppTheme) => void;
 
   addActivityLog: (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   bulkAddActivityLogs: (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => Promise<void>;
@@ -255,6 +255,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   useEffect(() => {
     const loadData = async () => {
+      if (session?.user?.id === 'mock-user-id-12345') return; // Do not load data for the mock dev user
       if (!session) {
         setIsLoading(false);
         setIsProfileLoaded(true); // Consider profile loaded if no session
@@ -381,14 +382,13 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           }
         } catch (error) {
           console.error("Error processing activity logs:", error);
-          setActivityLogs([]);
         }
       } else {
         setActivityLogs([]);
       }
 
       if (finalProfile) {
-         const profileWithDefaults: UserProfile = {
+        const profileWithDefaults: UserProfile = {
           ...finalProfile,
           focusPoints: finalProfile.focusPoints || 0,
           unlockedRewards: finalProfile.unlockedRewards || [],
@@ -397,7 +397,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           lastRedeemAttemptTimestamp: finalProfile.lastRedeemAttemptTimestamp || undefined,
           defaultLogDurationSeconds: finalProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
           defaultLogTimerMode: finalProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
-          theme: finalProfile.theme ?? DEFAULT_APP_THEME,
+          theme: finalProfile.theme ?? DEFAULT_APP_THEME, // Public theme
+          appTheme: finalProfile.appTheme ?? DEFAULT_APP_THEME, // Private theme
           learningLanguages: finalProfile.learningLanguages || [],
           favoriteActivities: finalProfile.favoriteActivities || [],
           dashboardCardDisplayMode: finalProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
@@ -405,7 +406,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           learningDaysByLanguage: finalProfile.learningDaysByLanguage || {},
         };
         setUserProfile(profileWithDefaults);
-        setAppTheme(profileWithDefaults.theme!); 
+        setAppTheme(profileWithDefaults.appTheme!);
       } else {
         setAppTheme(DEFAULT_APP_THEME);
       }
@@ -471,10 +472,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
-  const updateAppTheme = useCallback((theme: AppTheme, fromRewardOrCode: boolean = false) => {
+  const updateAppTheme = useCallback((theme: AppTheme) => {
     setAppTheme(theme);
-    if (userProfile && !fromRewardOrCode) {
-      const updatedProfile = { ...userProfile, theme };
+    if (userProfile) {
+      // Update the appTheme property specifically
+      const updatedProfile = { ...userProfile, appTheme: theme };
       setUserProfile(updatedProfile);
       storageService.setItem(USER_PROFILE_KEY, updatedProfile);
     }
@@ -488,6 +490,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     
     try {
       const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
+      const initialAppTheme = profile.appTheme ?? DEFAULT_APP_THEME;
 
       const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
           username: profile.username,
@@ -496,6 +499,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           current_stage: profile.currentStage,
           avatar_url: session.user.user_metadata.avatar_url ?? null,
           theme: initialTheme,
+          // appTheme is not a public field, so it's not synced to supabase
           focus_points: profile.focusPoints || 0,
           profile_flair_id: profile.profileFlairId || null,
           learning_languages: profile.learningLanguages || [],
@@ -527,6 +531,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           defaultLogTimerMode: profile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
           primaryLanguage: initialPrimaryLanguage,
           theme: initialTheme,
+          appTheme: initialAppTheme,
           favoriteActivities: profile.favoriteActivities || [],
           dashboardCardDisplayMode: profile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
           goals: (profile.goals || []).map(g => ({ ...g, currentValue: g.currentValue ?? 0, targetValue: g.targetValue ?? 0, unit: g.unit ?? '' })),
@@ -539,7 +544,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           customActivities: profile.customActivities || [],
       };
       setUserProfile(profileWithDefaults);
-      setAppTheme(initialTheme);
+      setAppTheme(initialAppTheme);
       storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
       setUserGoals(profileWithDefaults.goals);
       storageService.setItem(USER_GOALS_KEY, profileWithDefaults.goals);
@@ -554,6 +559,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     setUserProfile(prev => {
       if (!prev) return null;
       let profileInProgress = { ...prev, ...updates };
+      
+      // Ensure collections are always arrays
       profileInProgress.learningLanguages = updates.learningLanguages !== undefined ? updates.learningLanguages : prev.learningLanguages;
       profileInProgress.favoriteActivities = updates.favoriteActivities !== undefined ? updates.favoriteActivities : prev.favoriteActivities;
       profileInProgress.unlockedRewards = updates.unlockedRewards !== undefined ? updates.unlockedRewards : prev.unlockedRewards;
@@ -576,6 +583,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         defaultLogDurationSeconds: profileInProgress.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
         defaultLogTimerMode: profileInProgress.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
         theme: profileInProgress.theme ?? DEFAULT_APP_THEME,
+        appTheme: profileInProgress.appTheme ?? DEFAULT_APP_THEME,
         dashboardCardDisplayMode: profileInProgress.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
         focusPoints: profileInProgress.focusPoints ?? 0,
         profileFlairId: profileInProgress.profileFlairId !== undefined ? profileInProgress.profileFlairId : prev.profileFlairId,
@@ -589,25 +597,29 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
          storageService.setItem(USER_GOALS_KEY, newProfile.goals);
       }
       
-      if (newProfile.theme && (!prev.theme || newProfile.theme !== prev.theme)) {
-        setAppTheme(newProfile.theme);
+      // Only update the visual theme if the appTheme property changes
+      if (newProfile.appTheme && (!prev.appTheme || newProfile.appTheme !== prev.appTheme)) {
+        setAppTheme(newProfile.appTheme);
       }
   
       storageService.setItem(USER_PROFILE_KEY, newProfile);
 
       if (session?.user) {
+        // We don't sync appTheme to supabase as it's a local-only setting
+        const { appTheme, ...updatesForSupabase } = updates;
         const profileUpdatesToSync: Partial<Database['public']['Tables']['profiles']['Update']> = {};
-        if (updates.username !== undefined) profileUpdatesToSync.username = updates.username;
-        if (updates.display_name !== undefined) profileUpdatesToSync.display_name = updates.display_name;
-        if (updates.currentStage !== undefined) profileUpdatesToSync.current_stage = updates.currentStage;
-        if (updates.avatar_url !== undefined) profileUpdatesToSync.avatar_url = updates.avatar_url;
-        if (updates.theme !== undefined) profileUpdatesToSync.theme = updates.theme;
-        if (updates.focusPoints !== undefined) profileUpdatesToSync.focus_points = updates.focusPoints;
-        if (updates.profileFlairId !== undefined) profileUpdatesToSync.profile_flair_id = updates.profileFlairId;
-        if (updates.learningLanguages !== undefined) profileUpdatesToSync.learning_languages = updates.learningLanguages;
-        if (updates.learningDaysByLanguage !== undefined) profileUpdatesToSync.learning_days_by_language = updates.learningDaysByLanguage;
-        if (updates.aboutMe !== undefined) profileUpdatesToSync.about_me = updates.aboutMe;
-        if (updates.socialLinks !== undefined) profileUpdatesToSync.social_links = updates.socialLinks;
+        
+        if (updatesForSupabase.username !== undefined) profileUpdatesToSync.username = updatesForSupabase.username;
+        if (updatesForSupabase.display_name !== undefined) profileUpdatesToSync.display_name = updatesForSupabase.display_name;
+        if (updatesForSupabase.currentStage !== undefined) profileUpdatesToSync.current_stage = updatesForSupabase.currentStage;
+        if (updatesForSupabase.avatar_url !== undefined) profileUpdatesToSync.avatar_url = updatesForSupabase.avatar_url;
+        if (updatesForSupabase.theme !== undefined) profileUpdatesToSync.theme = updatesForSupabase.theme;
+        if (updatesForSupabase.focusPoints !== undefined) profileUpdatesToSync.focus_points = updatesForSupabase.focusPoints;
+        if (updatesForSupabase.profileFlairId !== undefined) profileUpdatesToSync.profile_flair_id = updatesForSupabase.profileFlairId;
+        if (updatesForSupabase.learningLanguages !== undefined) profileUpdatesToSync.learning_languages = updatesForSupabase.learningLanguages;
+        if (updatesForSupabase.learningDaysByLanguage !== undefined) profileUpdatesToSync.learning_days_by_language = updatesForSupabase.learningDaysByLanguage;
+        if (updatesForSupabase.aboutMe !== undefined) profileUpdatesToSync.about_me = updatesForSupabase.aboutMe;
+        if (updatesForSupabase.socialLinks !== undefined) profileUpdatesToSync.social_links = updatesForSupabase.socialLinks;
 
         if (Object.keys(profileUpdatesToSync).length > 0) {
           supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
@@ -1017,7 +1029,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           if (migratedProfile) {
               setUserProfile(migratedProfile);
               storageService.setItem(USER_PROFILE_KEY, migratedProfile);
-              if (migratedProfile.theme) setAppTheme(migratedProfile.theme);
+              if (migratedProfile.appTheme) setAppTheme(migratedProfile.appTheme);
           }
       }
       if (data.userGoals) {
@@ -1304,7 +1316,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         updates.profileFlairId = reward.id;
     }
     if (reward.type === 'theme' && reward.value) {
+        // When a theme is purchased, it becomes the public profile theme AND the active app theme.
         updates.theme = reward.value as AppTheme;
+        updates.appTheme = reward.value as AppTheme;
         setAppTheme(reward.value as AppTheme);
     }
     updateUserProfile(updates);
@@ -1449,75 +1463,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
     const signInWithPassword = async (credentials: Parameters<typeof supabase.auth.signInWithPassword>[0]) => {
-    if (import.meta.env.DEV && credentials.email === 'dev@local.com' && credentials.password === 'password') {
-      console.log("DEV MODE: Bypassing Supabase auth with mock user.");
-      const MOCK_USER_ID = 'mock-user-id-12345';
-      const MOCK_USER: User = {
-        id: MOCK_USER_ID,
-        app_metadata: { provider: 'email', providers: ['email'] },
-        user_metadata: { full_name: 'Usuario de Prueba' },
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        email: 'dev@local.com',
-        email_confirmed_at: new Date().toISOString(),
-        phone: '',
-        last_sign_in_at: new Date().toISOString(),
-        role: 'authenticated',
-        updated_at: new Date().toISOString(),
-      };
-
-      const MOCK_USER_PROFILE: UserProfile = {
-  id: MOCK_USER_ID,
-  username: 'testuser',
-  display_name: 'Usuario de Prueba',
-  email: 'dev@local.com',
-  currentStage: AntimethodStage.TWO,
-  learningLanguages: [Language.JAPANESE, Language.ENGLISH],
-  primaryLanguage: Language.JAPANESE,
-  goals: [],
-  defaultLogDurationSeconds: 1800,
-  defaultLogTimerMode: 'stopwatch',
-  theme: 'dark',
-  favoriteActivities: [],
-  dashboardCardDisplayMode: 'combined',
-  customActivities: [],
-  learningDaysCountByLanguage: {
-    [Language.JAPANESE]: 10,
-    [Language.ENGLISH]: 5,
-  },
-  lastHabitPointsAwardDate: null,
-  focusPoints: 99999, // "Dinero infinito" para pruebas
-  unlockedRewards: [],
-  profileFlairId: null,
-  aboutMe: 'Este es un perfil de prueba para desarrollo local.',
-  socialLinks: {},
-  avatar_url: '/assets/default-avatar.png',
-};
-
-      const MOCK_SESSION: Session = {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        user: MOCK_USER,
-        token_type: 'bearer',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600 * 1000,
-      };
-      
-      setSession(MOCK_SESSION);
-      setUser(MOCK_USER);
-      setUserProfile(MOCK_USER_PROFILE);
-      setActivityLogs([]);
-      setUserGoals([]);
-      setDailyTargets(DEFAULT_DAILY_GOALS);
-      setResources(INITIAL_RESOURCES);
-      setSavedDailyRoutines([]);
-      setAppTheme(MOCK_USER_PROFILE.theme || DEFAULT_APP_THEME);
-      setIsLoading(false);
-      setIsInitialLoadComplete(true);
-      setIsProfileLoaded(true);
-
-      return { data: { session: MOCK_SESSION, user: MOCK_USER }, error: null };
-    }
     return supabase.auth.signInWithPassword(credentials);
   };
 

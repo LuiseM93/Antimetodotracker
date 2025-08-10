@@ -81,9 +81,12 @@ const AuthenticatedAppLayout: React.FC = () => {
 
 // This component determines which part of the application to render based on auth state.
 const AppRoutes: React.FC = () => {
-  const { session, userProfile, isInitialLoadComplete, isProfileLoaded, appTheme } = useAppContext(); // <--- AÑADIR isProfileLoaded
+  const { session, userProfile, isInitialLoadComplete, isProfileLoaded, appTheme } = useAppContext();
 
-  // ... (useEffect de tema y redirección de OAuth)
+  useEffect(() => {
+    // Apply the current theme to the root element
+    document.documentElement.setAttribute('data-theme', appTheme);
+  }, [appTheme]);
 
   if (!isInitialLoadComplete) {
     return (

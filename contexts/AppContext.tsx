@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
 import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem, FeedItemType } from '../types.ts';
 import { storageService } from '../services/storageService.ts';
+import { getLocalDateISOString } from '../utils/dateUtils.ts';
 import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS, LEARNING_DAY_POINTS_AWARD, HABIT_POINTS_MAP, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE, AVAILABLE_REWARDS, ALL_REWARD_DEFINITIONS, HOUR_MILESTONES } from '../constants.ts';
 import { supabase } from '../services/supabaseClient.ts';
 import type { Session, User } from '@supabase/supabase-js';

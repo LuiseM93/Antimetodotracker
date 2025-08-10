@@ -1206,14 +1206,18 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         new Date(current.creationDate) < new Date(oldest) ? current.creationDate : oldest, 
         dailyTargets[0].creationDate
     ));
-    const today = new Date();
-    const daySpan = Math.max(1, Math.round((today.getTime() - habitCreationDate.getTime()) / (1000 * 3600 * 24)));
+    const todayString = getLocalDateISOString();
+    const todayDate = new Date(todayString);
+    const daySpan = Math.max(1, Math.round((todayDate.getTime() - habitCreationDate.getTime()) / (1000 * 3600 * 24)) + 1);
 
     let totalScore = 0;
     for (let i = 0; i < daySpan; i++) {
         const date = new Date(habitCreationDate);
         date.setDate(habitCreationDate.getDate() + i);
-        const dateString = date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
 
         const logsOnThisDay = activityLogs.filter(log => log.date === dateString && log.language === userProfile.primaryLanguage);
 
@@ -1278,7 +1282,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const awardHabitPoints = useCallback((habitHealthPercentageForToday: number) => {
-      if (userProfile?.lastHabitPointsAwardDate === new Date().toISOString().split('T')[0]) {
+      if (userProfile?.lastHabitPointsAwardDate === getLocalDateISOString()) {
           return;
       }
       
@@ -1291,7 +1295,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       if (pointsToAward > 0) {
           updateUserProfile({ 
               focusPoints: (userProfile?.focusPoints || 0) + pointsToAward,
-              lastHabitPointsAwardDate: new Date().toISOString().split('T')[0],
+              lastHabitPointsAwardDate: getLocalDateISOString(),
           });
       }
   }, [userProfile, updateUserProfile]);

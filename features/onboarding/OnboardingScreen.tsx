@@ -81,8 +81,7 @@ export const OnboardingScreen: React.FC = () => {
     const result = await initializeUserProfile(profileData);
 
     if (result.success) {
-        // Recarga la aplicación completa para asegurar que el nuevo perfil se cargue en todas partes.
-        window.location.reload();
+        navigate('/dashboard');
     } else {
         if (result.error && result.error.message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
             setError("Ese nombre de usuario ya está en uso. Por favor, elige otro.");

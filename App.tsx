@@ -127,7 +127,7 @@ const AppRoutes: React.FC = () => {
         );
     }
 
-    if (!userProfile || !userProfile.learning_languages || userProfile.learning_languages.length === 0) {
+    if (!userProfile || !userProfile.username || !userProfile.display_name) {
       return <OnboardingScreen />;
     }
     return <AuthenticatedAppLayout />;

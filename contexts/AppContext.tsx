@@ -321,36 +321,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       finalProfile = profileFromSupabase || profileFromLocalStorage;
 
-      if (!finalProfile && session?.user) {
-        console.log("No profile found, creating default profile.");
-        finalProfile = {
-          id: session.user.id,
-          username: session.user.user_metadata.user_name || session.user.email?.split('@')[0] || '',
-          display_name: session.user.user_metadata.full_name || session.user.email || '',
-          email: session.user.email || '',
-          currentStage: 'stage_1',
-          avatar_url: session.user.user_metadata.avatar_url || null,
-          theme: DEFAULT_APP_THEME,
-          focusPoints: 0,
-          profileFlairId: null,
-          learningLanguages: [],
-          learningDaysByLanguage: {},
-          lastHabitPointsAwardDate: null,
-          lastRedeemAttemptTimestamp: undefined,
-          defaultLogDurationSeconds: DEFAULT_LOG_DURATION_SECONDS,
-          defaultLogTimerMode: DEFAULT_LOG_TIMER_MODE,
-          favoriteActivities: [],
-          dashboardCardDisplayMode: DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-          customActivities: [],
-          primaryLanguage: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
-          goals: [],
-          unlockedRewards: [],
-          aboutMe: '',
-          socialLinks: {},
-        };
-        await initializeUserProfile(finalProfile);
-      }
-
       if (session?.user) {
         try {
           const { data: logs, error } = await supabase

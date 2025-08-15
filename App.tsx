@@ -85,23 +85,19 @@ const AppRoutes: React.FC = () => {
 
   useEffect(() => {
     const htmlElement = document.documentElement;
-    // Remove all existing theme classes
-    htmlElement.classList.remove('dark', 'theme-zen', 'theme-neon', 'theme-ocean', 'theme-japan-neon', 'theme-cafe-parisien', 'theme-fiesta-brasil');
+    
+    // A comprehensive list of all possible theme classes.
+    const allPossibleThemes = ['dark', 'theme-zen', 'theme-neon', 'theme-ocean', 'theme-japan-neon', 'theme-cafe-parisien', 'theme-fiesta-brasil'];
 
-    // Apply the new theme class
-    if (appTheme === 'dark') {
-      htmlElement.classList.add('dark');
-    } else if (appTheme !== 'light') { // Custom themes
-      htmlElement.classList.add(`theme-${appTheme}`);
+    // Remove any existing theme class before applying the new one.
+    allPossibleThemes.forEach(theme => {
+      htmlElement.classList.remove(theme);
+    });
+
+    // Apply the new theme class if it's not the default 'light' theme.
+    if (appTheme && appTheme !== 'light') {
+      htmlElement.classList.add(appTheme);
     }
-
-    // Handle dark mode for custom themes if applicable
-    // This assumes custom themes might have a 'dark' variant defined in CSS
-    // If the system preference is dark and the appTheme is not explicitly 'light',
-    // or if the appTheme is 'dark' or a custom theme that supports dark mode,
-    // we might need to add the 'dark' class in addition to the custom theme class.
-    // For now, we'll rely on the CSS definitions like html.dark.theme-zen
-
   }, [appTheme]);
 
   if (!isInitialLoadComplete) {

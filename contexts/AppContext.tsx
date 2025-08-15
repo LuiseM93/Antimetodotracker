@@ -311,6 +311,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               primaryLanguage: profileFromLocalStorage?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
               goals: profileFromLocalStorage?.goals || [],
               unlockedRewards: supabaseProfileData.unlocked_rewards || [],
+              appTheme: profileFromLocalStorage?.appTheme ?? (supabaseProfileData.theme as AppTheme) ?? DEFAULT_APP_THEME,
             };
             storageService.setItem(USER_PROFILE_KEY, profileFromSupabase);
           }

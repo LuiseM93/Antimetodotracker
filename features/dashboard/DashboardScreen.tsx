@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../contexts/AppContext.tsx';
+import { FocusCard } from './FocusCard.tsx';
 import { Card } from '../../components/Card.tsx';
 import { Button } from '../../components/Button.tsx';
 import { PlusCircleIcon } from '../../components/icons/PlusCircleIcon.tsx';
@@ -271,13 +272,11 @@ export const DashboardScreen: React.FC = () => {
 
 
       {currentStageDetailsObject && (
-        <Card 
+        <FocusCard 
           title="Tu Enfoque Actual" 
-          className={`bg-[var(--color-light-purple)] bg-opacity-30 border border-[var(--color-secondary)]`}
-        >
-          <p className={`text-lg font-semibold text-[var(--color-secondary)] mb-1`}>{currentStageDetailsObject.objective}</p>
-          <p className={`text-sm text-[var(--color-text-main)]`}>{currentStageDetailsObject.description}</p>
-        </Card>
+          objective={currentStageDetailsObject.objective}
+          description={currentStageDetailsObject.description}
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

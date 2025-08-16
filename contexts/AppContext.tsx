@@ -14,7 +14,6 @@ const USER_GOALS_KEY = 'ANTIMETODO_USER_GOALS_V2';
 const DAILY_TARGETS_KEY = 'ANTIMETODO_DAILY_TARGETS_V4';
 const APP_RESOURCES_KEY = 'ANTIMETODO_APP_RESOURCES';
 const SAVED_DAILY_ROUTINES_KEY = 'ANTIMETODO_SAVED_DAILY_ROUTINES_V2';
-const PENDING_ACTIVITY_LOGS_KEY = 'ANTIMETODO_PENDING_ACTIVITY_LOGS_V1';
 
 const OLD_USER_PROFILE_KEYS = ['ANTIMETODO_USER_PROFILE_V4', 'ANTIMETODO_USER_PROFILE_V3', 'ANTIMETODO_USER_PROFILE_V2', 'ANTIMETODO_USER_PROFILE'];
 const OLD_ACTIVITY_LOGS_KEYS = ['ANTIMETODO_ACTIVITY_LOGS_V2', 'ANTIMETODO_ACTIVITY_LOGS']; 
@@ -208,26 +207,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
-  const [pendingActivityLogs, setPendingActivityLogs] = useState<ActivityLogEntry[]>([]);
-
-  const allActivityLogs = useMemo(() => {
-    const activityMap = new Map<string, ActivityLogEntry>();
-
-    // Add synced logs first
-    activityLogs.forEach(log => activityMap.set(log.id, log));
-
-    // Overwrite with pending logs if they have the same temporary ID, or add them if they are new
-    pendingActivityLogs.forEach(log => activityMap.set(log.id, log));
-
-    const combined = Array.from(activityMap.values());
-    
-    return combined.sort((a, b) => {
-        const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
-        if (dateComparison !== 0) return dateComparison;
-        // If dates are the same, sort by creation time, assuming it exists.
-        return (b.created_at && a.created_at) ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() : 0;
-    });
-  }, [activityLogs, pendingActivityLogs]);
 
   useEffect(() => {
     let mounted = true;
@@ -278,12 +257,14 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => {
     const loadData = async () => {
       if (session?.user?.id === 'mock-user-id-12345') return; // Do not load data for the mock dev user
+      if (!session) {
+        setIsLoading(false);
+        setIsProfileLoaded(true); // Consider profile loaded if no session
+        return;
+      }
       setIsLoading(true);
       setIsProfileLoaded(false);
       
-      const storedPendingLogs = storageService.getItem<ActivityLogEntry[]>(PENDING_ACTIVITY_LOGS_KEY, []);
-      setPendingActivityLogs(storedPendingLogs);
-
       const storedGoals = loadDataWithMigration<UserGoal[]>(USER_GOALS_KEY, OLD_USER_GOALS_KEYS, []);
       const storedTargets = loadDataWithMigration<DailyActivityGoal[]>(DAILY_TARGETS_KEY, OLD_DAILY_TARGETS_KEYS, DEFAULT_DAILY_GOALS, migrateDailyTargets);
       const storedSavedRoutines = loadDataWithMigration<SavedDailyRoutine[]>(SAVED_DAILY_ROUTINES_KEY, OLD_SAVED_ROUTINES_KEYS, [], migrateSavedRoutines);
@@ -415,41 +396,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       loadData();
     }
   }, [isInitialLoadComplete, session?.user?.id]);
-
-  useEffect(() => {
-    const syncPendingLogs = async () => {
-      if (pendingActivityLogs.length > 0 && session?.user) {
-        console.log(`Attempting to sync ${pendingActivityLogs.length} pending logs.`);
-        
-        const logsToInsert = pendingActivityLogs.map(({ id, created_at, user_id, ...rest }) => ({
-          ...rest,
-          user_id: session.user.id,
-        }));
-
-        const { error } = await supabase.from('activity_logs').insert(logsToInsert);
-
-        if (error) {
-          console.error('Failed to sync pending logs. They will be retried later.', error);
-        } else {
-          console.log('Pending logs synced successfully.');
-          setPendingActivityLogs([]);
-          storageService.removeItem(PENDING_ACTIVITY_LOGS_KEY);
-          // Refresh the main log list to get proper IDs and timestamps
-          const { data: logs } = await supabase
-            .from('activity_logs')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('date', { ascending: false })
-            .order('created_at', { ascending: false });
-          if (logs) {
-            setActivityLogs(logs as ActivityLogEntry[]);
-          }
-        }
-      }
-    };
-
-    syncPendingLogs();
-  }, [session]);
   
   const signInWithGoogle = async () => {
     try {
@@ -660,102 +606,88 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [setAppTheme, setUserGoals, session]);
 
   const addActivityLog = useCallback(async (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => {
-    if (session?.user) {
-      try {
-        const { data: previousLogs, error: previousLogsError } = await supabase
-            .from('activity_logs')
-            .select('duration_seconds')
-            .eq('user_id', session.user.id)
-            .eq('language', logData.language);
+    if (!session?.user) {
+      console.error("No user session found to add activity log.");
+      return;
+    }
 
-        if (previousLogsError) {
-          console.error("Could not fetch previous logs for milestone check", previousLogsError);
-        }
-        const previousTotalSeconds = previousLogs?.reduce((sum, log) => sum + log.duration_seconds, 0) || 0;
-
-        const logToInsert: Database['public']['Tables']['activity_logs']['Insert'] = {
-           language: logData.language,
-           category: logData.category,
-           sub_activity: logData.sub_activity,
-           duration_seconds: logData.duration_seconds,
-           date: logData.date,
-           custom_title: logData.custom_title || null,
-           start_time: logData.start_time || null,
-           notes: logData.notes || null,
-           user_id: session.user.id
-        };
-
-        const { data: newLog, error } = await supabase
+    try {
+      const { data: previousLogs, error: previousLogsError } = await supabase
           .from('activity_logs')
-          .insert(logToInsert)
-          .select()
-          .single();
+          .select('duration_seconds')
+          .eq('user_id', session.user.id)
+          .eq('language', logData.language);
 
-        if (error || !newLog) {
-          console.error("Error adding activity log:", error);
-          return; // Early return on error
-        }
-        
-        setActivityLogs(prevLogs => [newLog as ActivityLogEntry, ...prevLogs]);
-        
-        const currentTotalSeconds = previousTotalSeconds + newLog.duration_seconds;
-        const milestoneHoursCrossed = HOUR_MILESTONES.find(
-            milestone => (previousTotalSeconds / 3600) < milestone && (currentTotalSeconds / 3600) >= milestone
-        );
-        if (milestoneHoursCrossed) {
-            await createFeedItem('milestone_achieved', { hours: milestoneHoursCrossed, language: newLog.language });
-        }
-
-        setUserProfile(prevProfile => {
-          if (!prevProfile) return null;
-          
-          const newLearningDaysByLanguage = { ...(prevProfile.learningDaysByLanguage || {}) };
-          const language = newLog.language;
-          const isNewDay = !activityLogs.some(log => log.language === language && log.date === newLog.date);
-
-          if (isNewDay) {
-              newLearningDaysByLanguage[language] = (newLearningDaysByLanguage[language] || 0) + 1;
-          }
-
-          const updatedProfile = {
-            ...prevProfile,
-            focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
-            learningDaysByLanguage: newLearningDaysByLanguage,
-          };
-          
-          if (isNewDay) {
-              supabase.from('profiles').update({ learning_days_by_language: updatedProfile.learningDaysByLanguage }).eq('id', session.user!.id)
-                  .then(({ error }) => {
-                    if (error) console.error("Error syncing learning_days_by_language to Supabase:", error);
-                  });
-          }
-
-          storageService.setItem(USER_PROFILE_KEY, updatedProfile);
-          return updatedProfile;
-        });
-      } catch (error) {
-        console.error("Error in addActivityLog (online mode):", error);
+      if (previousLogsError) {
+        console.error("Could not fetch previous logs for milestone check", previousLogsError);
       }
-    } else {
-      // Offline mode
-      console.log("App is offline. Queuing activity log locally.");
-      const newPendingLog: ActivityLogEntry = {
-        ...logData,
-        id: `pending_${new Date().toISOString()}`,
-        user_id: userProfile?.id || 'offline_user',
-        created_at: new Date().toISOString(),
-        notes: logData.notes || null,
-        custom_title: logData.custom_title || null,
-        start_time: logData.start_time || null,
+      const previousTotalSeconds = previousLogs?.reduce((sum, log) => sum + log.duration_seconds, 0) || 0;
+
+      const logToInsert: Database['public']['Tables']['activity_logs']['Insert'] = {
+         language: logData.language,
+         category: logData.category,
+         sub_activity: logData.sub_activity,
+         duration_seconds: logData.duration_seconds,
+         date: logData.date,
+         custom_title: logData.custom_title || null,
+         start_time: logData.start_time || null,
+         notes: logData.notes || null,
+         user_id: session.user.id
       };
 
-      setPendingActivityLogs(prevPendingLogs => {
-        const updatedPendingLogs = [...prevPendingLogs, newPendingLog];
-        storageService.setItem(PENDING_ACTIVITY_LOGS_KEY, updatedPendingLogs);
-        return updatedPendingLogs;
+      const { data: newLog, error } = await supabase
+        .from('activity_logs')
+        .insert(logToInsert)
+        .select()
+        .single();
+
+      if (error || !newLog) {
+        console.error("Error adding activity log:", error);
+        return;
+      }
+      
+      const newLogs = [(newLog as ActivityLogEntry), ...activityLogs];
+      setActivityLogs(newLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      
+      const currentTotalSeconds = previousTotalSeconds + newLog.duration_seconds;
+      const milestoneHoursCrossed = HOUR_MILESTONES.find(
+          milestone => (previousTotalSeconds / 3600) < milestone && (currentTotalSeconds / 3600) >= milestone
+      );
+      if (milestoneHoursCrossed) {
+          await createFeedItem('milestone_achieved', { hours: milestoneHoursCrossed, language: newLog.language });
+      }
+
+      setUserProfile(prevProfile => {
+        if (!prevProfile) return null;
+        
+        const newLearningDaysByLanguage = { ...(prevProfile.learningDaysByLanguage || {}) };
+        const language = newLog.language;
+        const isNewDay = !activityLogs.some(log => log.language === language && log.date === newLog.date);
+
+        if (isNewDay) {
+            newLearningDaysByLanguage[language] = (newLearningDaysByLanguage[language] || 0) + 1;
+        }
+
+        const updatedProfile = {
+          ...prevProfile,
+          focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
+          learningDaysByLanguage: newLearningDaysByLanguage,
+        };
+        
+        if (isNewDay) {
+            supabase.from('profiles').update({ learning_days_by_language: updatedProfile.learningDaysByLanguage }).eq('id', session.user!.id)
+                .then(({ error }) => {
+                  if (error) console.error("Error syncing learning_days_by_language to Supabase:", error);
+                });
+        }
+
+        storageService.setItem(USER_PROFILE_KEY, updatedProfile);
+        return updatedProfile;
       });
+    } catch (error) {
+      console.error("Error in addActivityLog:", error);
     }
-  }, [session, userProfile, activityLogs, createFeedItem]);
+  }, [session, activityLogs]);
 
   const bulkAddActivityLogs = useCallback(async (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => {
     if (!session?.user) {
@@ -1512,7 +1444,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   return (
     <AppContext.Provider value={{ 
-        session, user, userProfile, activityLogs: allActivityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
+        session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
         isLoading, isInitialLoadComplete, isProfileLoaded, appTheme,
         signInWithPassword,
         signUp: (credentials) => supabase.auth.signUp(credentials),

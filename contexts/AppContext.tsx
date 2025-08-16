@@ -395,7 +395,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     if (isInitialLoadComplete) {
       loadData();
     }
-  }, [isInitialLoadComplete, session]);
+  }, [isInitialLoadComplete, session?.user?.id]);
   
   const signInWithGoogle = async () => {
     try {

@@ -234,7 +234,9 @@ export const OnboardingScreen: React.FC = () => {
              <div className="p-4 rounded-lg bg-[var(--color-light-purple)] bg-opacity-30 mb-6 text-left">
                 <p className={`text-sm text-[var(--color-text-light)]`}>Idioma: <strong className={`text-[var(--color-secondary)]`}>{testResult.answers.language}</strong></p>
                 <p className={`text-sm text-[var(--color-text-light)]`}>Etapa Sugerida: <strong className={`text-[var(--color-secondary)]`}>{STAGE_DETAILS[testResult.stage]?.name || `Etapa ${testResult.stage}`}</strong></p>
+                {testResult.justification && (
                 <p className={`text-xs text-[var(--color-text-light)] mt-1`}><em>Justificación: {testResult.justification}</em></p>
+              )}
              </div>
 
              <div className="space-y-4 text-left">

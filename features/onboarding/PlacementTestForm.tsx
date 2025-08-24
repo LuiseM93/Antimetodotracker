@@ -81,7 +81,7 @@ export const PlacementTestForm: React.FC<PlacementTestFormProps> = ({ onTestComp
         
         result = {
             stage: calculatedStage, // This will be ONE, TWO, THREE, or FOUR
-            justification: "Evaluación local simplificada. Para una recomendación más precisa, por favor configura la API Key de Gemini."
+            justification: ""
         };
       }
       
@@ -122,11 +122,7 @@ export const PlacementTestForm: React.FC<PlacementTestFormProps> = ({ onTestComp
           </a>.
         </p>
       </div>
-      {!geminiService.isConfigured() && (
-        <div className={`mb-4 p-3 rounded-md bg-[var(--color-warning)] bg-opacity-20 text-[var(--color-warning)] border border-[var(--color-warning)]`}>
-          <p className="text-sm">La API de Gemini no está configurada. Se utilizará una evaluación simplificada.</p>
-        </div>
-      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         {PLACEMENT_TEST_QUESTIONS.map(q => (
           <div key={q.id}>

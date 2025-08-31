@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { ActivityReportCharts } from './ActivityReportCharts';
 import { HourMilestonesCard } from './HourMilestonesCard';
+import { AnnualHeatmap } from './AnnualHeatmap';
 import { UserGoal, Language, ActivityLogEntry } from '../../types.ts';
 import { Button } from '../../components/Button.tsx';
 import { Modal } from '../../components/Modal.tsx';
@@ -188,6 +189,8 @@ export const TrackerScreen: React.FC = () => {
         activityLogs={activityLogs} 
         selectedLanguage={selectedLanguage} 
       />
+
+      <AnnualHeatmap logs={activityLogs} selectedLanguage={selectedLanguage} />
 
       <ActivityReportCharts logs={activityLogs} selectedLanguage={selectedLanguage} />
       

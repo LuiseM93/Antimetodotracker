@@ -9,6 +9,7 @@ const inputBaseStyle = "w-full px-4 py-3 bg-[var(--color-input-bg)] border borde
 export const AuthScreen: React.FC = () => {
     const { signInWithPassword, signUp, signInWithGoogle } = useAppContext();
     const [isLoginView, setIsLoginView] = useState(true);
+    const [showEmailSignUp, setShowEmailSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -39,6 +40,7 @@ export const AuthScreen: React.FC = () => {
             } else if (!isLoginView && authResponse.data?.user && !authResponse.data?.session) {
                 // Sign up successful but needs email confirmation
                 setError("Cuenta creada exitosamente. Por favor, revisa tu email para confirmar tu cuenta.");
+                setShowEmailSignUp(false); // Hide form on success
             }
             // On success, the onAuthStateChange listener in AppContext will handle the session update.
         } catch (err: any) {
@@ -58,6 +60,7 @@ export const AuthScreen: React.FC = () => {
             if (error) {
                 console.error('Google sign in error:', error);
                 setError(error.message);
+                setLoading(false); // Stop loading on error
             }
             // Note: For OAuth, the redirect happens automatically, so we don't set loading to false here
             // unless there's an error
@@ -67,6 +70,149 @@ export const AuthScreen: React.FC = () => {
             setLoading(false);
         }
     };
+    
+    const renderLoginView = () => (
+        <>
+            <p className="text-center text-sm text-[var(--color-text-light)] mb-4">
+                ⭐ Recomendado: La forma más rápida y segura.
+            </p>
+            <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                leftIcon={<GoogleIcon />}
+                disabled={loading}
+            >
+                Google
+            </Button>
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-[var(--color-border-light)]" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-[var(--color-card-bg)] text-[var(--color-text-light)]">O continúa con</span>
+                </div>
+            </div>
+            <form onSubmit={handleAuthAction} className="space-y-4">
+                <div>
+                    <label htmlFor="email-login" className="sr-only">Email</label>
+                    <input
+                        id="email-login"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email"
+                        required
+                        className={inputBaseStyle}
+                        disabled={loading}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="password-login" className="sr-only">Contraseña</label>
+                    <input
+                        id="password-login"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Contraseña"
+                        required
+                        minLength={6}
+                        className={inputBaseStyle}
+                        disabled={loading}
+                    />
+                </div>
+                <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    isLoading={loading}
+                    disabled={loading}
+                >
+                    {loading ? 'Procesando...' : 'Iniciar Sesión'}
+                </Button>
+            </form>
+        </>
+    );
+
+    const renderSignUpView = () => (
+        <>
+            <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                leftIcon={<GoogleIcon />}
+                disabled={loading}
+            >
+                Continuar con Google
+            </Button>
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-[var(--color-border-light)]" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-[var(--color-card-bg)] text-[var(--color-text-light)]">o</span>
+                </div>
+            </div>
+            
+            {showEmailSignUp ? (
+                <form onSubmit={handleAuthAction} className="space-y-4">
+                    <div>
+                        <label htmlFor="email-signup" className="sr-only">Email</label>
+                        <input
+                            id="email-signup"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Email"
+                            required
+                            className={inputBaseStyle}
+                            disabled={loading}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="password-signup" className="sr-only">Contraseña</label>
+                        <input
+                            id="password-signup"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Contraseña (mín. 6 caracteres)"
+                            required
+                            minLength={6}
+                            className={inputBaseStyle}
+                            disabled={loading}
+                        />
+                    </div>
+                     <p className="text-xs text-center text-[var(--color-text-light)] pt-2">
+                        💡 Nota: No tenemos recuperación de contraseña para cuentas de email. ¡Te recomendamos usar Google!
+                    </p>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        className="w-full"
+                        isLoading={loading}
+                        disabled={loading}
+                    >
+                        {loading ? 'Creando cuenta...' : 'Crear Cuenta con Email'}
+                    </Button>
+                </form>
+            ) : (
+                <div className="text-center">
+                    <button
+                        onClick={() => setShowEmailSignUp(true)}
+                        className="font-medium text-[var(--color-accent)] hover:underline"
+                        disabled={loading}
+                    >
+                        ¿Prefieres usar tu email? Regístrate aquí.
+                    </button>
+                </div>
+            )}
+        </>
+    );
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)]">
@@ -92,65 +238,7 @@ export const AuthScreen: React.FC = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleAuthAction} className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="sr-only">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Email"
-                                required
-                                className={inputBaseStyle}
-                                disabled={loading}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">Contraseña</label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Contraseña"
-                                required
-                                minLength={6}
-                                className={inputBaseStyle}
-                                disabled={loading}
-                            />
-                        </div>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="lg"
-                            className="w-full"
-                            isLoading={loading}
-                            disabled={loading}
-                        >
-                            {loading ? 'Procesando...' : (isLoginView ? 'Iniciar Sesión' : 'Crear Cuenta')}
-                        </Button>
-                    </form>
-
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-[var(--color-border-light)]" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-[var(--color-card-bg)] text-[var(--color-text-light)]">O continúa con</span>
-                        </div>
-                    </div>
-                    
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full"
-                        onClick={handleGoogleSignIn}
-                        leftIcon={<GoogleIcon />}
-                        disabled={loading}
-                    >
-                        Google
-                    </Button>
+                    {isLoginView ? renderLoginView() : renderSignUpView()}
 
                     <p className="mt-6 text-center text-sm">
                         {isLoginView ? '¿No tienes una cuenta?' : '¿Ya tienes una cuenta?'}
@@ -158,6 +246,9 @@ export const AuthScreen: React.FC = () => {
                             onClick={() => {
                                 setIsLoginView(!isLoginView);
                                 setError(null);
+                                setShowEmailSignUp(false); // Reset view state
+                                setEmail('');
+                                setPassword('');
                             }}
                             className="font-medium text-[var(--color-accent)] hover:underline ml-1"
                             disabled={loading}

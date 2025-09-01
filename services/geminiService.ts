@@ -4,7 +4,7 @@ import { PlacementTestAnswers, GeminiPlacementResponse, AntimethodStage } from '
 import { STAGE_DETAILS, API_KEY_WARNING, PREDEFINED_TIPS_BY_STAGE } from "../constants.ts";
 
 // Safely access API_KEY
-const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 let ai: GoogleGenAI | null = null;
 if (API_KEY) {

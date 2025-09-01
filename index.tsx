@@ -1,3 +1,4 @@
+import './index.css';
 // @ts-nocheck
 window.addEventListener('error', e => {
   if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {

@@ -57,7 +57,9 @@ export const LogActivityScreen: React.FC = () => {
     customTitle: string,
     date: string,
     startTime: string,
+    durationHours: number,
     durationMinutes: number,
+    durationSeconds: number,
     notes: string
   }>({
     language: userProfile?.primaryLanguage || (userProfile?.learningLanguages && userProfile.learningLanguages.length > 0 ? userProfile.learningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language),
@@ -66,7 +68,9 @@ export const LogActivityScreen: React.FC = () => {
     customTitle: '',
     date: getLocalDateISOString(),
     startTime: new Date().toTimeString().substring(0,5),
+    durationHours: 0,
     durationMinutes: Math.round((userProfile?.defaultLogDurationSeconds || 1800) / 60),
+    durationSeconds: 0,
     notes: ''
   });
 
@@ -94,6 +98,11 @@ export const LogActivityScreen: React.FC = () => {
             
             setIsEditing(true);
             setCurrentLogEntry(logToEdit);
+            const totalSeconds = logToEdit.duration_seconds;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
             setManualForm({
                 language: logToEdit.language,
                 category: logToEdit.category,
@@ -101,7 +110,9 @@ export const LogActivityScreen: React.FC = () => {
                 customTitle: logToEdit.custom_title || '',
                 date: logToEdit.date,
                 startTime: logToEdit.start_time || new Date().toTimeString().substring(0,5),
-                durationMinutes: Math.round(logToEdit.duration_seconds / 60),
+                durationHours: hours,
+                durationMinutes: minutes,
+                durationSeconds: seconds,
                 notes: logToEdit.notes || ''
             });
             setIsManualLogModalOpen(true);
@@ -213,12 +224,12 @@ export const LogActivityScreen: React.FC = () => {
   
   const handleSaveManualLog = async () => {
     const finalSubActivity = manualForm.sub_activity.trim();
-    if (!manualForm.category || !finalSubActivity || finalSubActivity === "Ninguna seleccionada" || manualForm.durationMinutes <= 0) {
+    const durationInSeconds = (manualForm.durationHours * 3600) + (manualForm.durationMinutes * 60) + manualForm.durationSeconds;
+
+    if (!manualForm.category || !finalSubActivity || finalSubActivity === "Ninguna seleccionada" || durationInSeconds <= 0) {
         alert("Completa la categoría, sub-actividad y asegúrate que la duración sea positiva.");
         return;
     }
-    
-    const durationInSeconds = manualForm.durationMinutes * 60;
     
     const isPredefined = ANTIMETHOD_ACTIVITIES_DETAILS.some(a => a.name === finalSubActivity);
     if (!isPredefined) {
@@ -509,8 +520,21 @@ export const LogActivityScreen: React.FC = () => {
                     </div>
                 </div>
                 <div>
-                    <label htmlFor="manual-duration" className="block text-sm font-medium text-[var(--color-text-main)]">Duración (minutos)</label>
-                    <input type="number" id="manual-duration" min="1" value={manualForm.durationMinutes} onChange={e => setManualForm(p => ({...p, durationMinutes: Number(e.target.value)}))} className={inputBaseStyle}/>
+                  <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Duración</label>
+                  <div className="grid grid-cols-3 gap-2">
+                      <div>
+                          <label htmlFor="manual-duration-h" className="block text-xs font-medium text-[var(--color-text-light)]">Horas</label>
+                          <input type="number" id="manual-duration-h" min="0" value={manualForm.durationHours} onChange={e => setManualForm(p => ({...p, durationHours: Number(e.target.value) || 0}))} className={inputBaseStyle}/>
+                      </div>
+                      <div>
+                          <label htmlFor="manual-duration-m" className="block text-xs font-medium text-[var(--color-text-light)]">Minutos</label>
+                          <input type="number" id="manual-duration-m" min="0" max="59" value={manualForm.durationMinutes} onChange={e => setManualForm(p => ({...p, durationMinutes: Number(e.target.value) || 0}))} className={inputBaseStyle}/>
+                      </div>
+                      <div>
+                          <label htmlFor="manual-duration-s" className="block text-xs font-medium text-[var(--color-text-light)]">Segundos</label>
+                          <input type="number" id="manual-duration-s" min="0" max="59" value={manualForm.durationSeconds} onChange={e => setManualForm(p => ({...p, durationSeconds: Number(e.target.value) || 0}))} className={inputBaseStyle}/>
+                      </div>
+                  </div>
                 </div>
                 <div>
                     <label htmlFor="manual-notes" className="block text-sm font-medium text-[var(--color-text-main)]">Notas (Opcional)</label>

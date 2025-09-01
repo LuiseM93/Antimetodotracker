@@ -134,18 +134,26 @@ export const FeedItemCard: React.FC<{ item: FeedItem, onDelete: (itemId: string)
             await supabase.from('feed_item_likes').delete().match({ feed_item_id: item.id });
 
             // Luego, eliminar la publicación principal.
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('feed_items')
                 .delete()
-                .match({ id: item.id });
+                .match({ id: item.id })
+                .select(); // Needed to get the deleted rows back
 
             if (error) {
                 throw error;
             }
+
+            // If data is empty, it means RLS prevented the deletion.
+            if (!data || data.length === 0) {
+                throw new Error("La política de seguridad de la base de datos (RLS) no permitió el borrado.");
+            }
+
             onDelete(item.id);
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Ocurrió un error inesperado.";
             console.error("Error deleting feed item:", error);
-            alert("No se pudo eliminar la publicación. Por favor, inténtalo de nuevo.");
+            alert(`No se pudo eliminar la publicación: ${errorMessage}`);
         } finally {
             setIsDeleting(false);
         }

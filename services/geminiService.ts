@@ -19,6 +19,8 @@ export const geminiService = {
   isConfigured: (): boolean => !!ai,
 
   getPlacementSuggestion: async (answers: PlacementTestAnswers): Promise<GeminiPlacementResponse | null> => {
+    const fallbackJustification = "Basado en tus respuestas, esta es nuestra recomendación inicial. ¡Puedes ajustarla si lo consideras necesario!";
+
     if (!ai) {
       console.warn("Gemini API not configured for placement. Returning default placement.");
       // Fallback for when API key is not available
@@ -40,7 +42,7 @@ export const geminiService = {
         calculatedStage = AntimethodStage.ONE;
       }
 
-      return { stage: calculatedStage, justification: "Evaluación local simplificada. Para una recomendación más precisa, por favor configura la API Key de Gemini." };
+      return { stage: calculatedStage, justification: fallbackJustification };
     }
 
     const prompt = `
@@ -99,7 +101,7 @@ export const geminiService = {
 
     } catch (error) {
       console.error("Error getting placement suggestion from Gemini API:", error);
-      return { stage: AntimethodStage.ONE, justification: "Error al contactar el servicio de IA. Se asignó la etapa inicial (Etapa 1). Puedes ajustarla manualmente." };
+      return { stage: AntimethodStage.ONE, justification: fallbackJustification };
     }
   },
 

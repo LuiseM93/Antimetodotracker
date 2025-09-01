@@ -333,7 +333,6 @@ export const ActivityReportCharts: React.FC<ActivityReportChartsProps> = ({ logs
                     ))}
                   </Pie>
                   <Tooltip {...tooltipProps} formatter={(value: number, name: string) => [`${(value/3600).toFixed(1)} horas (${((value / filteredLogs.reduce((acc, log) => acc + log.duration_seconds, 0)) * 100).toFixed(1)}%)`, name]} />
-                  <Legend {...legendProps} verticalAlign="bottom" height={36} iconSize={10}/>
                 </PieChart>
               </ResponsiveContainer>
               <div className="max-h-[300px] overflow-y-auto pr-2 text-sm">

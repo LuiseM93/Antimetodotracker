@@ -100,6 +100,7 @@ export const AuthScreen: React.FC = () => {
                     <input
                         id="email-login"
                         type="email"
+                        autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Email"
@@ -113,6 +114,7 @@ export const AuthScreen: React.FC = () => {
                     <input
                         id="password-login"
                         type="password"
+                        autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Contraseña"
@@ -164,6 +166,7 @@ export const AuthScreen: React.FC = () => {
                         <input
                             id="email-signup"
                             type="email"
+                            autoComplete="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email"
@@ -177,6 +180,7 @@ export const AuthScreen: React.FC = () => {
                         <input
                             id="password-signup"
                             type="password"
+                            autoComplete="new-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Contraseña (mín. 6 caracteres)"

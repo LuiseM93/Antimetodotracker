@@ -72,6 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
           onClick={() => setIsMobileNavOpen(false)}
           className="absolute top-4 right-4 p-2 text-[var(--color-nav-text)] hover:text-white md:hidden"
           aria-label="Cerrar menú"
+          title="Cerrar menú"
         >
           <XMarkIcon className="w-6 h-6" />
         </button>

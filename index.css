@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}

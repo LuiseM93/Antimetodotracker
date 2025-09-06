@@ -252,6 +252,7 @@ export const RewardsScreen: React.FC = () => {
       <Card title="Canjear Código">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch">
             <input 
+                id="redeem-code"
                 type="text"
                 value={redeemCodeInput}
                 onChange={(e) => setRedeemCodeInput(e.target.value)}

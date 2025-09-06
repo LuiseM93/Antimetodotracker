@@ -201,7 +201,7 @@ export const RoutineBuilder: React.FC = () => {
               {habitComponents.map((comp, index) => (
                 <li key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
                   <span className={`text-sm text-[var(--color-text-main)]`}>{comp.category}</span>
-                  <Button onClick={() => handleRemoveComponentFromHabit(index)} variant="ghost" size="sm" className={`text-[var(--color-error)]`} aria-label="Eliminar componente">
+                  <Button onClick={() => handleRemoveComponentFromHabit(index)} variant="ghost" size="sm" className={`text-[var(--color-error)]`} aria-label="Eliminar componente" title="Eliminar componente">
                     <XMarkIcon className="w-4 h-4" />
                   </Button>
                 </li>

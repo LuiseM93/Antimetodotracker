@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient.ts';
 import { FeedItem, FeedItemType } from '../../types.ts';
@@ -16,6 +15,7 @@ export const FeedScreen: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [activeFilter, setActiveFilter] = useState<'all' | 'activities' | 'achievements'>('all');
 
     useEffect(() => {
         const fetchFeed = async () => {
@@ -45,18 +45,28 @@ export const FeedScreen: React.FC = () => {
         fetchFeed();
     }, [user]);
 
+    const handleDeleteItem = (itemId: string) => {
+        setAllFeedItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    };
+
     const filteredFeedItems = useMemo(() => {
+        let items = allFeedItems;
+
+        if (activeFilter === 'activities') {
+            items = items.filter(item => item.type === 'activity_logged');
+        } else if (activeFilter === 'achievements') {
+            items = items.filter(item => item.type === 'milestone_achieved' || item.type === 'reward_unlocked');
+        }
+
         if (!searchTerm) {
-            return allFeedItems;
+            return items;
         }
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
-        return allFeedItems.filter(item => {
-            // Search in username and display name
+        return items.filter(item => {
             if (item.profiles?.username?.toLowerCase().includes(lowerCaseSearchTerm) ||
                 item.profiles?.display_name?.toLowerCase().includes(lowerCaseSearchTerm)) {
                 return true;
             }
-            // Search in activity_logged content
             if (item.type === 'activity_logged' && item.content) {
                 const activityContent = item.content as { custom_title?: string, sub_activity?: string, language?: string };
                 if (activityContent.custom_title?.toLowerCase().includes(lowerCaseSearchTerm) ||
@@ -65,14 +75,12 @@ export const FeedScreen: React.FC = () => {
                     return true;
                 }
             }
-            // Search in milestone_achieved content
             if (item.type === 'milestone_achieved' && item.content) {
                 const milestoneContent = item.content as { language?: string };
                 if (milestoneContent.language?.toLowerCase().includes(lowerCaseSearchTerm)) {
                     return true;
                 }
             }
-            // Search in reward_unlocked content
             if (item.type === 'reward_unlocked' && item.content) {
                 const rewardContent = item.content as { reward_name?: string };
                 if (rewardContent.reward_name?.toLowerCase().includes(lowerCaseSearchTerm)) {
@@ -81,7 +89,19 @@ export const FeedScreen: React.FC = () => {
             }
             return false;
         });
-    }, [allFeedItems, searchTerm]);
+    }, [allFeedItems, searchTerm, activeFilter]);
+
+    const FilterButton: React.FC<{ filterType: 'all' | 'activities' | 'achievements'; label: string; }> = ({ filterType, label }) => (
+        <button
+            onClick={() => setActiveFilter(filterType)}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                activeFilter === filterType
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-[var(--color-card-bg)] text-[var(--color-text-main)] hover:bg-[var(--color-card-bg-hover)]'
+            }`}>
+            {label}
+        </button>
+    );
 
     return (
         <div className="p-4 sm:p-6 space-y-6">
@@ -100,6 +120,7 @@ export const FeedScreen: React.FC = () => {
             <div className="max-w-2xl mx-auto w-full">
                 <div className="relative mb-4">
                     <input 
+                        id="search-feed"
                         type="text"
                         placeholder="Buscar en el feed..."
                         value={searchTerm}
@@ -107,6 +128,12 @@ export const FeedScreen: React.FC = () => {
                         className={`${inputBaseStyle} pl-10`}
                     />
                     <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--color-placeholder-text)]" />
+                </div>
+
+                <div className="flex justify-center space-x-2 mb-6">
+                    <FilterButton filterType="all" label="Todo" />
+                    <FilterButton filterType="activities" label="Actividades" />
+                    <FilterButton filterType="achievements" label="Logros" />
                 </div>
 
                 {loading ? (
@@ -117,13 +144,13 @@ export const FeedScreen: React.FC = () => {
                     <p className="text-center text-red-500 py-20">{error}</p>
                 ) : filteredFeedItems.length === 0 ? (
                     <div className="text-center py-20 text-[var(--color-text-light)]">
-                        <p className="font-semibold">No se encontraron resultados para "{searchTerm}".</p>
-                        <p className="text-sm mt-2">Intenta con otra búsqueda o registra actividades para que tus logros aparezcan aquí.</p>
+                        <p className="font-semibold">No se encontraron resultados.</p>
+                        <p className="text-sm mt-2">Intenta con otra búsqueda o filtro, o registra actividades para que tus logros aparezcan aquí.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {filteredFeedItems.map(item => (
-                            <FeedItemCard key={item.id} item={item} />
+                            <FeedItemCard key={item.id} item={item} onDelete={handleDeleteItem} />
                         ))}
                     </div>
                 )}

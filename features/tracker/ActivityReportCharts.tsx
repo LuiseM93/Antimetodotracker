@@ -1,8 +1,7 @@
-
-
 import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Brush } from 'recharts';
 import { ActivityLogEntry, ActivityCategory, Language, Skill } from '../../types';
+import { formatDurationFromSeconds } from '../../utils/timeUtils';
 import { CATEGORY_COLORS_CHART_HEX, SKILL_COLORS_CHART_HEX, COLORS } from '../../constants';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -32,6 +31,7 @@ const getDailyKey = (d: Date): string => {
     return d.toISOString().split('T')[0];
 }
 
+const SUB_ACTIVITY_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#00C49F', '#FFBB28', '#0088FE', '#F44336', '#E91E63', '#9C27B0'];
 
 export const ActivityReportCharts: React.FC<ActivityReportChartsProps> = ({ logs, selectedLanguage }) => {
   const { appTheme, getCombinedActivities } = useAppContext();
@@ -143,6 +143,32 @@ export const ActivityReportCharts: React.FC<ActivityReportChartsProps> = ({ logs
       .filter(item => item.Horas > 0)
       .sort((a,b) => b.Horas - a.Horas);
   }, [filteredLogs, activityDetailsMap]);
+
+  const subActivityBreakdownData = useMemo(() => {
+    const subActivityData: Record<string, number> = {};
+    filteredLogs.forEach(log => {
+      subActivityData[log.sub_activity] = (subActivityData[log.sub_activity] || 0) + log.duration_seconds;
+    });
+    
+    return Object.entries(subActivityData)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredLogs]);
+
+  const subActivityPieChartData = useMemo(() => {
+    if (subActivityBreakdownData.length <= 6) {
+      return subActivityBreakdownData;
+    }
+    
+    const topItems = subActivityBreakdownData.slice(0, 5);
+    const otherValue = subActivityBreakdownData.slice(5).reduce((acc, curr) => acc + curr.value, 0);
+    
+    if (otherValue > 0) {
+        return [...topItems, { name: 'Otros', value: otherValue }];
+    }
+    return topItems;
+
+  }, [subActivityBreakdownData]);
 
   const chartTextColor = appTheme === 'dark' ? COLORS.textLightDark : '#555555';
   const chartGridColor = appTheme === 'dark' ? '#4B5563' : '#e0e0e0';
@@ -283,6 +309,47 @@ export const ActivityReportCharts: React.FC<ActivityReportChartsProps> = ({ logs
             </BarChart>
           </ResponsiveContainer>
            ) : <p className={`text-center text-[var(--color-text-light)] py-4`}>Sin datos.</p>}
+        </Card>
+
+        <Card title="Desglose por Actividad Específica" className={`${cardClasses} md:col-span-2`}>
+          {subActivityBreakdownData.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie 
+                      data={subActivityPieChartData} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius="50%" 
+                      outerRadius="75%" 
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      paddingAngle={subActivityPieChartData.length > 1 ? 2 : 0}
+                  >
+                    {subActivityPieChartData.map((entry, index) => (
+                      <Cell key={`cell-sub-${index}`} fill={SUB_ACTIVITY_COLORS[index % SUB_ACTIVITY_COLORS.length]} stroke={chartCardBgColor} strokeWidth={2}/>
+                    ))}
+                  </Pie>
+                  <Tooltip {...tooltipProps} formatter={(value: number, name: string) => [`${(value/3600).toFixed(1)} horas (${((value / filteredLogs.reduce((acc, log) => acc + log.duration_seconds, 0)) * 100).toFixed(1)}%)`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="max-h-[300px] overflow-y-auto pr-2 text-sm">
+                <ul>
+                  {subActivityBreakdownData.map((item, index) => (
+                    <li key={index} className="flex justify-between items-center py-1.5 border-b border-[var(--color-border-light)]">
+                      <span className="flex items-center">
+                        <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: SUB_ACTIVITY_COLORS[index % SUB_ACTIVITY_COLORS.length] }}></span>
+                        {item.name}
+                      </span>
+                      <span className="font-mono text-xs">{formatDurationFromSeconds(item.value, 'hms')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : <p className={`text-center text-[var(--color-text-light)] py-4`}>Sin datos.</p>}
         </Card>
       </div>
     </div>

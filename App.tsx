@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext.tsx';
@@ -13,6 +14,7 @@ import { RewardsScreen } from './features/rewards/RewardsScreen.tsx';
 import { LeaderboardScreen } from './features/leaderboard/LeaderboardScreen.tsx'; // New
 import { FeedScreen } from './features/feed/FeedScreen.tsx'; // New
 import { AuthScreen } from './features/auth/Auth.tsx';
+import { initializeOfflineSync } from './services/offlineQueueService.ts';
 
 import { ProfileScreen } from './features/profile/ProfileScreen.tsx';
 import { SearchScreen } from './features/search/SearchScreen.tsx'; // New
@@ -52,7 +54,7 @@ const AuthenticatedAppLayout: React.FC = () => {
         </>
        )}
       
-      <main className={`flex-1 overflow-y-auto text-[var(--color-text-main)] ${mainContentPadding}`}>
+      <main className={`flex-1 overflow-y-auto text-[var(--color-text-main)] ${!isLogScreenPath ? 'md:ml-64' : ''} ${mainContentPadding}`}>
         <Routes>
           <Route path={AppView.DASHBOARD} element={<DashboardScreen />} />
           <Route path={AppView.TRACKER} element={<TrackerScreen />} />
@@ -72,37 +74,31 @@ const AuthenticatedAppLayout: React.FC = () => {
   );
 };
 
+
+// ... (imports)
+
+// ... (AuthenticatedAppLayout)
+
 // This component determines which part of the application to render based on auth state.
 const AppRoutes: React.FC = () => {
-  const { session, userProfile, isInitialLoadComplete, appTheme } = useAppContext();
+  const { session, userProfile, isInitialLoadComplete, isProfileLoaded, appTheme } = useAppContext();
 
   useEffect(() => {
-    // Only set the theme if a user profile doesn't override it (e.g., on a public profile page)
-    const isProfilePage = window.location.hash.startsWith('#/profile/');
-    if (!isProfilePage) {
-        document.documentElement.className = appTheme;
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', appTheme === 'dark' ? '#121212' : '#4a148c');
-        }
+    const htmlElement = document.documentElement;
+    
+    // A comprehensive list of all possible theme classes.
+    const allPossibleThemes = ['dark', 'theme-zen', 'theme-neon', 'theme-ocean', 'theme-japan-neon', 'theme-cafe-parisien', 'theme-fiesta-brasil'];
+
+    // Remove any existing theme class before applying the new one.
+    allPossibleThemes.forEach(theme => {
+      htmlElement.classList.remove(theme);
+    });
+
+    // Apply the new theme class if it's not the default 'light' theme.
+    if (appTheme && appTheme !== 'light') {
+      htmlElement.classList.add(appTheme);
     }
   }, [appTheme]);
-
-  // Handle OAuth redirect
-  useEffect(() => {
-    const handleOAuthRedirect = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Check if this is an OAuth redirect
-      if (urlParams.has('code') || hashParams.has('access_token')) {
-        // Clear the URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-
-    handleOAuthRedirect();
-  }, []);
 
   if (!isInitialLoadComplete) {
     return (
@@ -117,7 +113,17 @@ const AppRoutes: React.FC = () => {
     if (!session) {
       return <AuthScreen />;
     }
-    if (!userProfile) {
+    
+    // ESPERAR a que el perfil se cargue si hay una sesión
+    if (!isProfileLoaded) {
+        return (
+            <div className={`flex items-center justify-center min-h-screen bg-[var(--color-app-bg)]`}>
+                <LoadingSpinner size="lg" text="Cargando perfil..." />
+            </div>
+        );
+    }
+
+    if (!userProfile || !userProfile.username || !userProfile.display_name) {
       return <OnboardingScreen />;
     }
     return <AuthenticatedAppLayout />;
@@ -134,8 +140,15 @@ const AppRoutes: React.FC = () => {
   );
 }
 
+// ... (App)
+
+
 const App: React.FC = () => {
   const [splashScreenDone, setSplashScreenDone] = useState(false);
+
+  useEffect(() => {
+    initializeOfflineSync();
+  }, []);
 
   if (!splashScreenDone) {
     return <SplashScreen onComplete={() => setSplashScreenDone(true)} />;

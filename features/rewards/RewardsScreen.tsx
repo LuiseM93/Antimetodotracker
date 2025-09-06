@@ -218,7 +218,7 @@ export const RewardsScreen: React.FC = () => {
   const rewardsByCategory = AVAILABLE_REWARDS.reduce((acc, reward) => {
     const category = reward.category;
     // Exclude 'Secreto' category from main store display
-    if (category === 'Secreto') return acc;
+    if (category === 'Secreto' || reward.type === 'points') return acc;
     
     if (!acc[category]) {
       acc[category] = [];
@@ -252,8 +252,9 @@ export const RewardsScreen: React.FC = () => {
       <Card title="Canjear Código">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch">
             <input 
+                id="redeem-code"
                 type="text"
-                value={redeemCodeInput}
+                value={redeeemCodeInput}
                 onChange={(e) => setRedeemCodeInput(e.target.value)}
                 placeholder="Ingresa tu código promocional"
                 className={`${inputBaseStyle} flex-grow`}

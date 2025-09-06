@@ -1,7 +1,6 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../contexts/AppContext.tsx';
+import { FocusCard } from './FocusCard.tsx';
 import { Card } from '../../components/Card.tsx';
 import { Button } from '../../components/Button.tsx';
 import { PlusCircleIcon } from '../../components/icons/PlusCircleIcon.tsx';
@@ -14,6 +13,7 @@ import { STAGE_DETAILS, AVAILABLE_LANGUAGES_FOR_LEARNING, HABIT_POINTS_MAP } fro
 import { ActivityLogEntry, AntimethodStage, Language, AppView, DailyActivityGoal, DashboardCardDisplayMode, UserProfile } from '../../types.ts';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { formatDurationFromSeconds, formatTimeHHMMSS } from '../../utils/timeUtils.ts';
+import { getLocalDateISOString } from '../../utils/dateUtils.ts';
 import { PlayIcon as ReLogIcon } from '../../components/icons/TimerIcons.tsx'; 
 import { PencilIcon } from '../../components/icons/PencilIcon.tsx';
 // StreakCard is removed
@@ -49,12 +49,22 @@ export const DashboardScreen: React.FC = () => {
 
 
   const currentStageDetailsObject = getCurrentStageDetails();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateISOString();
   
   const todaysLogsForPrimaryLang = useMemo(() => {
     if (!userProfile?.primaryLanguage) return [];
     return activityLogs.filter(log => log.date === today && log.language === userProfile.primaryLanguage);
   }, [activityLogs, today, userProfile?.primaryLanguage]);
+
+  const learningDaysForPrimaryLang = useMemo(() => {
+    if (!userProfile?.primaryLanguage) return 0;
+    const uniqueDays = new Set(
+      activityLogs
+        .filter(log => log.language === userProfile.primaryLanguage)
+        .map(log => log.date)
+    );
+    return uniqueDays.size;
+  }, [activityLogs, userProfile?.primaryLanguage]);
 
   const dailyTargetsForPrimaryLang = useMemo(() => {
     // For Dashboard display purposes, we might still want to show daily targets specific to a language,
@@ -262,26 +272,24 @@ export const DashboardScreen: React.FC = () => {
 
 
       {currentStageDetailsObject && (
-        <Card 
+        <FocusCard 
           title="Tu Enfoque Actual" 
-          className={`bg-[var(--color-light-purple)] bg-opacity-30 border border-[var(--color-secondary)]`}
-        >
-          <p className={`text-lg font-semibold text-[var(--color-secondary)] mb-1`}>{currentStageDetailsObject.objective}</p>
-          <p className={`text-sm text-[var(--color-text-main)]`}>{currentStageDetailsObject.description}</p>
-        </Card>
+          objective={currentStageDetailsObject.objective}
+          description={currentStageDetailsObject.description}
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
           {dashboardCardMode === 'learning_days_and_health' && (
             <>
-              <LearningDaysCard learningDays={userProfile.learningDaysCount} />
+              <LearningDaysCard learningDays={learningDaysForPrimaryLang} />
               <HabitHealthCard healthPercentage={overallHabitConsistency} />
             </>
           )}
-          {dashboardCardMode === 'learning_days_only' && <LearningDaysCard learningDays={userProfile.learningDaysCount} />}
+          {dashboardCardMode === 'learning_days_only' && <LearningDaysCard learningDays={learningDaysForPrimaryLang} />}
           {dashboardCardMode === 'health_only' && <HabitHealthCard healthPercentage={overallHabitConsistency} />}
-          {dashboardCardMode === 'combined' && <CombinedStatusCard learningDays={userProfile.learningDaysCount} habitHealthPercentage={overallHabitConsistency} />}
+          {dashboardCardMode === 'combined' && <CombinedStatusCard learningDays={learningDaysForPrimaryLang} habitHealthPercentage={overallHabitConsistency} />}
           {/* If 'none', nothing is rendered here by these conditions */}
         </div>
         

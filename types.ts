@@ -1,5 +1,8 @@
 
 
+
+import { Json } from "./services/database.types";
+
 export enum Language {
   SPANISH = "Español",
   ENGLISH = "English",
@@ -70,31 +73,44 @@ export type DashboardCardDisplayMode =
   | 'combined'
   | 'none';
 
+export interface SocialLinks {
+  twitter?: string;
+  youtube?: string;
+  instagram?: string;
+  website?: string;
+  // Add more social links as needed
+}
+
 export interface UserProfile {
+  id: string;
   username: string; // Unique username for profiles/social features
   display_name: string; // User's display name
+  email: string;
   currentStage: AntimethodStage;
   learningLanguages: Language[];
   primaryLanguage?: Language; // For quick logging default
   goals: UserGoal[]; // Personalized goals
   defaultLogDurationSeconds?: number;
   defaultLogTimerMode?: TimerMode;
-  theme?: AppTheme; // Added theme preference
+  theme?: AppTheme; // Public theme for profile
+  appTheme?: AppTheme; // Private theme for the app itself
   favoriteActivities?: string[]; // NEW: Array of activity names (using the unique 'name' from ActivityDetailType)
   dashboardCardDisplayMode?: DashboardCardDisplayMode; 
   customActivities?: ActivityDetailType[]; // NEW: To store user-created activities
 
   // Gamification fields
-  learningDaysCount: number; // Total days with any activity for any learning language
-  focusPoints: number;       // Currency for rewards
-  unlockedRewards: string[]; // Array of reward IDs (includes themes, flairs, secret flairs)
-  profileFlairId: string | null;  // ID of the active flair reward
-  lastActivityDateByLanguage: Record<string, string>; // Tracks last log date for each language for learning day increment
+  focusPoints: number;
+  unlockedRewards: string[];
+  profileFlairId: string | null;
+  learningDaysByLanguage: Record<Language, number>;
   lastHabitPointsAwardDate: string | null; // Tracks if habit points were awarded for today (overall)
   lastRedeemAttemptTimestamp?: number; // For basic rate limiting on redeem attempts
 
   // Social features
   isFollowing?: boolean; // NEW: Indicates if the current user is following this profile
+  aboutMe?: string; // NEW: About me section for the profile
+  socialLinks?: SocialLinks; // NEW: Social media links
+  avatar_url?: string | null;
 }
 
 export interface UserGoal {
@@ -197,6 +213,12 @@ export interface YearInReviewData {
   skillBreakdown: { name: Skill; value: number }[]; // value in seconds
 }
 
+export interface DetailedActivityStats {
+  totalHoursByLanguage: Record<Language, number>;
+  totalHoursByCategory: Record<ActivityCategory, number>;
+  topSubActivities: { name: string; hours: number }[];
+}
+
 // New type for Reward Items
 export interface RewardItem {
   id: string; // Unique identifier for the reward (e.g., "flair_futuro", "theme_zen", "secret_flair_founder")
@@ -225,12 +247,7 @@ export interface FeedItem {
   id: number;
   user_id: string;
   type: FeedItemType;
-  content: {
-    hours?: number;
-    language?: Language;
-    reward_name?: string;
-    reward_type?: 'theme' | 'flair' | 'content';
-  };
+  content: Json;
   created_at: string;
   profiles: {
     username: string;
@@ -239,4 +256,19 @@ export interface FeedItem {
   } | null;
   like_count: number;
   user_has_liked: boolean;
+}
+
+export interface TimerState {
+  status: 'idle' | 'running' | 'paused' | 'completed';
+  mode: TimerMode;
+  startTime: number; // Timestamp
+  pauseTime: number; // Timestamp
+  accumulatedTime: number; // Seconds
+  initialDuration: number; // Seconds
+  activityName: string;
+  category: ActivityCategory | null;
+  customTitle: string;
+  notes: string;
+  language: Language;
+  capturedDateTime: { date: string; time: string } | null;
 }

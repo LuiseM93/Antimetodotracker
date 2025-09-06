@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../../contexts/AppContext.tsx';
 import { ActivityReportCharts } from './ActivityReportCharts';
 import { HourMilestonesCard } from './HourMilestonesCard';
+import { AnnualHeatmap } from './AnnualHeatmap';
 import { UserGoal, Language, ActivityLogEntry } from '../../types.ts';
 import { Button } from '../../components/Button.tsx';
 import { Modal } from '../../components/Modal.tsx';
@@ -48,21 +49,8 @@ export const TrackerScreen: React.FC = () => {
   const [isYearInReviewModalOpen, setIsYearInReviewModalOpen] = useState(false);
   const availableReportYears = useMemo(() => getAvailableReportYears(), [activityLogs, getAvailableReportYears]);
   
-  useEffect(() => {
-    if (userProfile?.primaryLanguage) {
-      if (selectedLanguage !== userProfile.primaryLanguage) {
-        if (userProfile.learningLanguages.includes(userProfile.primaryLanguage)) {
-          setSelectedLanguage(userProfile.primaryLanguage);
-        } else if (userProfile.learningLanguages.length > 0) {
-          setSelectedLanguage(userProfile.learningLanguages[0]);
-        } else {
-          setSelectedLanguage('Total');
-        }
-      }
-    } else if (userProfile && !userProfile.primaryLanguage && selectedLanguage !== 'Total') {
-      setSelectedLanguage('Total');
-    }
-  }, [userProfile?.primaryLanguage, userProfile?.learningLanguages, selectedLanguage]);
+  // This useEffect was removed as it prevented users from selecting a language other than their primary one.
+  // The initial state is set via useState, and manual selection is now fully enabled.
 
   const openAddGoalModal = () => {
     setEditingGoal(null);
@@ -202,6 +190,8 @@ export const TrackerScreen: React.FC = () => {
         selectedLanguage={selectedLanguage} 
       />
 
+      <AnnualHeatmap logs={activityLogs} selectedLanguage={selectedLanguage} />
+
       <ActivityReportCharts logs={activityLogs} selectedLanguage={selectedLanguage} />
       
       <Card title="Historial Detallado de Actividad (Completo)">
@@ -270,6 +260,7 @@ export const TrackerScreen: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center flex-grow">
                       <input
+                        id={`goal-achieved-${goal.id}`}
                         type="checkbox"
                         checked={goal.achieved}
                         onChange={() => toggleUserGoal(goal.id)}

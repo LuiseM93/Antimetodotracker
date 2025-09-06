@@ -8,11 +8,13 @@ import { TrophyIcon } from '../../components/icons/TrophyIcon';
 import { GiftIcon } from '../../components/icons/GiftIcon';
 import { HeartIcon } from '../../components/icons/HeartIcon';
 import { ClockIcon } from '../../components/icons/ClockIcon';
+import { TrashIcon } from '../../components/icons/TrashIcon';
 import { formatDurationFromSeconds } from '../../utils/timeUtils';
 import { formatDistanceToNow } from '../../utils/dateUtils'; 
 import { supabase } from '../../services/supabaseClient';
 import { useAppContext } from '../../contexts/AppContext';
 import { Database } from '../../services/database.types';
+import { LoadingSpinner } from '../../components/LoadingSpinner.tsx';
 
 const renderMessage = (item: FeedItem) => {
     const userName = (
@@ -67,11 +69,14 @@ const getIconForType = (type: FeedItemType) => {
     }
 };
 
-export const FeedItemCard: React.FC<{ item: FeedItem }> = ({ item }) => {
+export const FeedItemCard: React.FC<{ item: FeedItem, onDelete: (itemId: string) => void }> = ({ item, onDelete }) => {
     const { user } = useAppContext();
     const [likeCount, setLikeCount] = useState(item.like_count);
     const [hasLiked, setHasLiked] = useState(item.user_has_liked);
     const [isLikeLoading, setIsLikeLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const isOwner = user?.id === item.user_id;
 
     const handleLikeToggle = async () => {
         if (!user || isLikeLoading) return;
@@ -117,6 +122,42 @@ export const FeedItemCard: React.FC<{ item: FeedItem }> = ({ item }) => {
         setIsLikeLoading(false);
     };
 
+    const handleDelete = async () => {
+        if (!isOwner || isDeleting) return;
+
+        const confirmation = window.confirm("¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.");
+        if (!confirmation) return;
+
+        setIsDeleting(true);
+        try {
+            // Primero, eliminar los likes asociados para evitar problemas de foreign key.
+            await supabase.from('feed_item_likes').delete().match({ feed_item_id: item.id });
+
+            // Luego, eliminar la publicación principal.
+            const { data, error } = await supabase
+                .from('feed_items')
+                .delete()
+                .match({ id: item.id })
+                .select(); // Needed to get the deleted rows back
+
+            if (error) {
+                throw error;
+            }
+
+            // If data is empty, it means RLS prevented the deletion.
+            if (!data || data.length === 0) {
+                throw new Error("La política de seguridad de la base de datos (RLS) no permitió el borrado.");
+            }
+
+            onDelete(item.id);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Ocurrió un error inesperado.";
+            console.error("Error deleting feed item:", error);
+            alert(`No se pudo eliminar la publicación: ${errorMessage}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     if (!item.profiles) {
         return (
@@ -148,7 +189,7 @@ export const FeedItemCard: React.FC<{ item: FeedItem }> = ({ item }) => {
                     {getIconForType(item.type)}
                 </div>
             </div>
-             <div className="border-t border-[var(--color-border-light)] px-4 py-2">
+             <div className="border-t border-[var(--color-border-light)] px-4 py-2 flex justify-between items-center">
                 <button 
                     onClick={handleLikeToggle}
                     disabled={!user || isLikeLoading}
@@ -157,6 +198,20 @@ export const FeedItemCard: React.FC<{ item: FeedItem }> = ({ item }) => {
                     <HeartIcon className={`w-5 h-5 ${hasLiked ? 'text-red-500' : 'text-gray-400'}`} filled={hasLiked}/>
                     <span className="font-medium">{likeCount} {likeCount === 1 ? 'Ánimo' : 'Ánimos'}</span>
                 </button>
+                {isOwner && (
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="text-sm text-[var(--color-text-light)] hover:text-red-500 disabled:opacity-50 transition-colors p-1"
+                        aria-label="Eliminar publicación"
+                    >
+                        {isDeleting ? (
+                            <LoadingSpinner size="w-4 h-4" />
+                        ) : (
+                            <TrashIcon className="w-5 h-5" />
+                        )}
+                    </button>
+                )}
             </div>
         </Card>
     );

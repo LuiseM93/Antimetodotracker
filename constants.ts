@@ -213,7 +213,7 @@ export const ONBOARDING_SCREENS = [
   },
   {
     title: "Tú Tienes el Control",
-    text: "Esta app es tu centro de mando para registrar tu inmersión y visualizar tu progreso. Es 100% gratuita y sin anuncios. ⚠️Importante: Tus datos se guardan solo en este navegador. ¡Recuerda exportarlos desde Configuración para tener un respaldo!",
+    text: "Esta app es tu centro de mando para registrar tu inmersión y visualizar tu progreso. Es 100% gratuita y sin anuncios. Tus datos se sincronizan en la nube de forma segura para que accedas a ellos desde cualquier lugar, y también se guardan localmente para un uso más rápido y sin conexión. ¡Tienes control total para exportar tus datos cuando quieras!",
     image: "./assets/welearnthisway.png"
   },
   {

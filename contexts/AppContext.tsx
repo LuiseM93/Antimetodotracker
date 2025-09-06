@@ -1,10 +1,12 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, ReactNode } from 'react';
-import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem } from '../types.ts';
+import { UserProfile, ActivityLogEntry, Language, AntimethodStage, UserGoal, DailyActivityGoal, Resource, SavedDailyRoutine, AppDataExport, TimerMode, AppTheme, AppView, YearInReviewData, ActivityCategory, Skill, ActivityDetailType, DashboardCardDisplayMode, RewardItem, FeedItemType } from '../types.ts';
 import { storageService } from '../services/storageService.ts';
+import { getLocalDateISOString } from '../utils/dateUtils.ts';
 import { INITIAL_RESOURCES, STAGE_DETAILS, DEFAULT_DAILY_GOALS, AVAILABLE_LANGUAGES_FOR_LEARNING, ANTIMETHOD_ACTIVITIES_DETAILS, LEARNING_DAY_POINTS_AWARD, HABIT_POINTS_MAP, DEFAULT_DASHBOARD_CARD_DISPLAY_MODE, AVAILABLE_REWARDS, ALL_REWARD_DEFINITIONS, HOUR_MILESTONES } from '../constants.ts';
 import { supabase } from '../services/supabaseClient.ts';
 import type { Session, User } from '@supabase/supabase-js';
 import { Database } from '../services/database.types.ts';
+import { Json } from '../types.ts';
 
 const USER_PROFILE_KEY = 'ANTIMETODO_USER_PROFILE_V5'; 
 const ACTIVITY_LOGS_KEY = 'ANTIMETODO_ACTIVITY_LOGS_V3';
@@ -35,9 +37,9 @@ interface AppContextType {
   savedDailyRoutines: SavedDailyRoutine[];
   isLoading: boolean;
   isInitialLoadComplete: boolean;
+  isProfileLoaded: boolean;
   appTheme: AppTheme;
   
-  // Auth methods
   signInWithPassword: typeof supabase.auth.signInWithPassword;
   signUp: typeof supabase.auth.signUp;
   signInWithGoogle: () => Promise<any>;
@@ -45,7 +47,7 @@ interface AppContextType {
 
   initializeUserProfile: (profile: UserProfile) => Promise<{ success: boolean; error?: any }>;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
-  updateAppTheme: (theme: AppTheme, fromRewardOrCode?: boolean) => void;
+  updateAppTheme: (theme: AppTheme) => void;
 
   addActivityLog: (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   bulkAddActivityLogs: (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => Promise<void>;
@@ -79,6 +81,8 @@ interface AppContextType {
   getYearInReviewData: (year: number, language: Language | 'Total') => YearInReviewData;
   getOverallHabitConsistency: () => number;
   getProfileFollowCounts: (profileId: string) => Promise<{ followers: number; following: number }>;
+  getDetailedActivityStats: (userId: string) => Promise<DetailedActivityStats>;
+  getLearningDaysByLanguage: (userId: string) => Promise<Record<Language, number>>; // NEW: Get learning days by language
 
   toggleFavoriteActivity: (activityName: string) => void;
 
@@ -200,10 +204,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   const [savedDailyRoutines, setSavedDailyRoutines] = useState<SavedDailyRoutine[]>([]);
   const [appTheme, setAppTheme] = useState<AppTheme>(DEFAULT_APP_THEME);
   
-  const [isLoading, setIsLoading] = useState(true); // General loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
-  // Authentication listener
   useEffect(() => {
     let mounted = true;
 
@@ -234,14 +238,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle redirect after OAuth
         if (event === 'SIGNED_IN' && session) {
-          // Check if this is a redirect from OAuth
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.has('code') || window.location.hash.includes('access_token')) {
-            // Clear URL parameters and redirect to dashboard
             window.history.replaceState({}, document.title, window.location.pathname);
-            // Force a reload to ensure AppContext re-initializes with the new session
             window.location.reload();
           }
         }
@@ -254,18 +254,74 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     };
   }, []);
 
-  // Data loader for user profile, goals, etc. from local storage, and activity logs from Supabase.
   useEffect(() => {
     const loadData = async () => {
+      if (session?.user?.id === 'mock-user-id-12345') return; // Do not load data for the mock dev user
+      if (!session) {
+        setIsLoading(false);
+        setIsProfileLoaded(true); // Consider profile loaded if no session
+        return;
+      }
       setIsLoading(true);
+      setIsProfileLoaded(false);
       
-      const storedProfile = loadDataWithMigration<UserProfile | null>(USER_PROFILE_KEY, OLD_USER_PROFILE_KEYS, null, migrateUserProfile);
       const storedGoals = loadDataWithMigration<UserGoal[]>(USER_GOALS_KEY, OLD_USER_GOALS_KEYS, []);
       const storedTargets = loadDataWithMigration<DailyActivityGoal[]>(DAILY_TARGETS_KEY, OLD_DAILY_TARGETS_KEYS, DEFAULT_DAILY_GOALS, migrateDailyTargets);
       const storedSavedRoutines = loadDataWithMigration<SavedDailyRoutine[]>(SAVED_DAILY_ROUTINES_KEY, OLD_SAVED_ROUTINES_KEYS, [], migrateSavedRoutines);
       const storedResources = storageService.getItem<Resource[]>(APP_RESOURCES_KEY, INITIAL_RESOURCES);
 
-      // Load activity logs from Supabase if session exists
+      let profileFromSupabase: UserProfile | null = null;
+      let profileFromLocalStorage: UserProfile | null = loadDataWithMigration<UserProfile | null>(USER_PROFILE_KEY, OLD_USER_PROFILE_KEYS, null, migrateUserProfile);
+      let finalProfile: UserProfile | null = profileFromLocalStorage; 
+
+      if (session?.user) {
+        try {
+          const { data: supabaseProfileData, error: supabaseProfileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (supabaseProfileError && supabaseProfileError.code !== 'PGRST116') { 
+            console.error("Error fetching user profile from Supabase:", supabaseProfileError);
+          }
+
+          if (supabaseProfileData) {
+            profileFromSupabase = {
+              id: supabaseProfileData.id,
+              username: supabaseProfileData.username || '',
+              display_name: supabaseProfileData.display_name || '',
+              email: supabaseProfileData.email || '',
+              currentStage: supabaseProfileData.current_stage || 'stage_1',
+              avatar_url: supabaseProfileData.avatar_url || null,
+              theme: supabaseProfileData.theme as AppTheme || DEFAULT_APP_THEME,
+              focusPoints: supabaseProfileData.focus_points || 0,
+              profileFlairId: supabaseProfileData.profile_flair_id || null,
+              learningLanguages: supabaseProfileData.learning_languages || [],
+              learningDaysByLanguage: (supabaseProfileData.learning_days_by_language as Record<Language, number>) || {},
+              customActivities: supabaseProfileData.custom_activities || [],
+              aboutMe: supabaseProfileData.about_me || null,
+              socialLinks: supabaseProfileData.social_links as Json || null,
+              lastHabitPointsAwardDate: profileFromLocalStorage?.lastHabitPointsAwardDate || null,
+              lastRedeemAttemptTimestamp: profileFromLocalStorage?.lastRedeemAttemptTimestamp || undefined,
+              defaultLogDurationSeconds: profileFromLocalStorage?.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
+              defaultLogTimerMode: profileFromLocalStorage?.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+              favoriteActivities: profileFromLocalStorage?.favoriteActivities || [],
+              dashboardCardDisplayMode: profileFromLocalStorage?.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+              primaryLanguage: profileFromLocalStorage?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+              goals: profileFromLocalStorage?.goals || [],
+              unlockedRewards: supabaseProfileData.unlocked_rewards || [],
+              appTheme: profileFromLocalStorage?.appTheme ?? (supabaseProfileData.theme as AppTheme) ?? DEFAULT_APP_THEME,
+            };
+            storageService.setItem(USER_PROFILE_KEY, profileFromSupabase);
+          }
+        } catch (error) {
+          console.error("Error processing user profile from Supabase:", error);
+        }
+      }
+
+      finalProfile = profileFromSupabase || profileFromLocalStorage;
+
       if (session?.user) {
         try {
           const { data: logs, error } = await supabase
@@ -279,37 +335,50 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
             console.error("Error fetching activity logs:", error);
             setActivityLogs([]);
           } else {
-            setActivityLogs(logs as ActivityLogEntry[] || []);
+            const currentLogs = (logs as ActivityLogEntry[] || []);
+            setActivityLogs(currentLogs);
+            if (finalProfile) {
+              const daysByLanguage: Record<Language, Set<string>> = {};
+              currentLogs.forEach(log => {
+                  if (!daysByLanguage[log.language]) {
+                      daysByLanguage[log.language] = new Set();
+                  }
+                  daysByLanguage[log.language].add(log.date);
+              });
+              const calculatedLearningDays: Record<Language, number> = {};
+              for (const lang in daysByLanguage) {
+                  calculatedLearningDays[lang as Language] = daysByLanguage[lang as Language].size;
+              }
+              finalProfile.learningDaysByLanguage = calculatedLearningDays;
+            }
           }
         } catch (error) {
-          console.error("Error fetching activity logs:", error);
-          setActivityLogs([]);
+          console.error("Error processing activity logs:", error);
         }
       } else {
-        // No session, ensure logs are cleared
         setActivityLogs([]);
       }
 
-      if (storedProfile) {
-         const profileWithDefaults: UserProfile = {
-          ...storedProfile,
-          learningDaysCount: storedProfile.learningDaysCount || 0,
-          focusPoints: storedProfile.focusPoints || 0,
-          unlockedRewards: storedProfile.unlockedRewards || [],
-          profileFlairId: storedProfile.profileFlairId || null,
-          lastActivityDateByLanguage: storedProfile.lastActivityDateByLanguage || {},
-          lastHabitPointsAwardDate: storedProfile.lastHabitPointsAwardDate || null,
-          lastRedeemAttemptTimestamp: storedProfile.lastRedeemAttemptTimestamp || undefined,
-          defaultLogDurationSeconds: storedProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
-          defaultLogTimerMode: storedProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
-          theme: storedProfile.theme ?? DEFAULT_APP_THEME,
-          learningLanguages: storedProfile.learningLanguages || [],
-          favoriteActivities: storedProfile.favoriteActivities || [],
-          dashboardCardDisplayMode: storedProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-          customActivities: storedProfile.customActivities || [],
+      if (finalProfile) {
+        const profileWithDefaults: UserProfile = {
+          ...finalProfile,
+          focusPoints: finalProfile.focusPoints || 0,
+          unlockedRewards: finalProfile.unlockedRewards || [],
+          profileFlairId: finalProfile.profileFlairId || null,
+          lastHabitPointsAwardDate: finalProfile.lastHabitPointsAwardDate || null,
+          lastRedeemAttemptTimestamp: finalProfile.lastRedeemAttemptTimestamp || undefined,
+          defaultLogDurationSeconds: finalProfile.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
+          defaultLogTimerMode: finalProfile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
+          theme: finalProfile.theme ?? DEFAULT_APP_THEME, // Public theme
+          appTheme: finalProfile.appTheme ?? DEFAULT_APP_THEME, // Private theme
+          learningLanguages: finalProfile.learningLanguages || [],
+          favoriteActivities: finalProfile.favoriteActivities || [],
+          dashboardCardDisplayMode: finalProfile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+          customActivities: finalProfile.customActivities || [],
+          learningDaysByLanguage: finalProfile.learningDaysByLanguage || {},
         };
         setUserProfile(profileWithDefaults);
-        setAppTheme(profileWithDefaults.theme!);
+        setAppTheme(profileWithDefaults.appTheme!);
       } else {
         setAppTheme(DEFAULT_APP_THEME);
       }
@@ -319,20 +388,20 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setSavedDailyRoutines(storedSavedRoutines);
       setResources(storedResources || INITIAL_RESOURCES);
       
+      setIsProfileLoaded(true);
       setIsLoading(false);
     };
 
     if (isInitialLoadComplete) {
       loadData();
     }
-  }, [isInitialLoadComplete, session]);
+  }, [isInitialLoadComplete, session?.user?.id]);
   
   const signInWithGoogle = async () => {
     try {
-      // Determinar la URL de redirección basada en el entorno
-      const isProduction = window.location.hostname === 'antimetodo.vercel.app';
+      const isProduction = window.location.hostname === 'app.elantimetodo.com';
       const redirectUrl = isProduction 
-        ? 'https://antimetodo.vercel.app/'
+        ? 'https://app.elantimetodo.com/'
         : window.location.origin + '/';
         
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -366,6 +435,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         setUserGoals([]);
         setDailyTargets([]);
         setSavedDailyRoutines([]);
+        setIsProfileLoaded(false);
       }
       return { error };
     } catch (error) {
@@ -374,10 +444,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   };
 
-  const updateAppTheme = useCallback((theme: AppTheme, fromRewardOrCode: boolean = false) => {
+  const updateAppTheme = useCallback((theme: AppTheme) => {
     setAppTheme(theme);
-    if (userProfile && !fromRewardOrCode) {
-      const updatedProfile = { ...userProfile, theme };
+    if (userProfile) {
+      // Update the appTheme property specifically
+      const updatedProfile = { ...userProfile, appTheme: theme };
       setUserProfile(updatedProfile);
       storageService.setItem(USER_PROFILE_KEY, updatedProfile);
     }
@@ -391,6 +462,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     
     try {
       const initialTheme = profile.theme ?? DEFAULT_APP_THEME;
+      const initialAppTheme = profile.appTheme ?? DEFAULT_APP_THEME;
 
       const profileToSync: Database['public']['Tables']['profiles']['Update'] = {
           username: profile.username,
@@ -399,10 +471,13 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           current_stage: profile.currentStage,
           avatar_url: session.user.user_metadata.avatar_url ?? null,
           theme: initialTheme,
+          // appTheme is not a public field, so it's not synced to supabase
           focus_points: profile.focusPoints || 0,
           profile_flair_id: profile.profileFlairId || null,
           learning_languages: profile.learningLanguages || [],
-          learning_days_count: profile.learningDaysCount || 0,
+          learning_days_by_language: profile.learningDaysByLanguage || {},
+          about_me: profile.aboutMe || null,
+          social_links: profile.socialLinks || null,
       };
 
       const { error } = await supabase.from('profiles').upsert({ ...profileToSync, id: session.user.id });
@@ -428,20 +503,20 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           defaultLogTimerMode: profile.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
           primaryLanguage: initialPrimaryLanguage,
           theme: initialTheme,
+          appTheme: initialAppTheme,
           favoriteActivities: profile.favoriteActivities || [],
           dashboardCardDisplayMode: profile.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
           goals: (profile.goals || []).map(g => ({ ...g, currentValue: g.currentValue ?? 0, targetValue: g.targetValue ?? 0, unit: g.unit ?? '' })),
-          learningDaysCount: profile.learningDaysCount || 0,
+          learningDaysByLanguage: profile.learningDaysByLanguage || {},
           focusPoints: profile.focusPoints || 0,
           unlockedRewards: profile.unlockedRewards || [],
           profileFlairId: profile.profileFlairId || null,
-          lastActivityDateByLanguage: profile.lastActivityDateByLanguage || {},
           lastHabitPointsAwardDate: profile.lastHabitPointsAwardDate || null,
           lastRedeemAttemptTimestamp: profile.lastRedeemAttemptTimestamp || undefined,
           customActivities: profile.customActivities || [],
       };
       setUserProfile(profileWithDefaults);
-      setAppTheme(initialTheme);
+      setAppTheme(initialAppTheme);
       storageService.setItem(USER_PROFILE_KEY, profileWithDefaults);
       setUserGoals(profileWithDefaults.goals);
       storageService.setItem(USER_GOALS_KEY, profileWithDefaults.goals);
@@ -456,6 +531,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     setUserProfile(prev => {
       if (!prev) return null;
       let profileInProgress = { ...prev, ...updates };
+      
+      // Ensure collections are always arrays
       profileInProgress.learningLanguages = updates.learningLanguages !== undefined ? updates.learningLanguages : prev.learningLanguages;
       profileInProgress.favoriteActivities = updates.favoriteActivities !== undefined ? updates.favoriteActivities : prev.favoriteActivities;
       profileInProgress.unlockedRewards = updates.unlockedRewards !== undefined ? updates.unlockedRewards : prev.unlockedRewards;
@@ -478,11 +555,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         defaultLogDurationSeconds: profileInProgress.defaultLogDurationSeconds ?? DEFAULT_LOG_DURATION_SECONDS,
         defaultLogTimerMode: profileInProgress.defaultLogTimerMode ?? DEFAULT_LOG_TIMER_MODE,
         theme: profileInProgress.theme ?? DEFAULT_APP_THEME,
+        appTheme: profileInProgress.appTheme ?? DEFAULT_APP_THEME,
         dashboardCardDisplayMode: profileInProgress.dashboardCardDisplayMode ?? DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
-        learningDaysCount: profileInProgress.learningDaysCount ?? 0,
         focusPoints: profileInProgress.focusPoints ?? 0,
         profileFlairId: profileInProgress.profileFlairId !== undefined ? profileInProgress.profileFlairId : prev.profileFlairId,
-        lastActivityDateByLanguage: profileInProgress.lastActivityDateByLanguage ?? {},
         lastHabitPointsAwardDate: profileInProgress.lastHabitPointsAwardDate !== undefined ? profileInProgress.lastHabitPointsAwardDate : prev.lastHabitPointsAwardDate,
         lastRedeemAttemptTimestamp: profileInProgress.lastRedeemAttemptTimestamp !== undefined ? profileInProgress.lastRedeemAttemptTimestamp : prev.lastRedeemAttemptTimestamp,
       };
@@ -493,14 +569,41 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
          storageService.setItem(USER_GOALS_KEY, newProfile.goals);
       }
       
-      if (newProfile.theme && (!prev.theme || newProfile.theme !== prev.theme)) {
-        setAppTheme(newProfile.theme);
+      // Only update the visual theme if the appTheme property changes
+      if (newProfile.appTheme && (!prev.appTheme || newProfile.appTheme !== prev.appTheme)) {
+        setAppTheme(newProfile.appTheme);
       }
   
       storageService.setItem(USER_PROFILE_KEY, newProfile);
+
+      if (session?.user) {
+        // We don't sync appTheme to supabase as it's a local-only setting
+        const { appTheme, ...updatesForSupabase } = updates;
+        const profileUpdatesToSync: Partial<Database['public']['Tables']['profiles']['Update']> = {};
+        
+        if (updatesForSupabase.username !== undefined) profileUpdatesToSync.username = updatesForSupabase.username;
+        if (updatesForSupabase.display_name !== undefined) profileUpdatesToSync.display_name = updatesForSupabase.display_name;
+        if (updatesForSupabase.currentStage !== undefined) profileUpdatesToSync.current_stage = updatesForSupabase.currentStage;
+        if (updatesForSupabase.avatar_url !== undefined) profileUpdatesToSync.avatar_url = updatesForSupabase.avatar_url;
+        if (updatesForSupabase.theme !== undefined) profileUpdatesToSync.theme = updatesForSupabase.theme;
+        if (updatesForSupabase.focusPoints !== undefined) profileUpdatesToSync.focus_points = updatesForSupabase.focusPoints;
+        if (updatesForSupabase.profileFlairId !== undefined) profileUpdatesToSync.profile_flair_id = updatesForSupabase.profileFlairId;
+        if (updatesForSupabase.learningLanguages !== undefined) profileUpdatesToSync.learning_languages = updatesForSupabase.learningLanguages;
+        if (updatesForSupabase.learningDaysByLanguage !== undefined) profileUpdatesToSync.learning_days_by_language = updatesForSupabase.learningDaysByLanguage;
+        if (updatesForSupabase.aboutMe !== undefined) profileUpdatesToSync.about_me = updatesForSupabase.aboutMe;
+        if (updatesForSupabase.socialLinks !== undefined) profileUpdatesToSync.social_links = updatesForSupabase.socialLinks;
+
+        if (Object.keys(profileUpdatesToSync).length > 0) {
+          supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
+            .then(({ error }) => {
+              if (error) console.error("Error syncing profile updates to Supabase:", error);
+            });
+        }
+      }
+
       return newProfile;
     });
-  }, [setAppTheme, setUserGoals]);
+  }, [setAppTheme, setUserGoals, session]);
 
   const addActivityLog = useCallback(async (logData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>) => {
     if (!session?.user) {
@@ -543,7 +646,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         return;
       }
       
-      setActivityLogs(prev => [(newLog as ActivityLogEntry), ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      const newLogs = [(newLog as ActivityLogEntry), ...activityLogs];
+      setActivityLogs(newLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       
       const currentTotalSeconds = previousTotalSeconds + newLog.duration_seconds;
       const milestoneHoursCrossed = HOUR_MILESTONES.find(
@@ -555,26 +659,35 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
-        let updatedProfile = { ...prevProfile };
-        const lastDateForLang = prevProfile.lastActivityDateByLanguage[logData.language] || '';
-        if (logData.date > lastDateForLang) {
-          updatedProfile = {
-            ...updatedProfile,
-            learningDaysCount: (prevProfile.learningDaysCount || 0) + 1,
-            focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
-            lastActivityDateByLanguage: {
-              ...prevProfile.lastActivityDateByLanguage,
-              [logData.language]: logData.date,
-            }
-          };
+        
+        const newLearningDaysByLanguage = { ...(prevProfile.learningDaysByLanguage || {}) };
+        const language = newLog.language;
+        const isNewDay = !activityLogs.some(log => log.language === language && log.date === newLog.date);
+
+        if (isNewDay) {
+            newLearningDaysByLanguage[language] = (newLearningDaysByLanguage[language] || 0) + 1;
         }
+
+        const updatedProfile = {
+          ...prevProfile,
+          focusPoints: (prevProfile.focusPoints || 0) + LEARNING_DAY_POINTS_AWARD,
+          learningDaysByLanguage: newLearningDaysByLanguage,
+        };
+        
+        if (isNewDay) {
+            supabase.from('profiles').update({ learning_days_by_language: updatedProfile.learningDaysByLanguage }).eq('id', session.user!.id)
+                .then(({ error }) => {
+                  if (error) console.error("Error syncing learning_days_by_language to Supabase:", error);
+                });
+        }
+
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
         return updatedProfile;
       });
     } catch (error) {
       console.error("Error in addActivityLog:", error);
     }
-  }, [session]);
+  }, [session, activityLogs]);
 
   const bulkAddActivityLogs = useCallback(async (logsData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'>[]) => {
     if (!session?.user) {
@@ -591,7 +704,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }));
 
     try {
-      // Supabase recommends batching inserts for large arrays
       const BATCH_SIZE = 1000;
       for (let i = 0; i < logsToInsert.length; i += BATCH_SIZE) {
         const batch = logsToInsert.slice(i, i + BATCH_SIZE);
@@ -601,7 +713,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         }
       }
 
-      // After successful bulk insert, re-fetch all logs to ensure UI consistency
       const { data: refreshedLogs, error: fetchError } = await supabase
         .from('activity_logs')
         .select('*')
@@ -611,44 +722,50 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       if (fetchError) {
         console.error("Error re-fetching activity logs after bulk insert:", fetchError);
-        // Even if re-fetch fails, the logs are in DB, so we proceed with local update
-        setActivityLogs(prev => [...prev, ...logsData as ActivityLogEntry[]].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const newLogs = [...activityLogs, ...logsData as ActivityLogEntry[]].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setActivityLogs(newLogs);
       } else {
         setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
       }
+      
+      const finalLogs = (refreshedLogs as ActivityLogEntry[]) || activityLogs;
+      const daysByLanguage: Record<Language, Set<string>> = {};
+      finalLogs.forEach(log => {
+          if (!daysByLanguage[log.language]) {
+              daysByLanguage[log.language] = new Set();
+          }
+          daysByLanguage[log.language].add(log.date);
+      });
+      const calculatedLearningDays: Record<Language, number> = {};
+      for (const lang in daysByLanguage) {
+          calculatedLearningDays[lang as Language] = daysByLanguage[lang as Language].size;
+      }
 
-      // Update user profile stats (learning days, focus points) based on the bulk import
       setUserProfile(prevProfile => {
         if (!prevProfile) return null;
-        let updatedProfile = { ...prevProfile };
-        let newLearningDaysCount = prevProfile.learningDaysCount || 0;
-        let newFocusPoints = prevProfile.focusPoints || 0;
-        let newLastActivityDateByLanguage = { ...prevProfile.lastActivityDateByLanguage };
-
-        logsData.forEach(log => {
-          const lastDateForLang = newLastActivityDateByLanguage[log.language] || '';
-          if (log.date > lastDateForLang) {
-            newLearningDaysCount += 1;
-            newFocusPoints += LEARNING_DAY_POINTS_AWARD;
-            newLastActivityDateByLanguage[log.language] = log.date;
-          }
-        });
-
-        updatedProfile = {
-          ...updatedProfile,
-          learningDaysCount: newLearningDaysCount,
-          focusPoints: newFocusPoints,
-          lastActivityDateByLanguage: newLastActivityDateByLanguage,
+        const updatedProfile = {
+          ...prevProfile,
+          learningDaysByLanguage: calculatedLearningDays,
+          focusPoints: (prevProfile.focusPoints || 0) + logsData.length * LEARNING_DAY_POINTS_AWARD,
         };
         storageService.setItem(USER_PROFILE_KEY, updatedProfile);
+        
+        supabase.from('profiles').update({ 
+            learning_days_by_language: updatedProfile.learningDaysByLanguage,
+            focus_points: updatedProfile.focusPoints,
+        }).eq('id', session.user!.id)
+        .then(({ error }) => {
+            if (error) console.error("Error syncing profile after bulk add to Supabase:", error);
+        });
+
         return updatedProfile;
       });
 
     } catch (error) {
       console.error("Error in bulkAddActivityLogs:", error);
-      throw error; // Re-throw to be caught by the calling component
+      throw error;
     }
-  }, [session]);
+  }, [session, activityLogs]);
   
   const updateActivityLog = useCallback(async (updatedLog: ActivityLogEntry) => {
     try {
@@ -806,7 +923,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   const loadDailyRoutine = useCallback((routineId: string) => {
       const routineToLoad = savedDailyRoutines.find(r => r.id === routineId);
       if (routineToLoad) {
-          const loadedTargets = migrateDailyTargets(routineToLoad.targets); // Ensure migration on load
+          const loadedTargets = migrateDailyTargets(routineToLoad.targets);
           setDailyTargets(loadedTargets);
           storageService.setItem(DAILY_TARGETS_KEY, loadedTargets);
       }
@@ -869,7 +986,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   const exportAppData = useCallback((): AppDataExport => {
     return {
       userProfile: storageService.getItem<UserProfile>(USER_PROFILE_KEY),
-      activityLogs: activityLogs, // Use state which is sourced from Supabase
+      activityLogs: activityLogs,
       userGoals: storageService.getItem<UserGoal[]>(USER_GOALS_KEY) || [],
       dailyTargets: storageService.getItem<DailyActivityGoal[]>(DAILY_TARGETS_KEY) || [],
       resources: storageService.getItem<Resource[]>(APP_RESOURCES_KEY) || INITIAL_RESOURCES,
@@ -879,13 +996,12 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const importAppData = useCallback(async (data: AppDataExport): Promise<{success: boolean, error?: string}> => {
     try {
-      // 1. Restore local data (profile, goals, routines, etc.)
       if (data.userProfile) {
           const migratedProfile = migrateUserProfile(data.userProfile);
           if (migratedProfile) {
               setUserProfile(migratedProfile);
               storageService.setItem(USER_PROFILE_KEY, migratedProfile);
-              if (migratedProfile.theme) setAppTheme(migratedProfile.theme);
+              if (migratedProfile.appTheme) setAppTheme(migratedProfile.appTheme);
           }
       }
       if (data.userGoals) {
@@ -907,7 +1023,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           storageService.setItem(APP_RESOURCES_KEY, data.resources);
       }
 
-      // 2. Upload activity logs to Supabase if user is logged in
       if (session?.user && data.activityLogs && data.activityLogs.length > 0) {
           const logsToUpload: Database['public']['Tables']['activity_logs']['Insert'][] = data.activityLogs.map(({ id, created_at, ...log }) => ({
               ...log,
@@ -917,14 +1032,13 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               start_time: log.start_time || null
           }));
           
-          const { error } = await supabase.from('activity_logs').insert(logsToUpload);
+          const { error } = await supabase.from('activity_logs').upsert(logsToUpload);
 
           if (error) {
               console.error("Error batch inserting logs:", error);
               return { success: false, error: "No se pudieron subir los registros de actividad a la nube." };
           }
 
-          // Successfully uploaded, now refresh logs from the cloud
           const { data: refreshedLogs, error: refreshError } = await supabase
               .from('activity_logs')
               .select('*')
@@ -938,7 +1052,6 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
           setActivityLogs(refreshedLogs as ActivityLogEntry[] || []);
       }
       
-      // Clear old local log data if it exists, as it's now in the cloud
       storageService.removeItem(ACTIVITY_LOGS_KEY);
       OLD_ACTIVITY_LOGS_KEYS.forEach(key => storageService.removeItem(key));
 
@@ -949,12 +1062,61 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [session, setAppTheme]);
   
-  const resetAllData = useCallback(() => {
+  const resetAllData = useCallback(async () => {
       const keysToRemove = [
         USER_PROFILE_KEY, ACTIVITY_LOGS_KEY, USER_GOALS_KEY, DAILY_TARGETS_KEY, APP_RESOURCES_KEY, SAVED_DAILY_ROUTINES_KEY,
         ...OLD_USER_PROFILE_KEYS, ...OLD_ACTIVITY_LOGS_KEYS, ...OLD_USER_GOALS_KEYS, ...OLD_DAILY_TARGETS_KEYS, ...OLD_SAVED_ROUTINES_KEYS
       ];
       keysToRemove.forEach(key => storageService.removeItem(key));
+
+      // Delete user data from Supabase
+      if (session?.user?.id) {
+        try {
+          // Delete activity logs
+          const { error: logsError } = await supabase
+            .from('activity_logs')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (logsError) console.error("Error deleting activity logs from Supabase:", logsError);
+
+          // Delete feed item likes
+          const { error: likesError } = await supabase
+            .from('feed_item_likes')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (likesError) console.error("Error deleting feed item likes from Supabase:", likesError);
+
+          // Delete feed items
+          const { error: feedItemsError } = await supabase
+            .from('feed_items')
+            .delete()
+            .eq('user_id', session.user.id);
+          if (feedItemsError) console.error("Error deleting feed items from Supabase:", feedItemsError);
+
+          // Delete relationships (where user is follower or following)
+          const { error: relationshipsFollowerError } = await supabase
+            .from('relationships')
+            .delete()
+            .eq('follower_id', session.user.id);
+          if (relationshipsFollowerError) console.error("Error deleting relationships (follower) from Supabase:", relationshipsFollowerError);
+
+          const { error: relationshipsFollowingError } = await supabase
+            .from('relationships')
+            .delete()
+            .eq('following_id', session.user.id);
+          if (relationshipsFollowingError) console.error("Error deleting relationships (following) from Supabase:", relationshipsFollowingError);
+
+          // Finally, delete the user's profile
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', session.user.id);
+          if (profileError) console.error("Error deleting user profile from Supabase:", profileError);
+
+        } catch (error) {
+          console.error("Error during Supabase data deletion:", error);
+        }
+      }
       
       setUserProfile(null);
       setActivityLogs([]);
@@ -962,8 +1124,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setDailyTargets([]);
       setSavedDailyRoutines([]);
       setResources(INITIAL_RESOURCES);
-      signOut(); // Also sign out from supabase to complete reset
-  }, [signOut]);
+      signOut();
+  }, [signOut, session]);
 
   const getAvailableReportYears = useCallback(() => {
     if (activityLogs.length === 0) return [];
@@ -1010,22 +1172,26 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [activityLogs, userProfile?.customActivities]);
 
   const getOverallHabitConsistency = useCallback((): number => {
-    if (dailyTargets.length === 0) return 0;
+    if (dailyTargets.length === 0 || !userProfile?.primaryLanguage) return 0;
 
     const habitCreationDate = new Date(dailyTargets.reduce((oldest, current) => 
         new Date(current.creationDate) < new Date(oldest) ? current.creationDate : oldest, 
         dailyTargets[0].creationDate
     ));
-    const today = new Date();
-    const daySpan = Math.max(1, Math.round((today.getTime() - habitCreationDate.getTime()) / (1000 * 3600 * 24)));
+    const todayString = getLocalDateISOString();
+    const todayDate = new Date(todayString);
+    const daySpan = Math.max(1, Math.round((todayDate.getTime() - habitCreationDate.getTime()) / (1000 * 3600 * 24)) + 1);
 
     let totalScore = 0;
     for (let i = 0; i < daySpan; i++) {
         const date = new Date(habitCreationDate);
         date.setDate(habitCreationDate.getDate() + i);
-        const dateString = date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
 
-        const logsOnThisDay = activityLogs.filter(log => log.date === dateString && userProfile?.learningLanguages.includes(log.language));
+        const logsOnThisDay = activityLogs.filter(log => log.date === dateString && log.language === userProfile.primaryLanguage);
 
         let dayMinTarget = 0;
         let dayAchieved = 0;
@@ -1048,7 +1214,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }
     
     return daySpan > 0 ? (totalScore / daySpan) * 100 : 0;
-  }, [dailyTargets, activityLogs, userProfile?.learningLanguages]);
+  }, [dailyTargets, activityLogs, userProfile?.primaryLanguage]);
 
   const getProfileFollowCounts = useCallback(async (profileId: string): Promise<{ followers: number; following: number }> => {
     try {
@@ -1088,8 +1254,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const awardHabitPoints = useCallback((habitHealthPercentageForToday: number) => {
-      if (userProfile?.lastHabitPointsAwardDate === new Date().toISOString().split('T')[0]) {
-          return; // Already awarded today
+      if (userProfile?.lastHabitPointsAwardDate === getLocalDateISOString()) {
+          return;
       }
       
       let pointsToAward = 0;
@@ -1101,7 +1267,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       if (pointsToAward > 0) {
           updateUserProfile({ 
               focusPoints: (userProfile?.focusPoints || 0) + pointsToAward,
-              lastHabitPointsAwardDate: new Date().toISOString().split('T')[0],
+              lastHabitPointsAwardDate: getLocalDateISOString(),
           });
       }
   }, [userProfile, updateUserProfile]);
@@ -1126,21 +1292,22 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         updates.profileFlairId = reward.id;
     }
     if (reward.type === 'theme' && reward.value) {
+        // When a theme is purchased, it becomes the public profile theme AND the active app theme.
         updates.theme = reward.value as AppTheme;
+        updates.appTheme = reward.value as AppTheme;
         setAppTheme(reward.value as AppTheme);
     }
     updateUserProfile(updates);
     
-    // Create feed item, unless silent
     if (!silent) {
         createFeedItem('reward_unlocked', { reward_name: reward.name, reward_type: reward.type });
     }
 
-    // Sync profile changes to Supabase
     const profileUpdates: Partial<Database['public']['Tables']['profiles']['Update']> = {
         focus_points: newFocusPoints,
         profile_flair_id: updates.profileFlairId,
-        theme: updates.theme
+        theme: updates.theme,
+        unlocked_rewards: newUnlockedRewards
     };
 
     supabase.from('profiles').update(profileUpdates).eq('id', session.user.id).then(({error}) => {
@@ -1152,7 +1319,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
 
   const unlockRewardById = useCallback((rewardId: string): boolean => {
-    return purchaseReward(rewardId, true); // Use bypassCost=true for code redemption
+    return purchaseReward(rewardId, true);
   }, [purchaseReward]);
 
   const activateFlair = useCallback((flairId: string | null) => {
@@ -1182,11 +1349,104 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     return [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
   }, [userProfile?.customActivities]);
 
+  const getLearningDaysByLanguage = useCallback(async (userId: string): Promise<Record<Language, number>> => {
+    try {
+        const { data: logs, error } = await supabase
+            .from('activity_logs')
+            .select('language, date')
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error("Error fetching activity logs for learning days by language:", error);
+            return {};
+        }
+
+        const daysByLanguage: Record<Language, Set<string>> = {};
+        logs.forEach(log => {
+            if (!daysByLanguage[log.language]) {
+                daysByLanguage[log.language] = new Set();
+            }
+            daysByLanguage[log.language].add(log.date);
+        });
+
+        const result: Record<Language, number> = {};
+        for (const lang in daysByLanguage) {
+            result[lang as Language] = daysByLanguage[lang as Language].size;
+        }
+        return result;
+    } catch (error) {
+        console.error("Error calculating learning days by language:", error);
+        return {};
+    }
+  }, []);
+
+  const getDetailedActivityStats = useCallback(async (userId: string) => {
+    const customActivities = userProfile?.customActivities || [];
+    try {
+      const { data: logs, error } = await supabase
+        .from('activity_logs')
+        .select('language, category, sub_activity, duration_seconds')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error("Error fetching activity logs for detailed stats:", error);
+        return {
+          totalHoursByLanguage: {},
+          totalHoursByCategory: {},
+          topSubActivities: [],
+        };
+      }
+
+      const totalHoursByLanguage: Record<Language, number> = {};
+      const totalHoursByCategory: Record<ActivityCategory, number> = {};
+      const subActivityDurations: Record<string, number> = {};
+
+      logs.forEach(log => {
+        const hours = log.duration_seconds / 3600;
+
+        // Total hours by language
+        totalHoursByLanguage[log.language] = (totalHoursByLanguage[log.language] || 0) + hours;
+
+        // Total hours by category
+        totalHoursByCategory[log.category] = (totalHoursByCategory[log.category] || 0) + hours;
+
+        // Sub-activity durations
+        subActivityDurations[log.sub_activity] = (subActivityDurations[log.sub_activity] || 0) + hours;
+      });
+
+      const topSubActivities = Object.entries(subActivityDurations)
+        .sort(([, hoursA], [, hoursB]) => hoursB - hoursA)
+        .slice(0, 5) // Get top 5
+        .map(([name, hours]) => ({ name, hours: parseFloat(hours.toFixed(1)) }));
+
+      return {
+        totalHoursByLanguage: Object.fromEntries(
+          Object.entries(totalHoursByLanguage).map(([lang, hours]) => [lang, parseFloat(hours.toFixed(1))])
+        ) as Record<Language, number>,
+        totalHoursByCategory: Object.fromEntries(
+          Object.entries(totalHoursByCategory).map(([cat, hours]) => [cat, parseFloat(hours.toFixed(1))])
+        ) as Record<ActivityCategory, number>,
+        topSubActivities,
+      };
+    } catch (error) {
+      console.error("Error calculating detailed activity stats:", error);
+      return {
+        totalHoursByLanguage: {},
+        totalHoursByCategory: {},
+        topSubActivities: [],
+      };
+    }
+  }, []);
+
+    const signInWithPassword = async (credentials: Parameters<typeof supabase.auth.signInWithPassword>[0]) => {
+    return supabase.auth.signInWithPassword(credentials);
+  };
+
   return (
     <AppContext.Provider value={{ 
         session, user, userProfile, activityLogs, userGoals, dailyTargets, resources, savedDailyRoutines,
-        isLoading, isInitialLoadComplete, appTheme,
-        signInWithPassword: (credentials) => supabase.auth.signInWithPassword(credentials),
+        isLoading, isInitialLoadComplete, isProfileLoaded, appTheme,
+        signInWithPassword,
         signUp: (credentials) => supabase.auth.signUp(credentials),
         signInWithGoogle,
         signOut,
@@ -1199,7 +1459,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         getCurrentStageDetails,
         exportAppData, importAppData, resetAllData,
         getAvailableReportYears, getYearInReviewData, getOverallHabitConsistency,
-        getProfileFollowCounts,
+        getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage,
         toggleFavoriteActivity,
         awardHabitPoints, purchaseReward, activateFlair, getRewardById, unlockRewardById,
         addCustomActivity, deleteCustomActivity, getCombinedActivities,

@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext.tsx';
@@ -18,35 +17,43 @@ const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[v
 
 export const SettingsScreen: React.FC = () => {
     const { 
-        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities
+        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities, bulkAddActivityLogs
     } = useAppContext();
     const navigate = useNavigate();
-
-    const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationInput, setResetConfirmationInput] = useState('');
     const [isImporting, setIsImporting] = useState(false);
+    const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const [bulkImportFeedback, setBulkImportFeedback] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const importFileRef = useRef<HTMLInputElement>(null);
+    const [isFormInitialized, setIsFormInitialized] = useState(false);
 
-    // State for Bulk Import
+    const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({});
     const [bulkImportState, setBulkImportState] = useState({
         totalHoursToImport: 0,
-        language: userProfile?.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
+        language: AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language, // Initialize with a default language
         startDate: '',
         endDate: '',
         subActivityPercentages: {} as Record<string, number>, // { "Activity Name": percentage }
     });
-    const [isBulkImporting, setIsBulkImporting] = useState(false);
-    const [bulkImportFeedback, setBulkImportFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
         if (userProfile) {
-            setProfileForm({
-                ...userProfile,
-                defaultLogDurationSeconds: userProfile.defaultLogDurationSeconds || 30 * 60,
-                defaultLogTimerMode: userProfile.defaultLogTimerMode || 'manual',
-                dashboardCardDisplayMode: userProfile.dashboardCardDisplayMode || DEFAULT_DASHBOARD_CARD_DISPLAY_MODE
+            setProfileForm(prevProfileForm => {
+                // Solo inicializa el formulario si aún no se ha llenado
+                if (Object.keys(prevProfileForm).length === 0) {
+                    return {
+                        ...userProfile,
+                        defaultLogDurationSeconds: userProfile.defaultLogDurationSeconds || 30 * 60,
+                        defaultLogTimerMode: userProfile.defaultLogTimerMode || 'manual',
+                        dashboardCardDisplayMode: userProfile.dashboardCardDisplayMode || DEFAULT_DASHBOARD_CARD_DISPLAY_MODE,
+                        aboutMe: userProfile.aboutMe || '',
+                        socialLinks: userProfile.socialLinks || {},
+                    };
+                }
+                return prevProfileForm;
             });
+
             setBulkImportState(prev => ({
                 ...prev,
                 language: userProfile.primaryLanguage || AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language,
@@ -279,6 +286,29 @@ export const SettingsScreen: React.FC = () => {
                         <input id="username" type="text" value={profileForm.username || ''} onChange={e => handleFormChange('username', e.target.value)} className={inputBaseStyle} />
                         <p className="text-xs text-gray-500 mt-1">3-20 caracteres (a-z, 0-9, _). Cambiar esto afectará la URL de tu perfil.</p>
                     </div>
+                    <div>
+                        <label htmlFor="aboutMe" className="block text-sm font-medium text-[var(--color-text-main)]">Acerca de Mí</label>
+                        <textarea id="aboutMe" value={profileForm.aboutMe || ''} onChange={e => handleFormChange('aboutMe', e.target.value)} className={`${inputBaseStyle} h-24 resize-y`} placeholder="Un poco sobre ti..."></textarea>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-md font-medium text-[var(--color-text-main)]">Enlaces Sociales</h3>
+                        <div>
+                            <label htmlFor="twitter" className="block text-sm font-medium text-[var(--color-text-light)]">Twitter URL</label>
+                            <input id="twitter" type="url" value={profileForm.socialLinks?.twitter || ''} onChange={e => handleFormChange('socialLinks', { ...profileForm.socialLinks, twitter: e.target.value })} className={inputBaseStyle} placeholder="https://twitter.com/tu_usuario" />
+                        </div>
+                        <div>
+                            <label htmlFor="youtube" className="block text-sm font-medium text-[var(--color-text-light)]">YouTube URL</label>
+                            <input id="youtube" type="url" value={profileForm.socialLinks?.youtube || ''} onChange={e => handleFormChange('socialLinks', { ...profileForm.socialLinks, youtube: e.target.value })} className={inputBaseStyle} placeholder="https://youtube.com/tu_canal" />
+                        </div>
+                        <div>
+                            <label htmlFor="instagram" className="block text-sm font-medium text-[var(--color-text-light)]">Instagram URL</label>
+                            <input id="instagram" type="url" value={profileForm.socialLinks?.instagram || ''} onChange={e => handleFormChange('socialLinks', { ...profileForm.socialLinks, instagram: e.target.value })} className={inputBaseStyle} placeholder="https://instagram.com/tu_usuario" />
+                        </div>
+                        <div>
+                            <label htmlFor="website" className="block text-sm font-medium text-[var(--color-text-light)]">Sitio Web URL</label>
+                            <input id="website" type="url" value={profileForm.socialLinks?.website || ''} onChange={e => handleFormChange('socialLinks', { ...profileForm.socialLinks, website: e.target.value })} className={inputBaseStyle} placeholder="https://tu_sitio.com" />
+                        </div>
+                    </div>
                 </div>
             </Card>
 
@@ -331,11 +361,28 @@ export const SettingsScreen: React.FC = () => {
             <Card title="Personalización">
                  <div className="space-y-4">
                     <div>
-                        <label htmlFor="appTheme" className="block text-sm font-medium text-[var(--color-text-main)]">Tema de la Aplicación</label>
+                        <label htmlFor="appTheme" className="block text-sm font-medium text-[var(--color-text-main)]">Tema de la Aplicación (Solo para ti)</label>
                         <select
                             id="appTheme"
                             value={appTheme}
                             onChange={e => updateAppTheme(e.target.value as AppTheme)}
+                            className={inputBaseStyle}
+                        >
+                            <option value="light">Claro (Predeterminado)</option>
+                            <option value="dark">Oscuro (Predeterminado)</option>
+                            {availableThemes.map(theme => (
+                                 <option key={theme.id} value={theme.value} disabled={!userProfile.unlockedRewards.includes(theme.id)}>
+                                    {theme.name.replace("Tema: ", "")} {!userProfile.unlockedRewards.includes(theme.id) ? '(Bloqueado)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="profileTheme" className="block text-sm font-medium text-[var(--color-text-main)]">Tema de Perfil (Visible para otros)</label>
+                        <select
+                            id="profileTheme"
+                            value={profileForm.theme || 'light'}
+                            onChange={e => handleFormChange('theme', e.target.value as AppTheme)}
                             className={inputBaseStyle}
                         >
                             <option value="light">Claro (Predeterminado)</option>
@@ -494,7 +541,7 @@ export const SettingsScreen: React.FC = () => {
                     >
                         {isImporting ? 'Importando...' : 'Importar desde archivo'}
                     </Button>
-                    <input type="file" ref={importFileRef} onChange={handleImportFileChange} className="hidden" accept=".json" />
+                    <input id="import-file-input" type="file" ref={importFileRef} onChange={handleImportFileChange} className="hidden" accept=".json" />
                 </div>
              </Card>
              
@@ -524,6 +571,7 @@ export const SettingsScreen: React.FC = () => {
                     Estás a punto de borrar <strong>todos tus datos</strong>. Esta acción es irreversible. Para confirmar, por favor escribe "BORRAR" en el campo de abajo.
                 </p>
                 <input 
+                    id="reset-confirmation"
                     type="text"
                     value={resetConfirmationInput}
                     onChange={(e) => setResetConfirmationInput(e.target.value)}

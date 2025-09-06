@@ -56,16 +56,7 @@ export const GuidesScreen: React.FC = () => {
         </div>
       </div>
 
-      <Card title="Utilidades Adicionales" className="mt-4">
-        <Button 
-            onClick={() => setIsImportGuideModalOpen(true)}
-            variant="secondary"
-            leftIcon={<ArrowUpTrayIcon className="w-5 h-5"/>}
-            className="w-full sm:w-auto"
-        >
-            Guía para Importar Historial con IA
-        </Button>
-      </Card>
+      
 
 
       {activeView === 'activities' && (
@@ -140,30 +131,7 @@ export const GuidesScreen: React.FC = () => {
         </div>
       )}
 
-      <Modal 
-        isOpen={isImportGuideModalOpen} 
-        onClose={() => setIsImportGuideModalOpen(false)}
-        title="Guía de Importación con IA"
-        size="md"
-        footerContent={modalFooterContent}
-      >
-        <div className="space-y-4">
-            <p className="text-[var(--color-text-main)]">
-                Para obtener instrucciones detalladas sobre cómo importar tu historial de actividades desde otros trackers utilizando Inteligencia Artificial, por favor visita nuestra guía completa en línea.
-            </p>
-            <p className="text-[var(--color-text-main)]">
-                Allí encontrarás el prompt necesario y todos los pasos a seguir.
-            </p>
-            <Button
-                variant="primary"
-                onClick={() => window.open(AI_IMPORT_GUIDE_URL, '_blank', 'noopener,noreferrer')}
-                leftIcon={<ExternalLinkIcon className="w-5 h-5"/>}
-                className="w-full"
-            >
-                Visitar Guía de Importación
-            </Button>
-        </div>
-      </Modal>
+      
 
     </div>
   );

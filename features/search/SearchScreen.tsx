@@ -141,6 +141,7 @@ export const SearchScreen: React.FC = () => {
             <Card>
                 <div className="relative">
                     <input
+                        id="search-users-input"
                         type="text"
                         placeholder="Buscar por nombre de usuario..."
                         value={searchTerm}

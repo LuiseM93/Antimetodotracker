@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
     shadow-lg 
     flex flex-col
     transform transition-transform duration-300 ease-in-out
-    md:translate-x-0 md:static md:w-64 md:min-h-screen md:p-4 
+    md:translate-x-0 md:w-64 md:min-h-screen md:p-4 md:overflow-y-auto 
     fixed top-0 left-0 h-full w-64 z-50 p-4 pt-20 md:pt-4 
     ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
   `;
@@ -113,23 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isMobileNavOpen, setIsMobileNavO
               The Button's className handles hover background and focus ring.
               Hover text color is handled by Tailwind's group-hover on children, with 'group' added to Button.
           */}
-          <Button
-            onClick={toggleTheme}
-            variant="ghost" 
-            className={`group w-full flex items-center justify-start space-x-3 p-3 rounded-lg 
-                       hover:bg-[var(--color-nav-hover-bg)] 
-                       focus:ring-[var(--color-accent)] 
-                       transition-colors duration-150 mb-2`}
-            aria-label={`Cambiar a tema ${appTheme === 'light' ? 'oscuro' : 'claro'}`}
-          >
-            {appTheme === 'light' ? 
-              <MoonIcon className="w-6 h-6 text-[var(--color-nav-text)] group-hover:text-[var(--color-nav-active-text)]" /> : 
-              <SunIcon className="w-6 h-6 text-[var(--color-nav-text)] group-hover:text-[var(--color-nav-active-text)]" />
-            }
-            <span className="font-medium text-[var(--color-nav-text)] group-hover:text-[var(--color-nav-active-text)]">
-              Tema {appTheme === 'light' ? 'Oscuro' : 'Claro'}
-            </span>
-          </Button>
+          
           <a
             href="https://luisem93.github.io/ElAntimetodo/"
             target="_blank"

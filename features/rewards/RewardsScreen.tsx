@@ -254,7 +254,7 @@ export const RewardsScreen: React.FC = () => {
             <input 
                 id="redeem-code"
                 type="text"
-                value={redeeemCodeInput}
+                value={redeemCodeInput}
                 onChange={(e) => setRedeemCodeInput(e.target.value)}
                 placeholder="Ingresa tu código promocional"
                 className={`${inputBaseStyle} flex-grow`}

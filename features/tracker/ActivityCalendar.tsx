@@ -92,13 +92,13 @@ export const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ logs, select
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
-        <Button onClick={handlePrevMonth} variant="ghost" size="sm" aria-label="Mes anterior" title="Mes anterior">
+        <Button onClick={handlePrevMonth} variant="ghost" size="sm" aria-label="Mes anterior">
           <ChevronLeftIcon className="w-5 h-5" />
         </Button>
         <h3 className={`text-lg font-poppins font-semibold text-[var(--color-primary)]`}>
           {currentMonthDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
         </h3>
-        <Button onClick={handleNextMonth} variant="ghost" size="sm" aria-label="Mes siguiente" title="Mes siguiente">
+        <Button onClick={handleNextMonth} variant="ghost" size="sm" aria-label="Mes siguiente">
           <ChevronRightIcon className="w-5 h-5" />
         </Button>
       </div>

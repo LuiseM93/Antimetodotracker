@@ -541,7 +541,7 @@ export const SettingsScreen: React.FC = () => {
                     >
                         {isImporting ? 'Importando...' : 'Importar desde archivo'}
                     </Button>
-                    <input id="import-file-input" type="file" ref={importFileRef} onChange={handleImportFileChange} className="hidden" accept=".json" />
+                    <input type="file" ref={importFileRef} onChange={handleImportFileChange} className="hidden" accept=".json" />
                 </div>
              </Card>
              
@@ -571,7 +571,6 @@ export const SettingsScreen: React.FC = () => {
                     Estás a punto de borrar <strong>todos tus datos</strong>. Esta acción es irreversible. Para confirmar, por favor escribe "BORRAR" en el campo de abajo.
                 </p>
                 <input 
-                    id="reset-confirmation"
                     type="text"
                     value={resetConfirmationInput}
                     onChange={(e) => setResetConfirmationInput(e.target.value)}

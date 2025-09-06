@@ -204,7 +204,6 @@ export const FeedItemCard: React.FC<{ item: FeedItem, onDelete: (itemId: string)
                         disabled={isDeleting}
                         className="text-sm text-[var(--color-text-light)] hover:text-red-500 disabled:opacity-50 transition-colors p-1"
                         aria-label="Eliminar publicación"
-                        title="Eliminar publicación"
                     >
                         {isDeleting ? (
                             <LoadingSpinner size="w-4 h-4" />

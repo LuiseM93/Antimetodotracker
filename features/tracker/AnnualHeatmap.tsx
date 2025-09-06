@@ -66,11 +66,11 @@ export const AnnualHeatmap: React.FC<AnnualHeatmapProps> = ({ logs, selectedLang
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
-        <Button onClick={() => setYear(y => y - 1)} variant="ghost" size="sm" aria-label="Año anterior" title="Año anterior">
+        <Button onClick={() => setYear(y => y - 1)} variant="ghost" size="sm" aria-label="Año anterior">
           <ChevronLeftIcon className="w-5 h-5" />
         </Button>
         <h3 className="text-lg font-poppins font-semibold text-[var(--color-primary)]">{year}</h3>
-        <Button onClick={() => setYear(y => y + 1)} variant="ghost" size="sm" aria-label="Año siguiente" title="Año siguiente" disabled={year === new Date().getFullYear()}>
+        <Button onClick={() => setYear(y => y + 1)} variant="ghost" size="sm" aria-label="Año siguiente" disabled={year === new Date().getFullYear()}>
           <ChevronRightIcon className="w-5 h-5" />
         </Button>
       </div>

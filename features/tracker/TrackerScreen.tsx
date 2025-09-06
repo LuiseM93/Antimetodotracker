@@ -260,7 +260,6 @@ export const TrackerScreen: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center flex-grow">
                       <input
-                        id={`goal-achieved-${goal.id}`}
                         type="checkbox"
                         checked={goal.achieved}
                         onChange={() => toggleUserGoal(goal.id)}

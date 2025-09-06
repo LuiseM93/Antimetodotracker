@@ -199,7 +199,6 @@ export const LeaderboardScreen: React.FC = () => {
                     <div className="p-4 space-y-4">
                         <div className="relative">
                             <input 
-                                id="search-users"
                                 type="text"
                                 placeholder="Buscar usuarios por nombre de usuario..."
                                 value={searchTerm}

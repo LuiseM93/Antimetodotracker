@@ -142,7 +142,7 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
     <div className="fixed inset-0 bg-[var(--color-app-bg)] z-50 flex flex-col p-0">
       <header className="flex items-center justify-between p-4 border-b border-[var(--color-border-light)] sticky top-0 bg-[var(--color-app-bg)] z-10">
         <h2 className="text-xl font-poppins font-semibold text-[var(--color-primary)]">Seleccionar Actividad</h2>
-        <Button variant="ghost" onClick={onClose} className="p-2 -mr-2" title="Cerrar">
+        <Button variant="ghost" onClick={onClose} className="p-2 -mr-2">
           <XMarkIcon className="w-6 h-6 text-[var(--color-text-light)]" />
         </Button>
       </header>
@@ -150,7 +150,6 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
       <div className="p-4 space-y-4 sticky top-[73px] bg-[var(--color-app-bg)] z-10 border-b border-[var(--color-border-light)] mb-1">
         <div className="relative">
             <input 
-                id="search-activity-input"
                 type="text"
                 placeholder="Buscar actividad..."
                 value={searchTerm}
@@ -272,7 +271,6 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
             {showCustomInput && (
                 <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-[var(--color-light-purple)]">
                     <input
-                        id="custom-activity-input"
                         type="text"
                         placeholder="Nombre de tu actividad personalizada"
                         value={customActivityName}
@@ -316,7 +314,6 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, onSelect, isFavor
         onClick={(e) => { e.stopPropagation(); onToggleFavorite(activity.name); }}
         className={`p-2 rounded-full ${isFavorite ? 'text-yellow-500 hover:text-yellow-400' : 'text-gray-400 hover:text-yellow-500'}`}
         aria-label={isFavorite ? `Quitar ${activity.name} de favoritos` : `Añadir ${activity.name} a favoritos`}
-        title={isFavorite ? `Quitar ${activity.name} de favoritos` : `Añadir ${activity.name} a favoritos`}
     >
         <StarIcon filled={isFavorite} className="w-6 h-6"/>
     </Button>
@@ -326,7 +323,6 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, onSelect, isFavor
             onClick={(e) => { e.stopPropagation(); onDeleteCustom(activity.name); }}
             className="p-2 rounded-full text-red-500 hover:bg-red-100"
             aria-label={`Eliminar ${activity.name}`}
-            title={`Eliminar ${activity.name}`}
         >
             <TrashIcon className="w-5 h-5"/>
         </Button>

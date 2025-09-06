@@ -296,10 +296,10 @@ export const LogActivityScreen: React.FC = () => {
         <>
           <div className={`text-7xl font-mono font-bold text-[var(--color-primary)] my-8`}>{formatTimeHHMMSS(displaySeconds)}</div>
           <div className="flex justify-center space-x-4">
-             <Button onClick={status === 'running' ? pause : start} variant={status === 'running' ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full">
+             <Button onClick={status === 'running' ? pause : start} variant={status === 'running' ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full" title={status === 'running' ? 'Pausar' : 'Iniciar'}>
               {status === 'running' ? <PauseIcon className="w-8 h-8"/> : <PlayIcon className="w-8 h-8"/>}
             </Button>
-            <Button onClick={reset} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={status === 'idle' && displaySeconds === 0}>
+            <Button onClick={reset} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={status === 'idle' && displaySeconds === 0} title="Reiniciar">
               <ResetIcon className="w-8 h-8"/>
             </Button>
           </div>
@@ -345,10 +345,10 @@ export const LogActivityScreen: React.FC = () => {
             />
           </div>
           <div className="flex justify-center space-x-4 mt-4">
-            <Button onClick={status === 'running' ? pause : start} variant={status === 'running' ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full" disabled={status === 'completed'}>
+            <Button onClick={status === 'running' ? pause : start} variant={status === 'running' ? "warning" : "success"} size="lg" className="px-8 py-4 rounded-full" disabled={status === 'completed'} title={status === 'running' ? 'Pausar' : 'Iniciar'}>
               {status === 'running' ? <PauseIcon className="w-8 h-8"/> : <PlayIcon className="w-8 h-8"/>}
             </Button>
-            <Button onClick={reset} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={status === 'idle' && displaySeconds === timerState.initialDuration}>
+            <Button onClick={reset} variant="outline" size="lg" className="px-8 py-4 rounded-full" disabled={status === 'idle' && displaySeconds === timerState.initialDuration} title="Reiniciar">
               <ResetIcon className="w-8 h-8"/>
             </Button>
           </div>
@@ -361,7 +361,7 @@ export const LogActivityScreen: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-[var(--color-app-bg)]">
       <header className="flex items-center p-4 border-b border-[var(--color-border-light)] sticky top-0 bg-[var(--color-app-bg)] z-10">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mr-2 p-2">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mr-2 p-2" title="Volver">
           <ChevronLeftIcon className="w-6 h-6 text-[var(--color-text-main)]" />
         </Button>
         <h1 className="text-xl font-poppins font-semibold text-[var(--color-primary)]">

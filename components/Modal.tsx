@@ -62,6 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
             className={`text-[var(--color-text-light)] hover:text-[var(--color-accent)] transition-colors`}
             aria-label="Cerrar modal"
+            title="Cerrar modal"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>

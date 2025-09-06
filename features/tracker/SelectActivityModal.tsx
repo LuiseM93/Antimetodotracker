@@ -150,6 +150,7 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
       <div className="p-4 space-y-4 sticky top-[73px] bg-[var(--color-app-bg)] z-10 border-b border-[var(--color-border-light)] mb-1">
         <div className="relative">
             <input 
+                id="search-activity-input"
                 type="text"
                 placeholder="Buscar actividad..."
                 value={searchTerm}
@@ -271,6 +272,7 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
             {showCustomInput && (
                 <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-[var(--color-light-purple)]">
                     <input
+                        id="custom-activity-input"
                         type="text"
                         placeholder="Nombre de tu actividad personalizada"
                         value={customActivityName}

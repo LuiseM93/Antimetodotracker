@@ -120,6 +120,7 @@ export const FeedScreen: React.FC = () => {
             <div className="max-w-2xl mx-auto w-full">
                 <div className="relative mb-4">
                     <input 
+                        id="search-feed"
                         type="text"
                         placeholder="Buscar en el feed..."
                         value={searchTerm}

@@ -51,61 +51,93 @@ export const ProfileScreen: React.FC = () => {
     const [detailedStats, setDetailedStats] = useState<DetailedActivityStats | null>(null);
     const [learningDaysByLanguage, setLearningDaysByLanguage] = useState<Record<Language, number>>({});
 
-    const fetchProfileData = useCallback(async () => {
-        if (!username) {
-            setError("No se ha especificado un nombre de usuario.");
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        setError(null);
-        try {
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, about_me, social_links, custom_activities')
-                .eq('username', username)
-                .single();
-
-            if (profileError || !profileData) {
-              setProfile(null);
-              throw new Error("Perfil no encontrado.");
-            }
-            
-            const daysByLang = await getLearningDaysByLanguage(profileData.id);
-            setLearningDaysByLanguage(daysByLang);
-
-            setProfile({ ...profileData, learning_days_by_language: daysByLang } as PublicProfileData);
-
-            const counts = await getProfileFollowCounts(profileData.id);
-            setFollowerCount(counts.followers);
-            setFollowingCount(counts.following);
-
-            const stats = await getDetailedActivityStats(profileData.id);
-            setDetailedStats(stats);
-
-            if (session?.user) {
-                const { data: followData, error: followError } = await supabase
-                    .from('relationships')
-                    .select('*', { count: 'exact' })
-                    .eq('follower_id', session.user.id)
-                    .eq('following_id', profileData.id)
-                    .maybeSingle();
-                
-                if (followError && followError.code !== 'PGRST116') throw followError;
-                setIsFollowing(!!followData);
-            }
-
-        } catch (err: any) {
-            setError("No se pudo encontrar el perfil de este usuario.");
-            console.error("Error fetching profile:", err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [username, session, getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage]);
-
     useEffect(() => {
+        const fetchProfileData = async () => {
+            if (!username) {
+                setError("No se ha especificado un nombre de usuario.");
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            setError(null);
+            try {
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_by_language, about_me, social_links, custom_activities')
+                    .eq('username', username)
+                    .single();
+
+                if (profileError || !profileData) {
+                  setProfile(null);
+                  throw new Error("Perfil no encontrado.");
+                }
+                
+                setLearningDaysByLanguage(profileData.learning_days_by_language || {});
+                setProfile(profileData as PublicProfileData);
+
+                const counts = await getProfileFollowCounts(profileData.id);
+                setFollowerCount(counts.followers);
+                setFollowingCount(counts.following);
+
+                // Calculate detailed stats directly here, adding an order clause to try and bust any cache
+                const { data: logs, error: logsError } = await supabase
+                    .from('activity_logs')
+                    .select('language, category, sub_activity, duration_seconds')
+                    .eq('user_id', profileData.id)
+                    .order('created_at');
+
+                if (logsError) {
+                    console.error("Error fetching logs for detailed stats:", logsError);
+                } else {
+                    const totalHoursByLanguage: Record<Language, number> = {};
+                    const totalHoursByCategory: Record<ActivityCategory, number> = {};
+                    const subActivityDurations: Record<string, number> = {};
+
+                    logs.forEach(log => {
+                        const hours = log.duration_seconds / 3600;
+                        totalHoursByLanguage[log.language] = (totalHoursByLanguage[log.language] || 0) + hours;
+                        totalHoursByCategory[log.category] = (totalHoursByCategory[log.category] || 0) + hours;
+                        subActivityDurations[log.sub_activity] = (subActivityDurations[log.sub_activity] || 0) + hours;
+                    });
+
+                    const topSubActivities = Object.entries(subActivityDurations)
+                        .sort(([, hoursA], [, hoursB]) => hoursB - hoursA)
+                        .slice(0, 5)
+                        .map(([name, hours]) => ({ name, hours: parseFloat(hours.toFixed(1)) }));
+
+                    setDetailedStats({
+                        totalHoursByLanguage: Object.fromEntries(
+                            Object.entries(totalHoursByLanguage).map(([lang, hours]) => [lang, parseFloat(hours.toFixed(1))])
+                        ) as Record<Language, number>,
+                        totalHoursByCategory: Object.fromEntries(
+                            Object.entries(totalHoursByCategory).map(([cat, hours]) => [cat, parseFloat(hours.toFixed(1))])
+                        ) as Record<ActivityCategory, number>,
+                        topSubActivities,
+                    });
+                }
+
+                if (session?.user) {
+                    const { data: followData, error: followError } = await supabase
+                        .from('relationships')
+                        .select('*', { count: 'exact' })
+                        .eq('follower_id', session.user.id)
+                        .eq('following_id', profileData.id)
+                        .maybeSingle();
+                    
+                    if (followError && followError.code !== 'PGRST116') throw followError;
+                    setIsFollowing(!!followData);
+                }
+
+            } catch (err: any) {
+                setError("No se pudo encontrar el perfil de este usuario.");
+                console.error("Error fetching profile:", err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
         fetchProfileData();
-    }, [fetchProfileData]);
+    }, [username, session, getProfileFollowCounts]);
     
     useEffect(() => {
         const originalTheme = document.documentElement.className;

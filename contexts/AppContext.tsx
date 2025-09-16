@@ -1349,7 +1349,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     return [...ANTIMETHOD_ACTIVITIES_DETAILS, ...(userProfile?.customActivities || [])];
   }, [userProfile?.customActivities]);
 
-  const getLearningDaysByLanguage = useCallback(async (userId: string): Promise<Record<Language, number>> => {
+  const getLearningDaysByLanguage = async (userId: string): Promise<Record<Language, number>> => {
     try {
         const { data: logs, error } = await supabase
             .from('activity_logs')
@@ -1378,9 +1378,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         console.error("Error calculating learning days by language:", error);
         return {};
     }
-  }, []);
+  };
 
-  const getDetailedActivityStats = useCallback(async (userId: string) => {
+  const getDetailedActivityStats = async (userId: string) => {
     const customActivities = userProfile?.customActivities || [];
     try {
       const { data: logs, error } = await supabase
@@ -1436,7 +1436,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         topSubActivities: [],
       };
     }
-  }, []);
+  };
 
     const signInWithPassword = async (credentials: Parameters<typeof supabase.auth.signInWithPassword>[0]) => {
     return supabase.auth.signInWithPassword(credentials);

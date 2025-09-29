@@ -52,7 +52,13 @@ const RewardCard: React.FC<RewardCardProps> = ({
     >
       <div>
         {reward.icon ? (
-            <img src={reward.icon} alt={reward.name} className="w-12 h-12 mx-auto mb-3 object-contain filter dark:brightness-0 dark:invert" />
+            reward.icon.startsWith('icon-style-') ? (
+              <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                <div className={`w-10 h-10 rounded-full ${reward.icon}`}></div>
+              </div>
+            ) : (
+              <img src={reward.icon} alt={reward.name} className="w-12 h-12 mx-auto mb-3 object-contain filter dark:brightness-0 dark:invert" />
+            )
         ) : (
             <DefaultRewardIcon className="w-12 h-12 mx-auto mb-3 text-[var(--color-accent)]" />
         )}
@@ -105,7 +111,7 @@ const RewardCard: React.FC<RewardCardProps> = ({
 
 
 export const RewardsScreen: React.FC = () => {
-  const { userProfile, purchaseReward, activateFlair, appTheme, updateAppTheme, unlockRewardById, updateUserProfile, getRewardById } = useAppContext();
+  const { userProfile, purchaseReward, activateFlair, appTheme, updateAppTheme, unlockRewardById, updateUserProfile, getRewardById, activateProfileFrame } = useAppContext();
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [redeemCodeInput, setRedeemCodeInput] = useState('');
 
@@ -131,6 +137,11 @@ export const RewardsScreen: React.FC = () => {
   const handleActivateFlair = (flairId: string | null) => {
     activateFlair(flairId);
     showFeedback(flairId ? "Título activado." : "Título desactivado.");
+  };
+
+  const handleActivateFrame = (frameId: string | null) => {
+    activateProfileFrame(frameId);
+    showFeedback(frameId ? "Marco activado." : "Marco desactivado.");
   };
 
   const handleActivateTheme = (themeValue: AppTheme) => {
@@ -214,6 +225,12 @@ export const RewardsScreen: React.FC = () => {
       .filter(reward => reward && reward.type === 'flair') as RewardItem[];
   }, [userProfile.unlockedRewards, getRewardById]);
 
+  const unlockedFrameItems = useMemo(() => {
+    return (userProfile.unlockedRewards || [])
+      .map(id => getRewardById(id))
+      .filter(reward => reward && reward.type === 'profile_frame') as RewardItem[];
+  }, [userProfile.unlockedRewards, getRewardById]);
+
 
   const rewardsByCategory = AVAILABLE_REWARDS.reduce((acc, reward) => {
     const category = reward.category;
@@ -282,6 +299,34 @@ export const RewardsScreen: React.FC = () => {
                 {flair.icon && <img src={flair.icon} alt="" className="w-8 h-8 mb-1.5 filter dark:brightness-0 dark:invert opacity-75"/>}
                 <p className={`font-semibold text-sm ${userProfile.profileFlairId === flair.id ? 'text-white' : 'text-[var(--color-primary)]'}`}>{flair.name.replace("Título: ", "")}</p>
                 {userProfile.profileFlairId === flair.id && <span className="text-xs mt-1">(Activo)</span>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {unlockedFrameItems.length > 0 && (
+        <Card title="Mis Marcos Desbloqueados" className="border-t-4 border-blue-500">
+          <p className="text-sm text-[var(--color-text-light)] mb-4">Activa un marco para mostrarlo en tu perfil.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {unlockedFrameItems.map(frame => (
+              <div 
+                key={frame.id} 
+                className={`p-3 rounded-lg border flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer
+                           ${userProfile.active_profile_frame_id === frame.id 
+                             ? 'bg-blue-500 text-white border-blue-500 shadow-lg scale-105' 
+                             : 'bg-[var(--color-card-bg)] hover:bg-blue-50 dark:hover:bg-blue-900/40 border-[var(--color-border-light)]'}`}
+                onClick={() => handleActivateFrame(userProfile.active_profile_frame_id === frame.id ? null : frame.id)}
+              >
+                {frame.icon && frame.icon.startsWith('icon-style-') ? (
+                  <div className="w-10 h-10 mb-1.5 flex items-center justify-center">
+                    <div className={`w-8 h-8 rounded-full ${frame.icon}`}></div>
+                  </div>
+                ) : frame.icon ? (
+                  <img src={frame.icon} alt="" className="w-10 h-10 mb-1.5"/>
+                ) : null}
+                <p className={`font-semibold text-sm ${userProfile.active_profile_frame_id === frame.id ? 'text-white' : 'text-[var(--color-primary)]'}`}>{frame.name.replace("Marco: ", "")}</p>
+                {userProfile.active_profile_frame_id === frame.id && <span className="text-xs mt-1">(Activo)</span>}
               </div>
             ))}
           </div>

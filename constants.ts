@@ -557,13 +557,20 @@ export const AVAILABLE_REWARDS: RewardItem[] = [
   { id: "theme_neon", name: "Tema: Neón Nocturno", description: "Colores vibrantes para estudiar con energía.", type: "theme", cost: 300, value: "theme-neon", category: "Personalización Visual" },
   { id: "theme_ocean", name: "Tema: Brisa Marina", description: "Tonos azules y frescos para una experiencia relajante.", type: "theme", cost: 300, value: "theme-ocean", category: "Personalización Visual" },
   // New Cultural Themes
-  { id: "theme_japan_neon", name: "Tema: Japón Neón", description: "Sumérgete en las vibrantes noches de Tokio.", type: "theme", cost: 400, value: "theme-japan-neon", category: "Personalización Visual" },
-  { id: "theme_cafe_parisien", name: "Tema: Café Parisino", description: "Un ambiente acogedor con el encanto de París.", type: "theme", cost: 400, value: "theme-cafe-parisien", category: "Personalización Visual" },
-  { id: "theme_fiesta_brasil", name: "Tema: Fiesta Brasileña", description: "Colores alegres y energía tropical.", type: "theme", cost: 400, value: "theme-fiesta-brasil", category: "Personalización Visual" },
+  { id: "theme_japan_neon", name: "Tema: Japón Neón", description: "Sumérgete en las vibrantes noches de Tokio.", type: "theme", cost: 3000, value: "theme-japan-neon", category: "Personalización Visual" },
+  { id: "theme_cafe_parisien", name: "Tema: Café Parisino", description: "Un ambiente acogedor con el encanto de París.", type: "theme", cost: 3000, value: "theme-cafe-parisien", category: "Personalización Visual" },
+  { id: "theme_fiesta_brasil", name: "Tema: Fiesta Brasileña", description: "Colores alegres y energía tropical.", type: "theme", cost: 3000, value: "theme-fiesta-brasil", category: "Personalización Visual" },
   // New Point Redemption Rewards
   { id: "redeem_points_1000", name: "Canjeo de 1000 Puntos", description: "Canjea este código para obtener 1000 Puntos de Enfoque.", type: "points", cost: 0, value: "1000", category: "Canjeo" },
   { id: "redeem_points_500", name: "Canjeo de 500 Puntos", description: "Canjea este código para obtener 500 Puntos de Enfoque.", type: "points", cost: 0, value: "500", category: "Canjeo" },
-];
+      // Profile Frames (NEW)
+      { id: 'frame_simple', name: 'Marco: Simple', description: 'Un marco elegante y minimalista.', type: 'profile_frame', cost: 300, value: 'frame-style-simple', icon: 'icon-style-simple', category: 'Marcos de Perfil' },
+      { id: 'frame_neon', name: 'Marco: Neón Azul', description: 'Un marco brillante para destacar tu avatar.', type: 'profile_frame', cost: 500, value: 'frame-style-neon', icon: 'icon-style-neon', category: 'Marcos de Perfil' },
+      { id: 'frame_laurels', name: 'Marco: Laureles de Oro', description: 'Un símbolo de victoria y dedicación.', type: 'profile_frame', cost: 1500, value: 'frame-style-laurels', icon: 'icon-style-laurels', category: 'Marcos de Perfil' },
+      { id: 'frame_rainbow', name: 'Marco: Arcoíris', description: 'Un marco dinámico con todos los colores del espectro.', type: 'profile_frame', cost: 2000, value: 'frame-style-rainbow', icon: 'icon-style-rainbow', category: 'Marcos de Perfil' },
+      { id: 'frame_fire', name: 'Marco: Anillo de Fuego', description: 'Para los que mantienen la llama de la consistencia.', type: 'profile_frame', cost: 3000, value: 'frame-style-fire', icon: 'icon-style-fire', category: 'Marcos de Perfil' },
+      { id: 'frame_glitch', name: 'Marco: Glitch', description: 'Un marco con un efecto digital inestable, para un look tech.', type: 'profile_frame', cost: 4000, value: 'frame-style-glitch', icon: 'icon-style-glitch', category: 'Marcos de Perfil' },
+      { id: 'frame_corona_suprema', name: 'Corona Suprema', description: 'El objeto definitivo. Un símbolo de estatus y dedicación inigualable.', type: 'profile_frame', cost: 20000, value: 'frame-style-corona', icon: 'icon-style-corona', category: 'Marcos de Perfil' },];
 
 // Definitions for Secret Rewards (not displayed in store, only unlockable via code)
 export const SECRET_REWARDS_DEFINITIONS: RewardItem[] = [

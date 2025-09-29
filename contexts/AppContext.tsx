@@ -592,6 +592,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         if (updatesForSupabase.learningDaysByLanguage !== undefined) profileUpdatesToSync.learning_days_by_language = updatesForSupabase.learningDaysByLanguage;
         if (updatesForSupabase.aboutMe !== undefined) profileUpdatesToSync.about_me = updatesForSupabase.aboutMe;
         if (updatesForSupabase.socialLinks !== undefined) profileUpdatesToSync.social_links = updatesForSupabase.socialLinks;
+        if (updatesForSupabase.active_profile_frame_id !== undefined) profileUpdatesToSync.active_profile_frame_id = updatesForSupabase.active_profile_frame_id;
 
         if (Object.keys(profileUpdatesToSync).length > 0) {
           supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
@@ -1322,17 +1323,17 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     return purchaseReward(rewardId, true);
   }, [purchaseReward]);
 
-  const activateFlair = useCallback((flairId: string | null) => {
-      if (userProfile) {
-          if (flairId === null || userProfile.unlockedRewards.includes(flairId)) {
-            updateUserProfile({ profileFlairId: flairId });
-          }
-      }
-  }, [userProfile, updateUserProfile]);
-  
-  const getRewardById = useCallback((rewardId: string): RewardItem | undefined => {
-    return ALL_REWARD_DEFINITIONS.find(r => r.id === rewardId);
-  }, []);
+    const activateFlair = (flairId: string | null) => {
+        updateUserProfile({ profileFlairId: flairId });
+    };
+
+    const activateProfileFrame = (frameId: string | null) => {
+        updateUserProfile({ active_profile_frame_id: frameId });
+    };
+
+    const getRewardById = useCallback((rewardId: string): RewardItem | undefined => {
+        return ALL_REWARD_DEFINITIONS.find(r => r.id === rewardId);
+    }, []);
 
   const addCustomActivity = useCallback((activity: ActivityDetailType) => {
       updateUserProfile({ customActivities: [...(userProfile?.customActivities || []), activity] });
@@ -1461,7 +1462,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         getAvailableReportYears, getYearInReviewData, getOverallHabitConsistency,
         getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage,
         toggleFavoriteActivity,
-        awardHabitPoints, purchaseReward, activateFlair, getRewardById, unlockRewardById,
+        awardHabitPoints, purchaseReward, activateFlair, activateProfileFrame, getRewardById, unlockRewardById,
         addCustomActivity, deleteCustomActivity, getCombinedActivities,
         bulkAddActivityLogs, createFeedItem
     }}>

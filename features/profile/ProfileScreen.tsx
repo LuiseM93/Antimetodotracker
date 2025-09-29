@@ -63,7 +63,7 @@ export const ProfileScreen: React.FC = () => {
             try {
                 const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
-                    .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, learning_languages, learning_days_by_language, about_me, social_links, custom_activities')
+                    .select('id, username, display_name, current_stage, avatar_url, theme, focus_points, profile_flair_id, active_profile_frame_id, learning_languages, learning_days_by_language, about_me, social_links, custom_activities')
                     .eq('username', username)
                     .single();
 
@@ -198,6 +198,7 @@ export const ProfileScreen: React.FC = () => {
     }
 
     const activeFlair = profile.profile_flair_id ? ALL_REWARD_DEFINITIONS.find(r => r.id === profile.profile_flair_id) : null;
+    const activeFrame = profile.active_profile_frame_id ? ALL_REWARD_DEFINITIONS.find(r => r.id === profile.active_profile_frame_id) : null;
     const stageDetails = profile.current_stage ? STAGE_DETAILS[profile.current_stage as AntimethodStage] : null;
     const isOwnProfile = session?.user?.id === profile.id;
 
@@ -205,16 +206,17 @@ export const ProfileScreen: React.FC = () => {
         <div className="min-h-screen bg-[var(--color-app-bg)] bg-cover bg-center bg-fixed" style={{ backgroundImage: `var(--theme-background-image-url-light)` }}>
            <div className="min-h-screen backdrop-blur-sm bg-black/10">
                 <div className="max-w-4xl mx-auto p-4 sm:p-8">
-                    <div className="relative text-center mb-8">
-                        <div className="relative inline-block">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Avatar" className="w-32 h-32 rounded-full mx-auto ring-4 ring-[var(--color-accent)] ring-offset-4 ring-offset-[var(--color-app-bg)] shadow-lg" />
-                            ) : (
-                                <UserCircleIcon className="w-32 h-32 text-[var(--color-primary)] mx-auto" />
-                            )}
-                        </div>
-                        <h1 className="text-4xl font-poppins font-bold mt-4 text-[var(--color-primary)]">{profile.display_name}</h1>
-                        <p className="text-lg text-[var(--color-text-light)]">@{profile.username}</p>
+                                    <div className="relative text-center mb-8">
+                                        <div className="relative inline-block w-32 h-32">
+                                            {profile.avatar_url ? (
+                                                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-full ring-4 ring-[var(--color-accent)] ring-offset-4 ring-offset-[var(--color-app-bg)] shadow-lg" />
+                                            ) : (
+                                                <UserCircleIcon className="w-full h-full text-[var(--color-primary)]" />
+                                            )}
+                                                                    {activeFrame && activeFrame.value && (
+                                                                        <div className={`absolute top-0 left-0 w-full h-full rounded-full pointer-events-none ${activeFrame.value}`}></div>
+                                                                    )}                                        </div>
+                                        <h1 className="text-4xl font-poppins font-bold mt-4 text-[var(--color-primary)]">{profile.display_name}</h1>                        <p className="text-lg text-[var(--color-text-light)]">@{profile.username}</p>
                         {activeFlair && (
                              <span className="mt-2 inline-block text-sm font-semibold px-3 py-1 rounded-full bg-[var(--color-accent)] text-[var(--color-text-inverse)] shadow-sm">
                                 {activeFlair.value}

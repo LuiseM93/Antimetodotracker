@@ -6,3 +6,74 @@ body {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
 }
+
+/* --- Profile Frame Styles (Safe Version) --- */
+@keyframes frame-rotate {
+  100% { transform: rotate(360deg); }
+}
+
+.frame-style-simple {
+  border: 3px dashed #a0aec0;
+}
+
+.frame-style-neon {
+  border: 3px solid #2563eb;
+  box-shadow: 0 0 8px #3b82f6, inset 0 0 8px #3b82f6;
+}
+
+.frame-style-laurels {
+  border: 6px double #ca8a04;
+}
+
+.frame-style-rainbow {
+  border: 4px solid transparent;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, red, yellow, green, blue, violet, red) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  animation: frame-rotate 4s linear infinite;
+}
+
+.frame-style-fire {
+  border: 4px solid transparent;
+  border-radius: 9999px;
+  background: conic-gradient(from 180deg at 50% 50%, #ef4444, #f97316, #facc15, #f97316, #ef4444) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+}
+
+.frame-style-glitch {
+  box-shadow: 
+    2px 2px 0px #3b82f6, 
+    -2px -2px 0px #ef4444;
+}
+
+/* --- Corona Suprema Style --- */
+@keyframes float-crown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.frame-style-corona::before {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  top: -28%;
+  left: 20%;
+  background-image: url('/assets/corona.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: float-crown 4s ease-in-out infinite;
+}
+
+/* --- Reward Icon Styles (Safe Version) --- */
+.icon-style-simple { border: 3px dashed #a0aec0; }
+.icon-style-neon { border: 2px solid #2563eb; box-shadow: 0 0 4px #3b82f6; }
+.icon-style-laurels { border: 3px double #ca8a04; }
+.icon-style-rainbow { background: conic-gradient(from 0deg, red, yellow, green, blue, violet, red); }
+.icon-style-fire { background: conic-gradient(from 180deg at 50% 50%, #ef4444, #f97316, #facc15); }
+.icon-style-glitch { box-shadow: 1px 1px 0px #3b82f6, -1px -1px 0px #ef4444; }
+.icon-style-corona { background-image: url('/assets/corona.png'); background-size: contain; background-repeat: no-repeat; background-position: center; }

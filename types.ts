@@ -102,6 +102,7 @@ export interface UserProfile {
   focusPoints: number;
   unlockedRewards: string[];
   profileFlairId: string | null;
+  active_profile_frame_id: string | null; // NEW: For equipped profile frame
   learningDaysByLanguage: Record<Language, number>;
   lastHabitPointsAwardDate: string | null; // Tracks if habit points were awarded for today (overall)
   lastRedeemAttemptTimestamp?: number; // For basic rate limiting on redeem attempts
@@ -224,11 +225,11 @@ export interface RewardItem {
   id: string; // Unique identifier for the reward (e.g., "flair_futuro", "theme_zen", "secret_flair_founder")
   name: string;
   description: string;
-  type: 'theme' | 'flair' | 'content' | 'timer_sound' | 'points'; // Extend as needed
+  type: 'theme' | 'flair' | 'content' | 'timer_sound' | 'points' | 'profile_frame'; // Extend as needed
   cost: number; // In Focus Points (0 for secret/code-only rewards not meant for purchase)
   value?: string; // e.g., theme class name, flair text, content ID
   icon?: string; // Path or identifier for an icon
-  category: 'Personalización Visual' | 'Perfil' | 'Contenido Exclusivo' | 'Secreto'; // For grouping in store or internal logic
+  category: 'Personalización Visual' | 'Perfil' | 'Contenido Exclusivo' | 'Secreto' | 'Marcos de Perfil'; // For grouping in store or internal logic
 }
 
 export interface LeaderboardEntry {

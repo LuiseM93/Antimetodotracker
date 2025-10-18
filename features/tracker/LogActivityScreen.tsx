@@ -53,6 +53,7 @@ export const LogActivityScreen: React.FC = () => {
   const [manualForm, setManualForm] = useState<{
     language: Language,
     category: ActivityCategory | null,
+    skill: Skill | null,
     sub_activity: string,
     customTitle: string,
     date: string,
@@ -64,6 +65,7 @@ export const LogActivityScreen: React.FC = () => {
   }>({
     language: userProfile?.primaryLanguage || (userProfile?.learningLanguages && userProfile.learningLanguages.length > 0 ? userProfile.learningLanguages[0] : AVAILABLE_LANGUAGES_FOR_LEARNING[0] as Language),
     category: null,
+    skill: null,
     sub_activity: '',
     customTitle: '',
     date: getLocalDateISOString(),
@@ -144,7 +146,11 @@ export const LogActivityScreen: React.FC = () => {
   }, [timerState?.status, showCompletionNotification]);
 
   const handleActivitySelected = (activity: ActivityDetailType) => {
-    updateActivityDetails({ activityName: activity.name, category: activity.category || null });
+    updateActivityDetails({
+        activityName: activity.name,
+        category: activity.category || null,
+        skill: activity.skill || null,
+    });
     setIsActivityModalOpen(false);
   };
   
@@ -153,6 +159,7 @@ export const LogActivityScreen: React.FC = () => {
       ...prev,
       sub_activity: activity.name,
       category: activity.category || null,
+      skill: activity.skill || null,
     }));
     setIsSelectActivityModalOpenForManualLog(false);
   };
@@ -193,7 +200,12 @@ export const LogActivityScreen: React.FC = () => {
     
     const isPredefined = ANTIMETHOD_ACTIVITIES_DETAILS.some(a => a.name === timerState.activityName);
     if (!isPredefined) {
-        addCustomActivity({ name: timerState.activityName, description: 'Actividad personalizada', category: timerState.category, skill: Skill.STUDY });
+        addCustomActivity({
+            name: timerState.activityName,
+            description: 'Actividad personalizada',
+            category: timerState.category,
+            skill: timerState.skill || Skill.STUDY,
+        });
     }
 
     if (!navigator.onLine) {
@@ -233,7 +245,12 @@ export const LogActivityScreen: React.FC = () => {
     
     const isPredefined = ANTIMETHOD_ACTIVITIES_DETAILS.some(a => a.name === finalSubActivity);
     if (!isPredefined) {
-        addCustomActivity({ name: finalSubActivity, description: 'Actividad personalizada', category: manualForm.category, skill: Skill.STUDY });
+        addCustomActivity({
+            name: finalSubActivity,
+            description: 'Actividad personalizada',
+            category: manualForm.category,
+            skill: manualForm.skill || Skill.STUDY,
+        });
     }
 
     const logEntryData: Omit<ActivityLogEntry, 'id' | 'user_id' | 'created_at'> = {
@@ -261,6 +278,15 @@ export const LogActivityScreen: React.FC = () => {
             await updateActivityLog({ ...currentLogEntry, ...logEntryData, id: currentLogEntry.id } as ActivityLogEntry);
         } else {
             await addActivityLog(logEntryData);
+            if (durationInSeconds > 300) {
+                await createFeedItem('activity_logged', {
+                    language: logEntryData.language,
+                    category: logEntryData.category,
+                    sub_activity: logEntryData.sub_activity,
+                    custom_title: logEntryData.custom_title,
+                    duration_seconds: durationInSeconds
+                });
+            }
         }
     }
     

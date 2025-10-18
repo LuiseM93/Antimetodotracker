@@ -593,6 +593,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         if (updatesForSupabase.aboutMe !== undefined) profileUpdatesToSync.about_me = updatesForSupabase.aboutMe;
         if (updatesForSupabase.socialLinks !== undefined) profileUpdatesToSync.social_links = updatesForSupabase.socialLinks;
         if (updatesForSupabase.active_profile_frame_id !== undefined) profileUpdatesToSync.active_profile_frame_id = updatesForSupabase.active_profile_frame_id;
+        if (updatesForSupabase.customActivities !== undefined) profileUpdatesToSync.custom_activities = updatesForSupabase.customActivities;
 
         if (Object.keys(profileUpdatesToSync).length > 0) {
           supabase.from('profiles').update(profileUpdatesToSync).eq('id', session.user.id)
@@ -1336,7 +1337,9 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     }, []);
 
   const addCustomActivity = useCallback((activity: ActivityDetailType) => {
-      updateUserProfile({ customActivities: [...(userProfile?.customActivities || []), activity] });
+      if (!userProfile?.customActivities?.some(a => a.name === activity.name)) {
+        updateUserProfile({ customActivities: [...(userProfile?.customActivities || []), activity] });
+      }
   }, [userProfile, updateUserProfile]);
 
   const deleteCustomActivity = useCallback((activityName: string) => {

@@ -593,6 +593,11 @@ export const SettingsScreen: React.FC = () => {
                     </Button>
                 </div>
             </Modal>
+
+            <footer className="text-center mt-8 text-sm text-[var(--color-text-light)]">
+                <p>Desarrollado por José Luis Hernández Ramírez</p>
+                <p>Última actualización: 17 de octubre 2025, 7:42 p.m. (Actividades personalizadas)</p>
+            </footer>
         </div>
     );
 };

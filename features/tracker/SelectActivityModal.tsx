@@ -28,6 +28,8 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<ActivityCategory | 'All'>('All');
   const [customActivityName, setCustomActivityName] = useState('');
+  const [customActivityCategory, setCustomActivityCategory] = useState<ActivityCategory>(ActivityCategory.ACTIVE_IMMERSION);
+  const [customActivitySkill, setCustomActivitySkill] = useState<Skill>(Skill.STUDY);
   const [showCustomInput, setShowCustomInput] = useState(false);
   
   const allActivities = useMemo(() => getCombinedActivities(), [getCombinedActivities]);
@@ -121,8 +123,8 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
     onActivitySelected({
         name: customActivityName.trim(),
         description: "Actividad personalizada registrada por el usuario.",
-        category: ActivityCategory.ACTIVE_IMMERSION, 
-        skill: Skill.STUDY 
+        category: customActivityCategory, 
+        skill: customActivitySkill
     });
   };
 
@@ -279,6 +281,34 @@ export const SelectActivityModal: React.FC<SelectActivityModalProps> = ({ isOpen
                         onChange={e => setCustomActivityName(e.target.value)}
                         className={inputBaseStyle}
                     />
+                    <div>
+                        <label className="block text-sm font-medium text-[var(--color-text-main)] mb-2">Categoría:</label>
+                        <div className="flex flex-wrap gap-2">
+                            {ACTIVITY_CATEGORIES_OPTIONS.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCustomActivityCategory(cat)}
+                                    className={`${categoryButtonBase} ${customActivityCategory === cat ? categoryButtonActive : categoryButtonInactive}`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-[var(--color-text-main)] mb-2">Habilidad Principal:</label>
+                        <div className="flex flex-wrap gap-2">
+                            {Object.values(Skill).map(skill => (
+                                <button
+                                    key={skill}
+                                    onClick={() => setCustomActivitySkill(skill)}
+                                    className={`${categoryButtonBase} ${customActivitySkill === skill ? categoryButtonActive : categoryButtonInactive}`}
+                                >
+                                    {skill}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <div className="flex gap-2">
                         <Button variant="primary" onClick={handleSelectCustomActivity} className="flex-1">Guardar Personalizada</Button>
                         <Button variant="ghost" onClick={() => setShowCustomInput(false)} className="flex-1">Cancelar</Button>

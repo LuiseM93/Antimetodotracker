@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { TimerState, TimerMode, Language, ActivityCategory } from '../types';
+import { TimerState, TimerMode, Language, ActivityCategory, Skill } from '../types';
 import { storageService } from '../services/storageService';
 import { getLocalDateISOString } from '../utils/dateUtils.ts';
 
@@ -19,6 +19,7 @@ const getInitialState = (defaultState: {
   initialDuration: defaultState.initialDuration,
   activityName: 'Ninguna seleccionada',
   category: null,
+  skill: null,
   customTitle: '',
   notes: '',
   language: defaultState.language,

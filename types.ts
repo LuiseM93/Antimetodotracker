@@ -268,6 +268,7 @@ export interface TimerState {
   initialDuration: number; // Seconds
   activityName: string;
   category: ActivityCategory | null;
+  skill: Skill | null;
   customTitle: string;
   notes: string;
   language: Language;

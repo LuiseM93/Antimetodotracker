@@ -66,6 +66,11 @@ export const GuidesScreen: React.FC = () => {
             Estas son las prácticas fundamentales recomendadas por El Antimétodo. Entender cada una te ayudará a aplicar la filosofía de manera efectiva.
           </p>
           <div className="space-y-4">
+            <Card title="Actividades Personalizadas" className="shadow-md bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-400">
+                <p className={`text-[var(--color-text-main)]`}>
+                    Puedes crear las actividades personalizadas que necesites. Al registrarlas, podrás escoger el tipo de actividad y la habilidad principal, y se guardarán en tu historial y estadísticas como si fueran una actividad normal.
+                </p>
+            </Card>
             {ANTIMETHOD_ACTIVITIES_DETAILS.map(activity => (
               <Card key={activity.name} title={activity.name} className="shadow-md">
                 <p className={`text-[var(--color-text-main)]`}>{activity.description}</p>

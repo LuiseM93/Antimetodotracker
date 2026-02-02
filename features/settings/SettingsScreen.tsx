@@ -17,7 +17,7 @@ const inputBaseStyle = "w-full p-2.5 bg-[var(--color-input-bg)] border border-[v
 
 export const SettingsScreen: React.FC = () => {
     const { 
-        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities, bulkAddActivityLogs
+        userProfile, updateUserProfile, signOut, exportAppData, importAppData, resetAllData, appTheme, updateAppTheme, addActivityLog, getCombinedActivities, bulkAddActivityLogs, generateAIReport
     } = useAppContext();
     const navigate = useNavigate();
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -99,6 +99,19 @@ export const SettingsScreen: React.FC = () => {
         link.href = jsonString;
         link.download = `antimetodo_backup_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
+    };
+
+    const handleAIExportData = () => {
+        const report = generateAIReport();
+        const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `antimetodo_ia_report_${new Date().toISOString().split('T')[0]}.md`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const handleImportClick = () => {
@@ -530,7 +543,10 @@ export const SettingsScreen: React.FC = () => {
              <Card title="Gestión de Datos" className="border-t-4 border-yellow-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button onClick={handleExportData} variant="outline" leftIcon={<ArrowDownTrayIcon />}>
-                        Exportar mis datos
+                        Exportar mis datos (Backup)
+                    </Button>
+                    <Button onClick={handleAIExportData} variant="outline" leftIcon={<ArrowDownTrayIcon />}>
+                        Exportar para Análisis de IA
                     </Button>
                     <Button 
                         onClick={handleImportClick} 
@@ -596,7 +612,7 @@ export const SettingsScreen: React.FC = () => {
 
             <footer className="text-center mt-8 text-sm text-[var(--color-text-light)]">
                 <p>Desarrollado por José Luis Hernández Ramírez</p>
-                <p>Última actualización: 17 de octubre 2025, 7:42 p.m. (Actividades personalizadas)</p>
+                <p>Última actualización: 1 de febrero del 2026, 9:40 (Exportación para ia y fix en el tracker avanzado)</p>
             </footer>
         </div>
     );

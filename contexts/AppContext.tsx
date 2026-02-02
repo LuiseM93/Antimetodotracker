@@ -75,6 +75,7 @@ interface AppContextType {
 
   exportAppData: () => AppDataExport;
   importAppData: (data: AppDataExport) => Promise<{success: boolean, error?: string}>;
+  generateAIReport: () => string;
   resetAllData: () => void;
 
   getAvailableReportYears: () => number[];
@@ -324,22 +325,43 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
       if (session?.user) {
         try {
-          const { data: logs, error } = await supabase
-            .from('activity_logs')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('date', { ascending: false })
-            .order('created_at', { ascending: false });
+          const allLogs: ActivityLogEntry[] = [];
+          const BATCH_SIZE = 1000;
+          let page = 0;
+          let hasMore = true;
 
-          if (error) {
-            console.error("Error fetching activity logs:", error);
-            setActivityLogs([]);
-          } else {
-            const currentLogs = (logs as ActivityLogEntry[] || []);
-            setActivityLogs(currentLogs);
-            if (finalProfile) {
+          while (hasMore) {
+            const { data: logs, error } = await supabase
+              .from('activity_logs')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .order('date', { ascending: false })
+              .order('created_at', { ascending: false })
+              .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
+            
+            if (error) {
+              console.error("Error fetching activity logs:", error);
+              // Set logs to what has been fetched so far and stop
+              setActivityLogs(allLogs);
+              hasMore = false; // exit loop
+              throw error;
+            }
+
+            if (logs && logs.length > 0) {
+              allLogs.push(...(logs as ActivityLogEntry[]));
+              page++;
+              if (logs.length < BATCH_SIZE) {
+                hasMore = false;
+              }
+            } else {
+              hasMore = false;
+            }
+          }
+
+          setActivityLogs(allLogs);
+          if (finalProfile) {
               const daysByLanguage: Record<Language, Set<string>> = {};
-              currentLogs.forEach(log => {
+              allLogs.forEach(log => {
                   if (!daysByLanguage[log.language]) {
                       daysByLanguage[log.language] = new Set();
                   }
@@ -351,9 +373,10 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
               }
               finalProfile.learningDaysByLanguage = calculatedLearningDays;
             }
-          }
         } catch (error) {
           console.error("Error processing activity logs:", error);
+          // In case of error, we set activity logs to empty array.
+          setActivityLogs([]);
         }
       } else {
         setActivityLogs([]);
@@ -985,6 +1008,101 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     return null;
   }, [userProfile]);
 
+  const generateAIReport = useCallback((): string => {
+    if (!userProfile) {
+      return "No hay datos de perfil para generar un reporte.";
+    }
+
+    let report = `# Reporte de Aprendizaje para Análisis de IA\n\n`;
+    report += `**Fecha de Exportación:** ${new Date().toISOString()}\n\n`;
+
+    report += `## Perfil del Usuario\n`;
+    report += `- **Nombre de Usuario:** ${userProfile.username || 'No especificado'}\n`;
+    report += `- **Nombre a Mostrar:** ${userProfile.display_name || 'No especificado'}\n`;
+    report += `- **Idiomas en Aprendizaje:** ${userProfile.learningLanguages.join(', ') || 'Ninguno'}\n`;
+    report += `- **Idioma Principal (para hábitos):** ${userProfile.primaryLanguage}\n`;
+    report += `- **Etapa del Antimétodo:** ${userProfile.currentStage}\n`;
+    report += `- **Sobre Mí:** ${userProfile.aboutMe || 'No especificado'}\n\n`;
+
+    const totalSeconds = activityLogs.reduce((sum, log) => sum + log.duration_seconds, 0);
+    const totalHours = (totalSeconds / 3600).toFixed(2);
+    const uniqueDays = new Set(activityLogs.map(log => log.date)).size;
+    
+    report += `## Resumen General del Aprendizaje\n`;
+    report += `- **Total de Horas Registradas:** ${totalHours} horas\n`;
+    report += `- **Total de Días de Actividad:** ${uniqueDays} días\n\n`;
+
+    report += `## Desglose por Idioma\n`;
+    userProfile.learningLanguages.forEach(lang => {
+      const langLogs = activityLogs.filter(log => log.language === lang);
+      if (langLogs.length === 0) return;
+
+      const langTotalSeconds = langLogs.reduce((sum, log) => sum + log.duration_seconds, 0);
+      const langTotalHours = (langTotalSeconds / 3600).toFixed(2);
+      
+      const categorySeconds: Record<string, number> = {};
+      langLogs.forEach(log => {
+        categorySeconds[log.category] = (categorySeconds[log.category] || 0) + log.duration_seconds;
+      });
+
+      const topActivities = langLogs.reduce((acc, log) => {
+        acc[log.sub_activity] = (acc[log.sub_activity] || 0) + log.duration_seconds;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const sortedTopActivities = Object.entries(topActivities)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      report += `### ${lang}\n`;
+      report += `- **Horas Totales en ${lang}:** ${langTotalHours} horas\n`;
+      report += `- **Desglose por Categoría:**\n`;
+      Object.entries(categorySeconds).forEach(([cat, sec]) => {
+        report += `  - ${cat}: ${(sec / 3600).toFixed(2)} horas\n`;
+      });
+      report += `- **Top 5 Actividades:**\n`;
+      sortedTopActivities.forEach(([name, sec]) => {
+        report += `  - ${name}: ${(sec / 3600).toFixed(2)} horas\n`;
+      });
+      report += `\n`;
+    });
+
+    report += `## Hábitos Diarios (Metas)\n`;
+    if (dailyTargets.length > 0) {
+      dailyTargets.forEach(target => {
+        report += `- **Hábito para ${target.language}:**\n`;
+        report += `  - **Meta Mínima:** ${target.minSecondsTotal / 60} minutos\n`;
+        report += `  - **Meta Óptima:** ${target.optimalSecondsTotal / 60} minutos\n`;
+        report += `  - **Componentes:** ${target.components.map(c => c.category).join(', ')}\n`;
+      });
+    } else {
+      report += "No hay hábitos diarios definidos.\n";
+    }
+    report += `\n`;
+
+    report += `## Metas Personales\n`;
+    if (userGoals.length > 0) {
+      userGoals.forEach(goal => {
+        report += `- **Meta:** ${goal.description} (${goal.language || 'General'})\n`;
+        report += `  - **Estado:** ${goal.achieved ? 'Lograda' : 'Pendiente'}\n`;
+        if (goal.targetValue > 0) {
+          report += `  - **Progreso:** ${goal.currentValue} / ${goal.targetValue} ${goal.unit}\n`;
+        }
+      });
+    } else {
+      report += "No hay metas personales definidas.\n";
+    }
+    report += `\n`;
+
+    report += `## Datos Crudos (Raw Data)\n`;
+    report += "A continuación se incluye el volcado completo de los registros de actividad en formato JSON para un análisis detallado.\n\n";
+    report += "```json\n";
+    report += JSON.stringify(activityLogs, null, 2);
+    report += "\n```\n";
+
+    return report;
+  }, [userProfile, activityLogs, userGoals, dailyTargets]);
+
   const exportAppData = useCallback((): AppDataExport => {
     return {
       userProfile: storageService.getItem<UserProfile>(USER_PROFILE_KEY),
@@ -1461,7 +1579,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
         saveCurrentDailyTargetsAsRoutine, loadDailyRoutine, deleteDailyRoutine, updateSavedDailyRoutine,
         addResource, updateResource, deleteResource,
         getCurrentStageDetails,
-        exportAppData, importAppData, resetAllData,
+        exportAppData, importAppData, generateAIReport, resetAllData,
         getAvailableReportYears, getYearInReviewData, getOverallHabitConsistency,
         getProfileFollowCounts, getDetailedActivityStats, getLearningDaysByLanguage,
         toggleFavoriteActivity,
